@@ -24,10 +24,10 @@ class AppTextStyles {
   );
 
   static const TextStyle subtitle = TextStyle(
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: FontWeight.w400,
     color: AppColors.textGray,
-    height: 1.4,
+    height: 1.5,
   );
 
   static const TextStyle fieldLabel = TextStyle(

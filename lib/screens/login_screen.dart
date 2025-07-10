@@ -34,45 +34,26 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-
-              // Header
-              Text('Login', style: AppTextStyles.header),
-
               const SizedBox(height: 60),
 
               // Logo
               Center(
                 child: Container(
-                  width: 200,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Image.asset(
-                      'lib/assets/image.png',
-                      width: 160,
-                      height: 60,
-                      fit: BoxFit.contain,
-                    ),
+                  child: Image.asset(
+                    'lib/assets/image.png',
+                    width: 280,
+                    height: 100,
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               // Subtitle
               Center(
                 child: Text(
-                  'Innovación en soluciones electrónicas y\ncomputación para el sector automotriz',
+                  'Introduzca su dirección de correo electrónico y\ncontraseña para iniciar sesión',
                   textAlign: TextAlign.center,
                   style: AppTextStyles.subtitle,
                 ),
