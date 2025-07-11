@@ -42,29 +42,36 @@ class StatusSelector extends StatelessWidget {
             style: AppTextStyles.fieldLabel.copyWith(fontSize: 16),
           ),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: 2.5,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
             children: _statusOptions.map((status) {
               final isSelected = status == currentStatus;
               return GestureDetector(
                 onTap: () => onStatusChanged(status),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: isSelected ? _getStatusColor(status) : Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected ? _getStatusColor(status) : Colors.grey.withOpacity(0.3),
                       width: 1,
                     ),
                   ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: isSelected ? Colors.white : AppColors.textGray,
+                  child: Center(
+                    child: Text(
+                      status,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: isSelected ? Colors.white : AppColors.textGray,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),

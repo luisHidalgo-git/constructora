@@ -3,6 +3,7 @@ import '../utils/app_colors.dart';
 import '../screens/home_screen.dart';
 import '../screens/projects_screen.dart';
 import '../screens/update_project_screen.dart';
+import '../screens/login_screen.dart';
 
 class BottomNavigationWidget extends StatelessWidget {
   final int currentIndex;
@@ -48,15 +49,72 @@ class BottomNavigationWidget extends StatelessWidget {
         );
         break;
       case 4:
-        // Navigate to Profile screen (placeholder)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Perfil - Próximamente'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        _showLogoutDialog(context);
         break;
     }
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Cerrar Sesión',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+          ),
+          content: const Text(
+            '¿Estás seguro de que deseas cerrar sesión?',
+            style: TextStyle(
+              fontSize: 16,
+              color: AppColors.textGray,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(
+                  color: AppColors.textGray,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Cerrar Sesión',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -118,7 +176,7 @@ class BottomNavigationWidget extends StatelessWidget {
               _buildNavItem(
                 context,
                 Icons.person_outline,
-                'Perfil',
+                'Salir',
                 4,
                 currentIndex == 4,
               ),
