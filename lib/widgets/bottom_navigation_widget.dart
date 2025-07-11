@@ -40,11 +40,11 @@ class BottomNavigationWidget extends StatelessWidget {
         );
         break;
       case 3:
-        // Navigate to Reports/Analytics screen (placeholder)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Reportes - Próximamente'),
             behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
           ),
         );
         break;
@@ -57,6 +57,7 @@ class BottomNavigationWidget extends StatelessWidget {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
@@ -131,54 +132,41 @@ class BottomNavigationWidget extends StatelessWidget {
         ],
       ),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        top: false,
+        child: Container(
+          height: 70,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(
                 context,
+                Icons.home_outlined,
                 Icons.home,
                 'Inicio',
                 0,
-                currentIndex == 0,
               ),
               _buildNavItem(
                 context,
+                Icons.bar_chart_outlined,
                 Icons.bar_chart,
                 'Proyectos',
                 1,
-                currentIndex == 1,
               ),
-              GestureDetector(
-                onTap: () => _onItemTapped(context, 2),
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.add,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-              ),
+              _buildAddButton(context),
               _buildNavItem(
                 context,
                 Icons.folder_outlined,
+                Icons.folder,
                 'Reportes',
                 3,
-                currentIndex == 3,
               ),
               _buildNavItem(
                 context,
                 Icons.person_outline,
+                Icons.person,
                 'Salir',
                 4,
-                currentIndex == 4,
               ),
             ],
           ),
@@ -187,35 +175,60 @@ class BottomNavigationWidget extends StatelessWidget {
     );
   }
 
+  Widget _buildAddButton(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _onItemTapped(context, 2),
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: const BoxDecoration(
+          color: AppColors.primary,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 24,
+        ),
+      ),
+    );
+  }
+
   Widget _buildNavItem(
     BuildContext context,
-    IconData icon,
+    IconData outlinedIcon,
+    IconData filledIcon,
     String label,
     int index,
-    bool isActive,
   ) {
+    final bool isActive = currentIndex == index;
+    
     return GestureDetector(
       onTap: () => _onItemTapped(context, index),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? AppColors.primary : AppColors.iconGray,
-            size: 24,
-          ),
-          if (isActive) ...[
-            const SizedBox(height: 4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isActive ? filledIcon : outlinedIcon,
+              color: isActive ? AppColors.primary : AppColors.iconGray,
+              size: 24,
+            ),
+            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 10,
                 color: isActive ? AppColors.primary : AppColors.iconGray,
-                fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
-        ],
+        ),
       ),
     );
   }

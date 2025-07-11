@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/home_screen.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_date_field.dart';
 import '../widgets/custom_file_picker.dart';
@@ -121,7 +122,17 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      } else {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          (route) => false,
+                        );
+                      }
+                    },
                     child: Container(
                       width: 40,
                       height: 40,

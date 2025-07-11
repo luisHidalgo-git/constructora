@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/home_screen.dart';
 import '../widgets/project_detail_card.dart';
 import '../widgets/bottom_navigation_widget.dart';
 import '../models/project_model.dart';
@@ -23,7 +24,13 @@ class ProjectsScreen extends StatelessWidget {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HomeScreen()),
+                        (route) => false,
+                      );
+                    },
                     child: Container(
                       width: 40,
                       height: 40,
