@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/project_detail_card.dart';
+import '../screens/create_project_screen.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 
@@ -122,7 +123,16 @@ class ProjectsScreen extends StatelessWidget {
               children: [
                 _buildNavItem(Icons.home_outlined, false),
                 _buildNavItem(Icons.bar_chart, true),
-                Container(
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CreateProjectScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
                   width: 56,
                   height: 56,
                   decoration: const BoxDecoration(
@@ -133,6 +143,7 @@ class ProjectsScreen extends StatelessWidget {
                     Icons.add,
                     color: Colors.white,
                     size: 24,
+                  ),
                   ),
                 ),
                 _buildNavItem(Icons.folder_outlined, false),

@@ -25,7 +25,9 @@ class ProjectCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ProjectsScreen()),
+          MaterialPageRoute(
+            builder: (context) => const ProjectsScreen(),
+          ),
         );
       },
       child: Container(
@@ -56,9 +58,9 @@ class ProjectCard extends StatelessWidget {
                   ),
                 ),
               ),
-
+              
               const SizedBox(width: 16),
-
+              
               // Project Info
               Expanded(
                 child: Column(
@@ -70,9 +72,7 @@ class ProjectCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             title,
-                            style: AppTextStyles.fieldLabel.copyWith(
-                              fontSize: 14,
-                            ),
+                            style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -97,16 +97,16 @@ class ProjectCard extends StatelessWidget {
                         ),
                       ],
                     ),
-
+                    
                     const SizedBox(height: 4),
-
+                    
                     Text(
                       subtitle,
                       style: AppTextStyles.subtitle.copyWith(fontSize: 12),
                     ),
-
+                    
                     const SizedBox(height: 12),
-
+                    
                     // Progress Bar
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
