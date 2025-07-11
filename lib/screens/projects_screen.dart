@@ -19,7 +19,7 @@ class ProjectsScreen extends StatelessWidget {
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
               child: Row(
                 children: [
                   GestureDetector(
@@ -79,7 +79,7 @@ class ProjectsScreen extends StatelessWidget {
             // Projects List
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
                 children: [
                   ...sampleProjects.map((project) => Padding(
                     padding: const EdgeInsets.only(bottom: 20),
@@ -94,7 +94,6 @@ class ProjectsScreen extends StatelessWidget {
                       imageUrl: project.imageUrl,
                     ),
                   )).toList(),
-                  const SizedBox(height: 100),
                 ],
               ),
             ),

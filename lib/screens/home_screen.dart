@@ -20,7 +20,7 @@ class HomeScreen extends StatelessWidget {
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
               child: Row(
                 children: [
                   Column(
@@ -112,7 +112,7 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Stats Cards
             Padding(
@@ -140,7 +140,7 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
 
             // Projects Section
             Expanded(
@@ -156,7 +156,7 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     // Section Header
                     Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -181,24 +181,19 @@ class HomeScreen extends StatelessWidget {
                     // Projects List
                     Expanded(
                       child: ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
                         children: [
-                          ...sampleProjects
-                              .map(
-                                (project) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: ProjectCard(
-                                    project: project,
-                                    title: project.name,
-                                    subtitle: project.description,
-                                    progress: project.progress,
-                                    status: project.status,
-                                    imageUrl: project.imageUrl,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          const SizedBox(height: 100),
+                          ...sampleProjects.map((project) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: ProjectCard(
+                              project: project,
+                              title: project.name,
+                              subtitle: project.description,
+                              progress: project.progress,
+                              status: project.status,
+                              imageUrl: project.imageUrl,
+                            ),
+                          )).toList(),
                         ],
                       ),
                     ),
