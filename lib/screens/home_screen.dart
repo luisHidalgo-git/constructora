@@ -52,10 +52,21 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.notifications_outlined,
-                      color: AppColors.iconGray,
-                      size: 20,
+                    child: GestureDetector(
+                      onTap: () {
+                        // Aquí se implementará la funcionalidad del scanner QR
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Scanner QR - Próximamente'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                      child: const Icon(
+                        Icons.qr_code_scanner,
+                        color: AppColors.iconGray,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -172,17 +183,21 @@ class HomeScreen extends StatelessWidget {
                       child: ListView(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         children: [
-                          ...sampleProjects.map((project) => Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: ProjectCard(
-                              project: project,
-                              title: project.name,
-                              subtitle: project.description,
-                              progress: project.progress,
-                              status: project.status,
-                              imageUrl: project.imageUrl,
-                            ),
-                          )).toList(),
+                          ...sampleProjects
+                              .map(
+                                (project) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: ProjectCard(
+                                    project: project,
+                                    title: project.name,
+                                    subtitle: project.description,
+                                    progress: project.progress,
+                                    status: project.status,
+                                    imageUrl: project.imageUrl,
+                                  ),
+                                ),
+                              )
+                              .toList(),
                           const SizedBox(height: 100),
                         ],
                       ),
