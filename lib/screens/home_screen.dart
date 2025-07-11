@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/project_card.dart';
 import '../widgets/stats_card.dart';
-import '../screens/create_project_screen.dart';
+import '../widgets/bottom_navigation_widget.dart';
+import '../models/project_model.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 
@@ -10,6 +11,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sampleProjects = ProjectModel.getSampleProjects();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -168,31 +171,19 @@ class HomeScreen extends StatelessWidget {
                     Expanded(
                       child: ListView(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        children: const [
-                          ProjectCard(
-                            title: 'Centro Comercial Plaza Norte',
-                            subtitle: 'En construcción',
-                            progress: 0.75,
-                            status: 'Activo',
-                            imageUrl: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=400',
-                          ),
-                          SizedBox(height: 16),
-                          ProjectCard(
-                            title: 'Centro Comercial Plaza Norte',
-                            subtitle: 'En construcción',
-                            progress: 0.45,
-                            status: 'Activo',
-                            imageUrl: 'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=400',
-                          ),
-                          SizedBox(height: 16),
-                          ProjectCard(
-                            title: 'Centro Comercial Plaza Norte',
-                            subtitle: 'En construcción',
-                            progress: 0.85,
-                            status: 'Activo',
-                            imageUrl: 'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=400',
-                          ),
-                          SizedBox(height: 100),
+                        children: [
+                          ...sampleProjects.map((project) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: ProjectCard(
+                              project: project,
+                              title: project.name,
+                              subtitle: project.description,
+                              progress: project.progress,
+                              status: project.status,
+                              imageUrl: project.imageUrl,
+                            ),
+                          )).toList(),
+                          const SizedBox(height: 100),
                         ],
                       ),
                     ),
@@ -203,79 +194,7 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.home, 'Inicio', true),
-                _buildNavItem(Icons.bar_chart, '', false),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CreateProjectScreen(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.add,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  ),
-                ),
-                _buildNavItem(Icons.folder_outlined, '', false),
-                _buildNavItem(Icons.person_outline, '', false),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: isActive ? AppColors.primary : AppColors.iconGray,
-          size: 24,
-        ),
-        if (label.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: isActive ? AppColors.primary : AppColors.iconGray,
-              fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
-            ),
-          ),
-        ],
-      ],
+      bottomNavigationBar: const BottomNavigationWidget(currentIndex: 0),
     );
   }
 }

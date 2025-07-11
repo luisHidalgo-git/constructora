@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
+import '../screens/update_project_screen.dart';
+import '../models/project_model.dart';
 
 class ProjectDetailCard extends StatelessWidget {
+  final ProjectModel project;
   final String title;
   final String location;
   final String date;
@@ -13,6 +16,7 @@ class ProjectDetailCard extends StatelessWidget {
 
   const ProjectDetailCard({
     super.key,
+    required this.project,
     required this.title,
     required this.location,
     required this.date,
@@ -24,7 +28,16 @@ class ProjectDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UpdateProjectScreen(project: project),
+          ),
+        );
+      },
+      child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -178,6 +191,7 @@ class ProjectDetailCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

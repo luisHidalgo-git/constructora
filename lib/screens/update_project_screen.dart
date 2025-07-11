@@ -2,17 +2,24 @@ import 'package:flutter/material.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_date_field.dart';
 import '../widgets/custom_file_picker.dart';
+import '../widgets/progress_indicator_widget.dart';
+import '../widgets/status_selector.dart';
+import '../widgets/key_indicators_widget.dart';
+import '../widgets/update_notes_widget.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
+import '../models/project_model.dart';
 
-class CreateProjectScreen extends StatefulWidget {
-  const CreateProjectScreen({super.key});
+class UpdateProjectScreen extends StatefulWidget {
+  final ProjectModel? project;
+
+  const UpdateProjectScreen({super.key, this.project});
 
   @override
-  State<CreateProjectScreen> createState() => _CreateProjectScreenState();
+  State<UpdateProjectScreen> createState() => _UpdateProjectScreenState();
 }
 
-class _CreateProjectScreenState extends State<CreateProjectScreen> {
+class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
   final TextEditingController _projectNameController = TextEditingController();
   final TextEditingController _clientNameController = TextEditingController();
   final TextEditingController _projectManagerController = TextEditingController();
@@ -20,6 +27,38 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
   final TextEditingController _budgetController = TextEditingController();
   final TextEditingController _startDateController = TextEditingController();
   final TextEditingController _endDateController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+
+  double _projectProgress = 0.0;
+  String _projectStatus = 'Activo';
+  Map<String, double> _keyIndicators = {
+    'Calidad': 0.0,
+    'Tiempo': 0.0,
+    'Presupuesto': 0.0,
+    'Satisfacción': 0.0,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.project != null) {
+      _loadProjectData();
+    }
+  }
+
+  void _loadProjectData() {
+    final project = widget.project!;
+    _projectNameController.text = project.name;
+    _clientNameController.text = project.clientName;
+    _projectManagerController.text = project.description;
+    _locationController.text = project.location;
+    _budgetController.text = project.budget;
+    _startDateController.text = project.startDate;
+    _endDateController.text = project.endDate;
+    _projectProgress = project.progress;
+    _projectStatus = project.status;
+    _keyIndicators = Map.from(project.keyIndicators);
+  }
 
   @override
   void dispose() {
@@ -30,11 +69,47 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
     _budgetController.dispose();
     _startDateController.dispose();
     _endDateController.dispose();
+    _notesController.dispose();
     super.dispose();
+  }
+
+  void _updateProject() {
+    // Here you would typically save to a database or state management
+    final updatedProject = ProjectModel(
+      id: widget.project?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      name: _projectNameController.text,
+      clientName: _clientNameController.text,
+      description: _projectManagerController.text,
+      location: _locationController.text,
+      budget: _budgetController.text,
+      startDate: _startDateController.text,
+      endDate: _endDateController.text,
+      progress: _projectProgress,
+      status: _projectStatus,
+      keyIndicators: _keyIndicators,
+      imageUrl: widget.project?.imageUrl ?? 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+    );
+
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          widget.project != null ? 'Proyecto actualizado exitosamente' : 'Proyecto creado exitosamente',
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+
+    Navigator.pop(context, updatedProject);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isUpdate = widget.project != null;
+    
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -71,7 +146,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      'Crear Proyecto',
+                      isUpdate ? 'Actualizar Proyecto' : 'Crear Proyecto',
                       style: AppTextStyles.header.copyWith(fontSize: 20),
                     ),
                   ),
@@ -112,9 +187,9 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Project Manager
+                    // Project Description
                     Text(
-                      'Nombre del proyecto',
+                      'Descripción del proyecto',
                       style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
                     ),
                     const SizedBox(height: 8),
@@ -191,22 +266,66 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 32),
+                    if (isUpdate) ...[
+                      const SizedBox(height: 32),
 
-                    // File Picker
-                    const CustomFilePicker(),
+                      // Project Progress
+                      ProgressIndicatorWidget(
+                        progress: _projectProgress,
+                        onProgressChanged: (value) {
+                          setState(() {
+                            _projectProgress = value;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Project Status
+                      StatusSelector(
+                        currentStatus: _projectStatus,
+                        onStatusChanged: (status) {
+                          setState(() {
+                            _projectStatus = status;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Key Indicators
+                      KeyIndicatorsWidget(
+                        indicators: _keyIndicators,
+                        onIndicatorsChanged: (indicators) {
+                          setState(() {
+                            _keyIndicators = indicators;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Update Notes
+                      UpdateNotesWidget(
+                        controller: _notesController,
+                      ),
+                    ],
+
+                    if (!isUpdate) ...[
+                      const SizedBox(height: 32),
+
+                      // File Picker
+                      const CustomFilePicker(),
+                    ],
 
                     const SizedBox(height: 40),
 
-                    // Create Project Button
+                    // Action Button
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Handle project creation
-                          Navigator.pop(context);
-                        },
+                        onPressed: _updateProject,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
@@ -216,7 +335,7 @@ class _CreateProjectScreenState extends State<CreateProjectScreen> {
                           ),
                         ),
                         child: Text(
-                          'Crear Proyecto',
+                          isUpdate ? 'Enviar Actualización' : 'Crear Proyecto',
                           style: AppTextStyles.buttonText,
                         ),
                       ),

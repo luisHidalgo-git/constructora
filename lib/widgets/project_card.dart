@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
-import '../screens/projects_screen.dart';
+import '../screens/update_project_screen.dart';
+import '../models/project_model.dart';
 
 class ProjectCard extends StatelessWidget {
+  final ProjectModel project;
   final String title;
   final String subtitle;
   final double progress;
@@ -12,6 +14,7 @@ class ProjectCard extends StatelessWidget {
 
   const ProjectCard({
     super.key,
+    required this.project,
     required this.title,
     required this.subtitle,
     required this.progress,
@@ -26,7 +29,7 @@ class ProjectCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const ProjectsScreen(),
+            builder: (context) => UpdateProjectScreen(project: project),
           ),
         );
       },

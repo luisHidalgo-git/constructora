@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/project_detail_card.dart';
-import '../screens/create_project_screen.dart';
+import '../widgets/bottom_navigation_widget.dart';
+import '../models/project_model.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 
@@ -9,6 +10,8 @@ class ProjectsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sampleProjects = ProjectModel.getSampleProjects();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -77,90 +80,28 @@ class ProjectsScreen extends StatelessWidget {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                children: const [
-                  ProjectDetailCard(
-                    title: 'Centro Comercial Plaza Norte',
-                    location: 'Guayaquil',
-                    date: '23 Nov 2024',
-                    progress: 0.65,
-                    status: 'Activo',
-                    budget: 'USD 2,500,000',
-                    imageUrl: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-                  ),
-                  SizedBox(height: 20),
-                  ProjectDetailCard(
-                    title: 'Centro Comercial Plaza Norte',
-                    location: 'Guayaquil',
-                    date: '23 Nov 2024',
-                    progress: 0.45,
-                    status: 'Activo',
-                    budget: 'USD 2,500,000',
-                    imageUrl: 'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=800',
-                  ),
-                  SizedBox(height: 100),
+                children: [
+                  ...sampleProjects.map((project) => Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: ProjectDetailCard(
+                      project: project,
+                      title: project.name,
+                      location: project.location,
+                      date: project.startDate,
+                      progress: project.progress,
+                      status: project.status,
+                      budget: project.budget,
+                      imageUrl: project.imageUrl,
+                    ),
+                  )).toList(),
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(Icons.home_outlined, false),
-                _buildNavItem(Icons.bar_chart, true),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const CreateProjectScreen(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.add,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                  ),
-                ),
-                _buildNavItem(Icons.folder_outlined, false),
-                _buildNavItem(Icons.person_outline, false),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, bool isActive) {
-    return Icon(
-      icon,
-      color: isActive ? AppColors.primary : AppColors.iconGray,
-      size: 24,
+      bottomNavigationBar: const BottomNavigationWidget(currentIndex: 1),
     );
   }
 }
