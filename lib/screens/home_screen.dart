@@ -117,26 +117,53 @@ class HomeScreen extends StatelessWidget {
             // Stats Cards
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: StatsCard(
-                      title: '12',
-                      subtitle: 'Proyectos Activos',
-                      color: AppColors.primary,
-                      icon: Icons.construction,
+              child: SizedBox(
+                height: 120,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    SizedBox(
+                      width: 180,
+                      child: StatsCard(
+                        title: '12',
+                        subtitle: 'Proyectos Activos',
+                        color: AppColors.primary,
+                        icon: Icons.refresh,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: StatsCard(
-                      title: '5',
-                      subtitle: 'Gastos Activos',
-                      color: const Color(0xFFFF9500),
-                      icon: Icons.receipt_long,
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 180,
+                      child: StatsCard(
+                        title: '3',
+                        subtitle: 'Alertas Activas',
+                        color: const Color(0xFFFF9500),
+                        icon: Icons.notifications,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 180,
+                      child: StatsCard(
+                        title: '\$10.5M',
+                        subtitle: 'Presupuesto Total',
+                        color: const Color(0xFF10B981),
+                        icon: Icons.attach_money,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 180,
+                      child: StatsCard(
+                        title: '74%',
+                        subtitle: 'Progreso Medio',
+                        color: const Color(0xFF8B5CF6),
+                        icon: Icons.trending_up,
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                  ],
+                ),
               ),
             ),
 
