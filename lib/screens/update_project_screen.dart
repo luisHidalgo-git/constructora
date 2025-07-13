@@ -23,7 +23,8 @@ class UpdateProjectScreen extends StatefulWidget {
 class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
   final TextEditingController _projectNameController = TextEditingController();
   final TextEditingController _clientNameController = TextEditingController();
-  final TextEditingController _projectManagerController = TextEditingController();
+  final TextEditingController _projectManagerController =
+      TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _budgetController = TextEditingController();
   final TextEditingController _startDateController = TextEditingController();
@@ -77,7 +78,9 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
   void _updateProject() {
     // Here you would typically save to a database or state management
     final updatedProject = ProjectModel(
-      id: widget.project?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id:
+          widget.project?.id ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
       name: _projectNameController.text,
       clientName: _clientNameController.text,
       description: _projectManagerController.text,
@@ -88,14 +91,18 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       progress: _projectProgress,
       status: _projectStatus,
       keyIndicators: _keyIndicators,
-      imageUrl: widget.project?.imageUrl ?? 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      imageUrl:
+          widget.project?.imageUrl ??
+          'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
     );
 
     // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          widget.project != null ? 'Proyecto actualizado exitosamente' : 'Proyecto creado exitosamente',
+          widget.project != null
+              ? 'Proyecto actualizado exitosamente'
+              : 'Proyecto creado exitosamente',
           style: const TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF10B981),
@@ -107,10 +114,89 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     Navigator.pop(context, updatedProject);
   }
 
+  void _updateProgressProportionally(double newProgress) {
+    setState(() {
+      _projectProgress = newProgress;
+
+      // Actualizar indicadores clave proporcionalmente basándose en el progreso general
+      final progressFactor = newProgress;
+      _keyIndicators = _keyIndicators.map((key, value) {
+        // Mantener la relación proporcional pero ajustar según el progreso general
+        double baseValue = widget.project?.keyIndicators[key] ?? 0.5;
+        double adjustedValue = (baseValue * 0.7) + (progressFactor * 0.3);
+        return MapEntry(key, adjustedValue.clamp(0.0, 1.0));
+      });
+
+      // Actualizar estado basándose en el progreso
+      if (newProgress >= 0.95) {
+        _projectStatus = 'Completado';
+      } else if (newProgress >= 0.8) {
+        _projectStatus = 'Activo';
+      } else if (newProgress < 0.1) {
+        _projectStatus = 'Pausado';
+      }
+    });
+  }
+
+  void _updateStatusProportionally(String newStatus) {
+    setState(() {
+      _projectStatus = newStatus;
+
+      // Ajustar progreso basándose en el estado
+      switch (newStatus) {
+        case 'Completado':
+          if (_projectProgress < 0.95) {
+            _projectProgress = 1.0;
+            _updateIndicatorsBasedOnProgress(1.0);
+          }
+          break;
+        case 'Pausado':
+          if (_projectProgress > 0.3) {
+            _projectProgress = (_projectProgress * 0.7).clamp(0.0, 0.3);
+            _updateIndicatorsBasedOnProgress(_projectProgress);
+          }
+          break;
+        case 'Cancelado':
+          // No cambiar progreso automáticamente para cancelado
+          break;
+        case 'Activo':
+          if (_projectProgress < 0.1) {
+            _projectProgress = 0.2;
+            _updateIndicatorsBasedOnProgress(0.2);
+          }
+          break;
+      }
+    });
+  }
+
+  void _updateIndicatorsBasedOnProgress(double progress) {
+    _keyIndicators = _keyIndicators.map((key, value) {
+      double baseValue = widget.project?.keyIndicators[key] ?? 0.5;
+      double adjustedValue = (baseValue * 0.7) + (progress * 0.3);
+      return MapEntry(key, adjustedValue.clamp(0.0, 1.0));
+    });
+  }
+
+  void _updateIndicatorsProportionally(Map<String, double> newIndicators) {
+    setState(() {
+      _keyIndicators = newIndicators;
+
+      // Calcular progreso promedio basándose en indicadores
+      double averageIndicator =
+          newIndicators.values.reduce((a, b) => a + b) / newIndicators.length;
+
+      // Ajustar progreso general si la diferencia es significativa
+      if ((averageIndicator - _projectProgress).abs() > 0.2) {
+        _projectProgress = ((_projectProgress * 0.6) + (averageIndicator * 0.4))
+            .clamp(0.0, 1.0);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isUpdate = widget.project != null;
-    
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -128,7 +214,9 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                       } else {
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const HomeScreen(),
+                          ),
                           (route) => false,
                         );
                       }
@@ -247,7 +335,9 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                             children: [
                               Text(
                                 'Fecha de Inicio',
-                                style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                                style: AppTextStyles.fieldLabel.copyWith(
+                                  fontSize: 14,
+                                ),
                               ),
                               const SizedBox(height: 8),
                               CustomDateField(
@@ -264,7 +354,9 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                             children: [
                               Text(
                                 'Fecha de Fin',
-                                style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                                style: AppTextStyles.fieldLabel.copyWith(
+                                  fontSize: 14,
+                                ),
                               ),
                               const SizedBox(height: 8),
                               CustomDateField(
@@ -283,11 +375,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                       // Project Progress
                       ProgressIndicatorWidget(
                         progress: _projectProgress,
-                        onProgressChanged: (value) {
-                          setState(() {
-                            _projectProgress = value;
-                          });
-                        },
+                        onProgressChanged: _updateProgressProportionally,
                       ),
 
                       const SizedBox(height: 24),
@@ -295,11 +383,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                       // Project Status
                       StatusSelector(
                         currentStatus: _projectStatus,
-                        onStatusChanged: (status) {
-                          setState(() {
-                            _projectStatus = status;
-                          });
-                        },
+                        onStatusChanged: _updateStatusProportionally,
                       ),
 
                       const SizedBox(height: 24),
@@ -307,19 +391,13 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                       // Key Indicators
                       KeyIndicatorsWidget(
                         indicators: _keyIndicators,
-                        onIndicatorsChanged: (indicators) {
-                          setState(() {
-                            _keyIndicators = indicators;
-                          });
-                        },
+                        onIndicatorsChanged: _updateIndicatorsProportionally,
                       ),
 
                       const SizedBox(height: 24),
 
                       // Update Notes
-                      UpdateNotesWidget(
-                        controller: _notesController,
-                      ),
+                      UpdateNotesWidget(controller: _notesController),
                     ],
 
                     if (!isUpdate) ...[
