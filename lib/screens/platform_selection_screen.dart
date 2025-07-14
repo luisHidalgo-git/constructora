@@ -12,22 +12,28 @@ class PlatformSelectionScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height - 
+                         MediaQuery.of(context).padding.top - 
+                         MediaQuery.of(context).padding.bottom,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                 // Logo
                 Container(
-                  margin: const EdgeInsets.only(bottom: 60),
+                  margin: const EdgeInsets.only(bottom: 40),
                   child: RichText(
                     text: const TextSpan(
                       children: [
                         TextSpan(
                           text: 'Avanze',
                           style: TextStyle(
-                            fontSize: 48,
+                            fontSize: 40,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textDark,
                             letterSpacing: -1.5,
@@ -36,7 +42,7 @@ class PlatformSelectionScreen extends StatelessWidget {
                         TextSpan(
                           text: '360',
                           style: TextStyle(
-                            fontSize: 48,
+                            fontSize: 40,
                             fontWeight: FontWeight.w700,
                             color: AppColors.primary,
                             letterSpacing: -1.5,
@@ -57,7 +63,7 @@ class PlatformSelectionScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
 
-                const SizedBox(height: 60),
+                const SizedBox(height: 40),
 
                 // Platform Options
                 Row(
@@ -74,7 +80,7 @@ class PlatformSelectionScreen extends StatelessWidget {
                           );
                         },
                         child: Container(
-                          padding: const EdgeInsets.all(40),
+                          padding: const EdgeInsets.all(30),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
@@ -89,31 +95,31 @@ class PlatformSelectionScreen extends StatelessWidget {
                           child: Column(
                             children: [
                               Container(
-                                width: 80,
-                                height: 80,
+                                width: 60,
+                                height: 60,
                                 decoration: BoxDecoration(
                                   color: AppColors.primary.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: const Icon(
                                   Icons.phone_android,
-                                  size: 40,
+                                  size: 30,
                                   color: AppColors.primary,
                                 ),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 16),
                               Text(
                                 'Teléfono',
                                 style: AppTextStyles.fieldLabel.copyWith(
-                                  fontSize: 20,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               Text(
                                 'Versión completa\npara móvil',
                                 style: AppTextStyles.subtitle.copyWith(
-                                  fontSize: 14,
+                                  fontSize: 12,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -137,7 +143,7 @@ class PlatformSelectionScreen extends StatelessWidget {
                           );
                         },
                         child: Container(
-                          padding: const EdgeInsets.all(40),
+                          padding: const EdgeInsets.all(30),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
@@ -152,8 +158,8 @@ class PlatformSelectionScreen extends StatelessWidget {
                           child: Column(
                             children: [
                               Container(
-                                width: 80,
-                                height: 80,
+                                width: 60,
+                                height: 60,
                                 decoration: BoxDecoration(
                                   color: const Color(
                                     0xFF10B981,
@@ -162,23 +168,23 @@ class PlatformSelectionScreen extends StatelessWidget {
                                 ),
                                 child: const Icon(
                                   Icons.tv,
-                                  size: 40,
+                                  size: 30,
                                   color: Color(0xFF10B981),
                                 ),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(height: 16),
                               Text(
                                 'TV',
                                 style: AppTextStyles.fieldLabel.copyWith(
-                                  fontSize: 20,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               Text(
                                 'Versión optimizada\npara televisión',
                                 style: AppTextStyles.subtitle.copyWith(
-                                  fontSize: 14,
+                                  fontSize: 12,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -190,7 +196,7 @@ class PlatformSelectionScreen extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
 
                 // Info text
                 Container(
@@ -211,7 +217,7 @@ class PlatformSelectionScreen extends StatelessWidget {
                         child: Text(
                           'Selecciona la plataforma según tu dispositivo para una mejor experiencia',
                           style: AppTextStyles.subtitle.copyWith(
-                            fontSize: 14,
+                            fontSize: 12,
                             color: AppColors.primary,
                           ),
                         ),
@@ -219,7 +225,8 @@ class PlatformSelectionScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

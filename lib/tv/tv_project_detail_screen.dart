@@ -149,7 +149,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textDark,
                                   ),
-                                  maxLines: 2,
+                                  maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),

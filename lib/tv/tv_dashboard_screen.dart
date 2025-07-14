@@ -87,11 +87,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.person,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
+                      Icon(Icons.person, color: AppColors.primary, size: 20),
                       SizedBox(width: 8),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,11 +171,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                     flex: 2,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _buildProjectsList(),
-                        ),
-                      ],
+                      children: [Expanded(child: _buildProjectsList())],
                     ),
                   ),
 
@@ -236,53 +228,66 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              ..._projects[_selectedProjectIndex].keyIndicators.entries.map((entry) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Column(
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              ..._projects[_selectedProjectIndex]
+                                  .keyIndicators
+                                  .entries
+                                  .map((entry) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Column(
                                         children: [
-                                          Text(
-                                            entry.key,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textGray,
-                                            ),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                entry.key,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors.textGray,
+                                                ),
+                                              ),
+                                              Text(
+                                                '${(entry.value * 100).toInt()}%',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: _getIndicatorColor(
+                                                    entry.value,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          Text(
-                                            '${(entry.value * 100).toInt()}%',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: _getIndicatorColor(entry.value),
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            height: 4,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.withOpacity(
+                                                0.2,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(2),
+                                            ),
+                                            child: FractionallySizedBox(
+                                              alignment: Alignment.centerLeft,
+                                              widthFactor: entry.value,
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  color: _getIndicatorColor(
+                                                    entry.value,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(2),
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        height: 4,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(2),
-                                        ),
-                                        child: FractionallySizedBox(
-                                          alignment: Alignment.centerLeft,
-                                          widthFactor: entry.value,
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              color: _getIndicatorColor(entry.value),
-                                              borderRadius: BorderRadius.circular(2),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
+                                    );
+                                  })
+                                  .toList(),
                             ],
                           ),
                         ),
@@ -307,7 +312,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
                                     'Actividad Reciente',
@@ -351,7 +357,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       image: const DecorationImage(
-                                        image: NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=400'),
+                                        image: NetworkImage(
+                                          'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=400',
+                                        ),
                                         fit: BoxFit.cover,
                                       ),
                                     ),
@@ -360,7 +368,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       image: const DecorationImage(
-                                        image: NetworkImage('https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=400'),
+                                        image: NetworkImage(
+                                          'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=400',
+                                        ),
                                         fit: BoxFit.cover,
                                       ),
                                     ),
@@ -369,7 +379,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       image: const DecorationImage(
-                                        image: NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=400'),
+                                        image: NetworkImage(
+                                          'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=400',
+                                        ),
                                         fit: BoxFit.cover,
                                       ),
                                     ),
@@ -378,7 +390,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       image: const DecorationImage(
-                                        image: NetworkImage('https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=400'),
+                                        image: NetworkImage(
+                                          'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=400',
+                                        ),
                                         fit: BoxFit.cover,
                                       ),
                                     ),
@@ -400,7 +414,12 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     );
   }
 
-  Widget _buildStatsCard(String title, String subtitle, Color color, IconData icon) {
+  Widget _buildStatsCard(
+    String title,
+    String subtitle,
+    Color color,
+    IconData icon,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -422,11 +441,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                   color: Colors.white,
                 ),
               ),
-              Icon(
-                icon,
-                color: Colors.white,
-                size: 20,
-              ),
+              Icon(icon, color: Colors.white, size: 20),
             ],
           ),
           const SizedBox(height: 4),
@@ -450,16 +465,22 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         if (event is KeyDownEvent) {
           if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
             setState(() {
-              _selectedProjectIndex = (_selectedProjectIndex - 1).clamp(0, _projects.length - 1);
+              _selectedProjectIndex = (_selectedProjectIndex - 1).clamp(
+                0,
+                _projects.length - 1,
+              );
             });
             return KeyEventResult.handled;
           } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
             setState(() {
-              _selectedProjectIndex = (_selectedProjectIndex + 1).clamp(0, _projects.length - 1);
+              _selectedProjectIndex = (_selectedProjectIndex + 1).clamp(
+                0,
+                _projects.length - 1,
+              );
             });
             return KeyEventResult.handled;
           } else if (event.logicalKey == LogicalKeyboardKey.select ||
-                     event.logicalKey == LogicalKeyboardKey.enter) {
+              event.logicalKey == LogicalKeyboardKey.enter) {
             _openProjectDetail(_projects[_selectedProjectIndex]);
             return KeyEventResult.handled;
           }
@@ -475,17 +496,17 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           final index = entry.key;
           final project = entry.value;
           final isSelected = index == _selectedProjectIndex;
-          
+
           return Container(
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: isSelected 
+              border: isSelected
                   ? Border.all(color: AppColors.primary, width: 2)
                   : null,
               boxShadow: [
                 BoxShadow(
-                  color: isSelected 
+                  color: isSelected
                       ? AppColors.primary.withOpacity(0.2)
                       : Colors.black.withOpacity(0.05),
                   blurRadius: isSelected ? 12 : 8,
@@ -509,63 +530,66 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(width: 12),
-                  
+
                   // Project Info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                project.name,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textDark,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                project.status,
-                                style: const TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
+                        // Project name
+                        Text(
+                          project.name,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textDark,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        
-                        const SizedBox(height: 4),
-                        
+
+                        const SizedBox(height: 2),
+
+                        // Status badge
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              project.status,
+                              style: const TextStyle(
+                                fontSize: 8,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 2),
+
                         Text(
                           '${project.startDate} - ${project.endDate}',
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: 9,
                             color: AppColors.textGray,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        
-                        const SizedBox(height: 8),
-                        
+
+                        const SizedBox(height: 6),
+
                         // Progress Bar
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
@@ -591,7 +615,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                             Text(
                               '${(project.progress * 100).toInt()}%',
                               style: const TextStyle(
-                                fontSize: 10,
+                                fontSize: 9,
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.textGray,
                               ),
