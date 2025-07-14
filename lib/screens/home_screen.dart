@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'qr_scanner_screen.dart';
 import '../widgets/project_card.dart';
 import '../widgets/stats_card.dart';
 import '../widgets/bottom_navigation_widget.dart';
@@ -54,11 +55,10 @@ class HomeScreen extends StatelessWidget {
                     ),
                     child: GestureDetector(
                       onTap: () {
-                        // Aquí se implementará la funcionalidad del scanner QR
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Scanner QR - Próximamente'),
-                            behavior: SnackBarBehavior.floating,
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const QRScannerScreen(),
                           ),
                         );
                       },
