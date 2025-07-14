@@ -18,6 +18,12 @@ class TVApp extends StatelessWidget {
         // Configuración específica para TV
         visualDensity: VisualDensity.comfortable,
       ),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+          child: child!,
+        );
+      },
       home: const TVQRLoginScreen(),
     );
   }

@@ -17,7 +17,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF1A1A2E),
       body: Focus(
         autofocus: true,
         onKeyEvent: (node, event) {
@@ -33,12 +33,23 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
         child: Container(
           width: double.infinity,
           height: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF1A1A2E),
+                Color(0xFF16213E),
+                Color(0xFF0F3460),
+              ],
+            ),
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Logo
               Container(
-                margin: const EdgeInsets.only(bottom: 60),
+                margin: const EdgeInsets.only(bottom: 40),
                 child: Column(
                   children: [
                     RichText(
@@ -47,7 +58,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                           TextSpan(
                             text: 'Avanze',
                             style: TextStyle(
-                              fontSize: 72,
+                              fontSize: 64,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
                               letterSpacing: -2,
@@ -56,7 +67,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                           TextSpan(
                             text: '360',
                             style: TextStyle(
-                              fontSize: 72,
+                              fontSize: 64,
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary,
                               letterSpacing: -2,
@@ -70,7 +81,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                       'Escanea el código QR desde tu\naplicación móvil para poder acceder al\ndashboard de avance360',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 18,
                         color: Colors.white70,
                         height: 1.4,
                       ),
@@ -79,39 +90,38 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                 ),
               ),
 
-              // QR Code Placeholder
+              // QR Code
               Container(
-                width: 300,
-                height: 300,
+                width: 200,
+                height: 200,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.primary, width: 4),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: _isScanning
                     ? const Center(
                         child: CircularProgressIndicator(
                           color: AppColors.primary,
-                          strokeWidth: 6,
+                          strokeWidth: 4,
                         ),
                       )
                     : Container(
-                        margin: const EdgeInsets.all(20),
+                        margin: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.black,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Center(
                           child: Icon(
                             Icons.qr_code,
-                            size: 200,
+                            size: 120,
                             color: Colors.white,
                           ),
                         ),
                       ),
               ),
 
-              const SizedBox(height: 60),
+              const SizedBox(height: 40),
 
               // Instructions
               Container(
@@ -120,34 +130,27 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+                        horizontal: 24,
+                        vertical: 12,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
                         'Presiona OK/Enter para simular escaneo',
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     const Text(
                       'Usa el control remoto para navegar',
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 14,
                         color: Colors.white60,
                       ),
                     ),
@@ -166,7 +169,6 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
       _isScanning = true;
     });
 
-    // Simular proceso de escaneo
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.pushReplacement(
         context,
