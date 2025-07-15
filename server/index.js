@@ -17,7 +17,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   useUnifiedTopology: true,
 })
 .then(() => {
-  console.log('✅ Conectado a MongoDB - Base de datos: constructora');
+  console.log(`✅ Conectado a MongoDB`);
 })
 .catch((error) => {
   console.error('❌ Error conectando a MongoDB:', error);
@@ -37,7 +37,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    server_url: `http://localhost:${PORT}`
   });
 });
 
@@ -52,7 +53,7 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
     message: 'Algo salió mal!',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
+    error: 'Error interno del servidor'
   });
 });
 
@@ -65,5 +66,11 @@ app.use('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-  console.log(`📱 API disponible en: http://localhost:${PORT}`);
+  console.log(`📱 API disponible en: ${PORT}`);
+  console.log(`🔗 Health check: ${PORT}/health`);
+  console.log(`📊 Rutas disponibles:`);
+  console.log(`   • ${PORT}/api/auth`);
+  console.log(`   • ${PORT}/api/projects`);
+  console.log(`   • ${PORT}/api/activities`);
+  console.log(`   • ${PORT}/api/stats`);
 });

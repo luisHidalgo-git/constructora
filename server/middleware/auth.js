@@ -9,7 +9,7 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'No hay token, acceso denegado' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, 'constructora_jwt_secret_2024');
     const user = await User.findById(decoded.id).select('-password');
     
     if (!user) {
