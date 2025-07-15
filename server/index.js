@@ -42,9 +42,10 @@ app.get('/health', (req, res) => {
 });
 
 // Importar rutas (se agregarán después)
-// app.use('/api/auth', require('./routes/auth'));
-// app.use('/api/projects', require('./routes/projects'));
-// app.use('/api/users', require('./routes/users'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/projects', require('./routes/projects'));
+app.use('/api/activities', require('./routes/activities'));
+app.use('/api/stats', require('./routes/stats'));
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
