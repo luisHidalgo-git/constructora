@@ -11,3 +11,11 @@ flutter create .
 ```
 flutter run
 ```
+
+# 🔧 Express Commands That Generate Files
+```
+npm install
+```
+```
+npm run dev
+```
