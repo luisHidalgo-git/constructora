@@ -41,13 +41,23 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       final results = await Future.wait([
         ProjectService.getProjects(),
         StatsService.getStats(),
-        AuthService.getSavedUser(),
+        AuthService.getSavedUser() ?? Future.value(null),
       ]);
 
       setState(() {
         _projects = results[0] as List<ProjectModel>;
         _stats = results[1] as StatsModel;
-        _currentUser = results[2] as UserModel?;
+        _currentUser = results[2] as UserModel? ?? 
+            UserModel(
+              id: 'demo',
+              name: 'Usuario Demo',
+              email: 'demo@example.com',
+              role: 'supervisor',
+              position: 'Supervisor',
+              isActive: true,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            );
         _isLoading = false;
         
         // Reset selected index if needed

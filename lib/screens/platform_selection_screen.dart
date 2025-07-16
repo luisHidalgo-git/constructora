@@ -3,9 +3,34 @@ import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import 'login_screen.dart';
 import '../tv/tv_qr_login_screen.dart';
+import '../services/auth_service.dart';
+import 'home_screen.dart';
 
 class PlatformSelectionScreen extends StatelessWidget {
   const PlatformSelectionScreen({super.key});
+
+  Future<void> _handlePhoneSelection(BuildContext context) async {
+    // Verificar si ya está autenticado
+    final isAuthenticated = await AuthService.isAuthenticated();
+    
+    if (isAuthenticated) {
+      // Si ya está autenticado, ir directo al home
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const HomeScreen(),
+        ),
+      );
+    } else {
+      // Si no está autenticado, ir al login
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,14 +96,7 @@ class PlatformSelectionScreen extends StatelessWidget {
                     // Phone Option
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginScreen(),
-                            ),
-                          );
-                        },
+                        onTap: () => _handlePhoneSelection(context),
                         child: Container(
                           padding: const EdgeInsets.all(30),
                           decoration: BoxDecoration(

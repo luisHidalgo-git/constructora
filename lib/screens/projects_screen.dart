@@ -39,8 +39,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _projects = []; // Mantener vacío si no hay datos
         _isLoading = false;
+        // No mostrar error si simplemente no hay datos
       });
     }
   }

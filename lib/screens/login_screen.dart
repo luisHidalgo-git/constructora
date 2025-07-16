@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'register_screen.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/social_login_button.dart';
 import '../utils/app_colors.dart';
@@ -46,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _showMessage('¡Bienvenido ${result['user'].name}!');
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => const PlatformSelectionScreen(),
+            builder: (context) => const HomeScreen(),
           ),
         );
       } else {
@@ -194,6 +195,38 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Olvidé mi contraseña',
                           style: AppTextStyles.linkText,
                         ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Register Link
+                    Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '¿No tienes cuenta? ',
+                            style: AppTextStyles.subtitle,
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const RegisterScreen(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Crear Cuenta',
+                              style: AppTextStyles.linkText.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 

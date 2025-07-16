@@ -3,7 +3,7 @@ import '../utils/app_colors.dart';
 import '../screens/home_screen.dart';
 import '../screens/projects_screen.dart';
 import '../screens/update_project_screen.dart';
-import '../screens/login_screen.dart';
+import '../screens/platform_selection_screen.dart';
 import '../services/auth_service.dart';
 
 class BottomNavigationWidget extends StatelessWidget {
@@ -96,7 +96,7 @@ class BottomNavigationWidget extends StatelessWidget {
                 await AuthService.logout();
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  MaterialPageRoute(builder: (context) => const PlatformSelectionScreen()),
                   (route) => false,
                 );
               },

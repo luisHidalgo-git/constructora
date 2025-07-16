@@ -153,10 +153,14 @@ class AuthService {
 
   // Obtener usuario guardado
   static Future<UserModel?> getSavedUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userData = prefs.getString(_userKey);
-    if (userData != null) {
-      return UserModel.fromJson(jsonDecode(userData));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userData = prefs.getString(_userKey);
+      if (userData != null) {
+        return UserModel.fromJson(jsonDecode(userData));
+      }
+    } catch (e) {
+      print('Error getting saved user: $e');
     }
     return null;
   }

@@ -75,8 +75,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return _isAuthenticated
-        ? const PlatformSelectionScreen()
-        : const LoginScreen();
+    // Siempre mostrar la selección de plataforma primero
+    return const PlatformSelectionScreen();
   }
 }
