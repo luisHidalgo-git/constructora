@@ -3,17 +3,69 @@ import 'qr_scanner_screen.dart';
 import '../widgets/project_card.dart';
 import '../widgets/stats_card.dart';
 import '../widgets/bottom_navigation_widget.dart';
-import '../models/project_model.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
+import '../services/project_service.dart';
+import '../services/stats_service.dart';
+import '../services/auth_service.dart';
+import '../models/project_model.dart';
+import '../models/stats_model.dart';
+import '../models/user_model.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final sampleProjects = ProjectModel.getSampleProjects();
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
+class _HomeScreenState extends State<HomeScreen> {
+  List<ProjectModel> _projects = [];
+  StatsModel? _stats;
+  UserModel? _currentUser;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Cargar datos en paralelo
+      final results = await Future.wait([
+        ProjectService.getProjects(),
+        StatsService.getStats(),
+        AuthService.getSavedUser(),
+      ]);
+
+      setState(() {
+        _projects = results[0] as List<ProjectModel>;
+        _stats = results[1] as StatsModel;
+        _currentUser = results[2] as UserModel?;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshData() async {
+    await _loadData();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -28,12 +80,12 @@ class HomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hola, Supervisor Carlos!',
+                        'Hola, ${_currentUser?.name ?? 'Usuario'}!',
                         style: AppTextStyles.header.copyWith(fontSize: 20),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Supervisor',
+                        _currentUser?.position ?? 'Supervisor',
                         style: AppTextStyles.subtitle.copyWith(fontSize: 12),
                       ),
                     ],
@@ -115,57 +167,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             // Stats Cards
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SizedBox(
-                height: 120,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    SizedBox(
-                      width: 180,
-                      child: StatsCard(
-                        title: '12',
-                        subtitle: 'Proyectos Activos',
-                        color: AppColors.primary,
-                        icon: Icons.refresh,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    SizedBox(
-                      width: 180,
-                      child: StatsCard(
-                        title: '3',
-                        subtitle: 'Alertas Activas',
-                        color: const Color(0xFFFF9500),
-                        icon: Icons.notifications,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    SizedBox(
-                      width: 180,
-                      child: StatsCard(
-                        title: '\$10.5M',
-                        subtitle: 'Presupuesto Total',
-                        color: const Color(0xFF10B981),
-                        icon: Icons.attach_money,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    SizedBox(
-                      width: 180,
-                      child: StatsCard(
-                        title: '74%',
-                        subtitle: 'Progreso Medio',
-                        color: const Color(0xFF8B5CF6),
-                        icon: Icons.trending_up,
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                  ],
-                ),
-              ),
-            ),
+            _buildStatsSection(),
 
             const SizedBox(height: 20),
 
@@ -206,24 +208,7 @@ class HomeScreen extends StatelessWidget {
                     ),
 
                     // Projects List
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-                        children: [
-                          ...sampleProjects.map((project) => Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: ProjectCard(
-                              project: project,
-                              title: project.name,
-                              subtitle: project.description,
-                              progress: project.progress,
-                              status: project.status,
-                              imageUrl: project.imageUrl,
-                            ),
-                          )).toList(),
-                        ],
-                      ),
-                    ),
+                    Expanded(child: _buildProjectsList()),
                   ],
                 ),
               ),
@@ -232,6 +217,162 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: const BottomNavigationWidget(currentIndex: 0),
+    );
+  }
+
+  Widget _buildStatsSection() {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24),
+        child: SizedBox(
+          height: 120,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    if (_stats == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: SizedBox(
+        height: 120,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            SizedBox(
+              width: 180,
+              child: StatsCard(
+                title: '${_stats!.activeProjects}',
+                subtitle: 'Proyectos Activos',
+                color: AppColors.primary,
+                icon: Icons.refresh,
+              ),
+            ),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 180,
+              child: StatsCard(
+                title: '${_stats!.activeAlerts}',
+                subtitle: 'Alertas Activas',
+                color: const Color(0xFFFF9500),
+                icon: Icons.notifications,
+              ),
+            ),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 180,
+              child: StatsCard(
+                title: _stats!.totalBudget,
+                subtitle: 'Presupuesto Total',
+                color: const Color(0xFF10B981),
+                icon: Icons.attach_money,
+              ),
+            ),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: 180,
+              child: StatsCard(
+                title: '${(_stats!.averageProgress * 100).toInt()}%',
+                subtitle: 'Progreso Medio',
+                color: const Color(0xFF8B5CF6),
+                icon: Icons.trending_up,
+              ),
+            ),
+            const SizedBox(width: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProjectsList() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Error al cargar proyectos',
+              style: AppTextStyles.header.copyWith(
+                fontSize: 18,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: AppTextStyles.subtitle,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _refreshData,
+              child: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_projects.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.construction,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No hay proyectos',
+              style: AppTextStyles.header.copyWith(
+                fontSize: 18,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Crea tu primer proyecto para comenzar',
+              style: AppTextStyles.subtitle,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        children: [
+          ..._projects.map((project) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ProjectCard(
+              project: project,
+              title: project.name,
+              subtitle: project.description,
+              progress: project.progress,
+              status: project.status,
+              imageUrl: project.imageUrl,
+            ),
+          )).toList(),
+        ],
+      ),
     );
   }
 }

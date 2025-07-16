@@ -4,6 +4,7 @@ import '../screens/home_screen.dart';
 import '../screens/projects_screen.dart';
 import '../screens/update_project_screen.dart';
 import '../screens/login_screen.dart';
+import '../services/auth_service.dart';
 
 class BottomNavigationWidget extends StatelessWidget {
   final int currentIndex;
@@ -90,8 +91,9 @@ class BottomNavigationWidget extends StatelessWidget {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
+                await AuthService.logout();
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginScreen()),

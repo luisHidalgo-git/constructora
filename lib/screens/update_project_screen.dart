@@ -10,6 +10,7 @@ import '../widgets/update_notes_widget.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../models/project_model.dart';
+import '../services/project_service.dart';
 
 class UpdateProjectScreen extends StatefulWidget {
   final ProjectModel? project;
@@ -39,6 +40,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     'Presupuesto': 0.0,
     'Satisfacción': 0.0,
   };
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -75,43 +77,68 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     super.dispose();
   }
 
-  void _updateProject() {
-    // Here you would typically save to a database or state management
-    final updatedProject = ProjectModel(
-      id:
-          widget.project?.id ??
-          DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _projectNameController.text,
-      clientName: _clientNameController.text,
-      description: _projectManagerController.text,
-      location: _locationController.text,
-      budget: _budgetController.text,
-      startDate: _startDateController.text,
-      endDate: _endDateController.text,
-      progress: _projectProgress,
-      status: _projectStatus,
-      keyIndicators: _keyIndicators,
-      imageUrl:
-          widget.project?.imageUrl ??
-          'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-    );
+  Future<void> _updateProject() async {
+    if (_projectNameController.text.isEmpty ||
+        _clientNameController.text.isEmpty ||
+        _locationController.text.isEmpty ||
+        _budgetController.text.isEmpty ||
+        _startDateController.text.isEmpty ||
+        _endDateController.text.isEmpty) {
+      _showMessage('Por favor completa todos los campos obligatorios', isError: true);
+      return;
+    }
 
-    // Show success message
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final projectData = ProjectModel(
+        id: widget.project?.id ?? '',
+        name: _projectNameController.text,
+        clientName: _clientNameController.text,
+        description: _projectManagerController.text,
+        location: _locationController.text,
+        budget: _budgetController.text,
+        startDate: _startDateController.text,
+        endDate: _endDateController.text,
+        progress: _projectProgress,
+        status: _projectStatus,
+        keyIndicators: _keyIndicators,
+        imageUrl: widget.project?.imageUrl ??
+            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
+
+      ProjectModel result;
+      if (widget.project != null) {
+        // Actualizar proyecto existente
+        result = await ProjectService.updateProject(widget.project!.id, projectData);
+        _showMessage('Proyecto actualizado exitosamente');
+      } else {
+        // Crear nuevo proyecto
+        result = await ProjectService.createProject(projectData);
+        _showMessage('Proyecto creado exitosamente');
+      }
+
+      Navigator.pop(context, result);
+    } catch (e) {
+      _showMessage('Error: ${e.toString()}', isError: true);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          widget.project != null
-              ? 'Proyecto actualizado exitosamente'
-              : 'Proyecto creado exitosamente',
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: const Color(0xFF10B981),
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
-
-    Navigator.pop(context, updatedProject);
   }
 
   void _updateProgressProportionally(double newProgress) {
@@ -414,7 +441,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: _updateProject,
+                        onPressed: _isLoading ? null : _updateProject,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
@@ -423,10 +450,19 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
-                        child: Text(
-                          isUpdate ? 'Enviar Actualización' : 'Crear Proyecto',
-                          style: AppTextStyles.buttonText,
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                isUpdate ? 'Enviar Actualización' : 'Crear Proyecto',
+                                style: AppTextStyles.buttonText,
+                              ),
                       ),
                     ),
 

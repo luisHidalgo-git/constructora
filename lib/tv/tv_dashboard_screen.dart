@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
-import '../models/project_model.dart';
 import 'tv_project_detail_screen.dart';
+import '../services/project_service.dart';
+import '../services/stats_service.dart';
+import '../services/auth_service.dart';
+import '../models/project_model.dart';
+import '../models/stats_model.dart';
+import '../models/user_model.dart';
 
 class TVDashboardScreen extends StatefulWidget {
   const TVDashboardScreen({super.key});
@@ -14,79 +19,82 @@ class TVDashboardScreen extends StatefulWidget {
 
 class _TVDashboardScreenState extends State<TVDashboardScreen> {
   int _selectedProjectIndex = 0;
-  late List<ProjectModel> _projects;
+  List<ProjectModel> _projects = [];
+  StatsModel? _stats;
+  UserModel? _currentUser;
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _projects = ProjectModel.getSampleProjects();
-    // Agregar más proyectos para llenar la pantalla
-    _projects.addAll([
-      ProjectModel(
-        id: '4',
-        name: 'Centro Comercial Plaza Norte',
-        clientName: 'Grupo Inmobiliario ABC',
-        description: 'En construcción',
-        location: 'Manta',
-        budget: 'USD 1,200,000',
-        startDate: '05/03/2024',
-        endDate: '05/12/2024',
-        progress: 0.80,
-        status: 'Activo',
-        keyIndicators: {
-          'Calidad': 0.88,
-          'Tiempo': 0.75,
-          'Presupuesto': 0.92,
-          'Satisfacción': 0.85,
-        },
-        imageUrl:
-            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=400',
-      ),
-      ProjectModel(
-        id: '5',
-        name: 'Centro Comercial Plaza Norte',
-        clientName: 'Constructora del Sur',
-        description: 'En construcción',
-        location: 'Loja',
-        budget: 'USD 950,000',
-        startDate: '20/04/2024',
-        endDate: '20/11/2024',
-        progress: 0.45,
-        status: 'Activo',
-        keyIndicators: {
-          'Calidad': 0.65,
-          'Tiempo': 0.58,
-          'Presupuesto': 0.72,
-          'Satisfacción': 0.68,
-        },
-        imageUrl:
-            'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=400',
-      ),
-      ProjectModel(
-        id: '6',
-        name: 'Centro Comercial Plaza Norte',
-        clientName: 'Inmobiliaria Central',
-        description: 'En construcción',
-        location: 'Ambato',
-        budget: 'USD 1,750,000',
-        startDate: '12/02/2024',
-        endDate: '12/09/2024',
-        progress: 0.45,
-        status: 'Activo',
-        keyIndicators: {
-          'Calidad': 0.70,
-          'Tiempo': 0.48,
-          'Presupuesto': 0.65,
-          'Satisfacción': 0.62,
-        },
-        imageUrl:
-            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=400',
-      ),
-    ]);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final results = await Future.wait([
+        ProjectService.getProjects(),
+        StatsService.getStats(),
+        AuthService.getSavedUser(),
+      ]);
+
+      setState(() {
+        _projects = results[0] as List<ProjectModel>;
+        _stats = results[1] as StatsModel;
+        _currentUser = results[2] as UserModel?;
+        _isLoading = false;
+        
+        // Reset selected index if needed
+        if (_selectedProjectIndex >= _projects.length) {
+          _selectedProjectIndex = _projects.isNotEmpty ? 0 : -1;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF5F5F5),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text('Error: $_error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadData,
+                child: const Text('Reintentar'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: Focus(
@@ -162,30 +170,30 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                             ),
                           ],
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.person,
                               color: AppColors.primary,
                               size: 16,
                             ),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'Hola, Supervisor Carlos!',
-                                  style: TextStyle(
+                                  'Hola, ${_currentUser?.name ?? 'Usuario'}!',
+                                  style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textDark,
                                   ),
                                 ),
-                                Text(
+                                const Text(
                                   'Bienvenido',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: AppColors.textGray,
                                   ),
@@ -202,48 +210,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                 const SizedBox(height: 16),
 
                 // Stats Cards
-                Container(
-                  height: 100,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatsCard(
-                          '12',
-                          'Proyectos Activos',
-                          AppColors.primary,
-                          Icons.refresh,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatsCard(
-                          '3',
-                          'Alertas Activas',
-                          const Color(0xFFFF9500),
-                          Icons.add_circle_outline,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatsCard(
-                          '\$10.5M',
-                          'Presupuesto Total',
-                          const Color(0xFF10B981),
-                          Icons.attach_money,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatsCard(
-                          '74%',
-                          'Progreso Medio',
-                          const Color(0xFF8B5CF6),
-                          Icons.trending_up,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildStatsSection(),
 
                 const SizedBox(height: 16),
 
@@ -266,141 +233,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                             // Selected Project Detail
                             Expanded(
                               flex: 3,
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Project Title
-                                    Text(
-                                      _projects[_selectedProjectIndex].name,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.textDark,
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _projects[_selectedProjectIndex]
-                                          .clientName,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.textGray,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 12),
-
-                                    // KPIs Section
-                                    const Text(
-                                      'KPIs',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.textDark,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-
-                                    // KPIs List with Scroll
-                                    Expanded(
-                                      child: SingleChildScrollView(
-                                        child: Column(
-                                          children: _projects[_selectedProjectIndex].keyIndicators.entries.map((
-                                            entry,
-                                          ) {
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 8,
-                                              ),
-                                              child: Column(
-                                                children: [
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      Flexible(
-                                                        child: Text(
-                                                          entry.key,
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 11,
-                                                                color: AppColors
-                                                                    .textGray,
-                                                              ),
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                        ),
-                                                      ),
-                                                      Text(
-                                                        '${(entry.value * 100).toInt()}%',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color:
-                                                              _getIndicatorColor(
-                                                                entry.value,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 3),
-                                                  Container(
-                                                    height: 4,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.grey
-                                                          .withOpacity(0.2),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            2,
-                                                          ),
-                                                    ),
-                                                    child: FractionallySizedBox(
-                                                      alignment:
-                                                          Alignment.centerLeft,
-                                                      widthFactor: entry.value,
-                                                      child: Container(
-                                                        decoration: BoxDecoration(
-                                                          color:
-                                                              _getIndicatorColor(
-                                                                entry.value,
-                                                              ),
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                2,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              child: _buildProjectDetail(),
                             ),
 
                             const SizedBox(height: 12),
@@ -480,6 +313,58 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     );
   }
 
+  Widget _buildStatsSection() {
+    if (_stats == null) {
+      return Container(
+        height: 100,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Container(
+      height: 100,
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildStatsCard(
+              '${_stats!.activeProjects}',
+              'Proyectos Activos',
+              AppColors.primary,
+              Icons.refresh,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatsCard(
+              '${_stats!.activeAlerts}',
+              'Alertas Activas',
+              const Color(0xFFFF9500),
+              Icons.add_circle_outline,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatsCard(
+              _stats!.totalBudget,
+              'Presupuesto Total',
+              const Color(0xFF10B981),
+              Icons.attach_money,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildStatsCard(
+              '${(_stats!.averageProgress * 100).toInt()}%',
+              'Progreso Medio',
+              const Color(0xFF8B5CF6),
+              Icons.trending_up,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatsCard(
     String title,
     String subtitle,
@@ -531,7 +416,172 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     );
   }
 
+  Widget _buildProjectDetail() {
+    if (_projects.isEmpty || _selectedProjectIndex < 0 || _selectedProjectIndex >= _projects.length) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Text(
+            'Selecciona un proyecto',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textGray,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final selectedProject = _projects[_selectedProjectIndex];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Project Title
+          Text(
+            selectedProject.name,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            selectedProject.clientName,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textGray,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+
+          // KPIs Section
+          const Text(
+            'KPIs',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // KPIs List with Scroll
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: selectedProject.keyIndicators.entries.map((entry) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                entry.key,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textGray,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              '${(entry.value * 100).toInt()}%',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: _getIndicatorColor(entry.value),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Container(
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: entry.value,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _getIndicatorColor(entry.value),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProjectsList() {
+    if (_projects.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.construction,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No hay proyectos',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textGray,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Focus(
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent) {
@@ -553,7 +603,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
             return KeyEventResult.handled;
           } else if (event.logicalKey == LogicalKeyboardKey.select ||
               event.logicalKey == LogicalKeyboardKey.enter) {
-            _openProjectDetail(_projects[_selectedProjectIndex]);
+            if (_selectedProjectIndex >= 0 && _selectedProjectIndex < _projects.length) {
+              _openProjectDetail(_projects[_selectedProjectIndex]);
+            }
             return KeyEventResult.handled;
           }
         }

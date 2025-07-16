@@ -11,6 +11,11 @@ flutter create .
 ```
 flutter run
 ```
+## Variables de entorno frontend
+```
+API_BASE_URL=http://localhost:3000/api
+API_TIMEOUT=30000
+```
 
 # 🔧 Comandos de Express para iniciar
 ```
