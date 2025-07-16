@@ -7,10 +7,14 @@ import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Cargar variables de entorno
-  await dotenv.load(fileName: ".env");
-  
+
+  // Cargar variables de entorno (opcional)
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print('Warning: .env file not found, using default values');
+  }
+
   runApp(const MyApp());
 }
 
@@ -50,28 +54,29 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _checkAuthStatus() async {
-    final isAuth = await AuthService.isAuthenticated();
-    setState(() {
-      _isAuthenticated = isAuth;
-      _isLoading = false;
-    });
+    try {
+      final isAuth = await AuthService.isAuthenticated();
+      setState(() {
+        _isAuthenticated = isAuth;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error checking auth status: $e');
+      setState(() {
+        _isAuthenticated = false;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return _isAuthenticated 
+    return _isAuthenticated
         ? const PlatformSelectionScreen()
         : const LoginScreen();
-  }
-}
-    );
   }
 }

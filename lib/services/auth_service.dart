@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 import '../config/api_config.dart';
 import '../models/user_model.dart';
 
@@ -9,16 +10,23 @@ class AuthService {
   static const String _userKey = 'user_data';
 
   // Login
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(
+    String email,
+    String password,
+  ) async {
     try {
-      final response = await http.post(
-        Uri.parse(ApiConfig.authLogin),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(Duration(milliseconds: ApiConfig.timeout));
+      // Crear cliente HTTP con configuración específica para Linux
+      final client = http.Client();
+
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.authLogin),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(Duration(milliseconds: ApiConfig.timeout));
+
+      client.close();
 
       final data = jsonDecode(response.body);
 
@@ -26,7 +34,7 @@ class AuthService {
         // Guardar token y datos del usuario
         await _saveToken(data['token']);
         await _saveUser(data['user']);
-        
+
         return {
           'success': true,
           'user': UserModel.fromJson(data['user']),
@@ -35,14 +43,19 @@ class AuthService {
       } else {
         return {
           'success': false,
-          'message': data['message'] ?? 'Error en el login',
+          'message': data['message'] ?? 'Credenciales inválidas',
         };
       }
-    } catch (e) {
+    } on SocketException catch (e) {
       return {
         'success': false,
-        'message': 'Error de conexión: ${e.toString()}',
+        'message':
+            'Error de conexión: Verifica que el servidor esté ejecutándose en http://127.0.0.1:3000',
       };
+    } on HttpException catch (e) {
+      return {'success': false, 'message': 'Error HTTP: ${e.message}'};
+    } catch (e) {
+      return {'success': false, 'message': 'Error inesperado: ${e.toString()}'};
     }
   }
 
@@ -55,24 +68,26 @@ class AuthService {
     String position = 'Supervisor',
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse(ApiConfig.authRegister),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'name': name,
-          'email': email,
-          'password': password,
-          'role': role,
-          'position': position,
-        }),
-      ).timeout(Duration(milliseconds: ApiConfig.timeout));
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.authRegister),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'name': name,
+              'email': email,
+              'password': password,
+              'role': role,
+              'position': position,
+            }),
+          )
+          .timeout(Duration(milliseconds: ApiConfig.timeout));
 
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
         await _saveToken(data['token']);
         await _saveUser(data['user']);
-        
+
         return {
           'success': true,
           'user': UserModel.fromJson(data['user']),
@@ -98,13 +113,15 @@ class AuthService {
       final token = await getToken();
       if (token == null) return null;
 
-      final response = await http.get(
-        Uri.parse(ApiConfig.authMe),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ).timeout(Duration(milliseconds: ApiConfig.timeout));
+      final response = await http
+          .get(
+            Uri.parse(ApiConfig.authMe),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(Duration(milliseconds: ApiConfig.timeout));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -122,7 +139,7 @@ class AuthService {
   static Future<bool> isAuthenticated() async {
     final token = await getToken();
     if (token == null) return false;
-    
+
     // Verificar si el token es válido
     final user = await getCurrentUser();
     return user != null;
