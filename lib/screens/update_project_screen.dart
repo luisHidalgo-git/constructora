@@ -84,7 +84,10 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
         _budgetController.text.isEmpty ||
         _startDateController.text.isEmpty ||
         _endDateController.text.isEmpty) {
-      _showMessage('Por favor completa todos los campos obligatorios', isError: true);
+      _showMessage(
+        'Por favor completa todos los campos obligatorios',
+        isError: true,
+      );
       return;
     }
 
@@ -105,14 +108,18 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
         progress: _projectProgress,
         status: _projectStatus,
         keyIndicators: _keyIndicators,
-        imageUrl: widget.project?.imageUrl ??
+        imageUrl:
+            widget.project?.imageUrl ??
             'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
       );
 
       ProjectModel result;
       if (widget.project != null) {
         // Actualizar proyecto existente
-        result = await ProjectService.updateProject(widget.project!.id, projectData);
+        result = await ProjectService.updateProject(
+          widget.project!.id,
+          projectData,
+        );
         _showMessage('Proyecto actualizado exitosamente');
       } else {
         // Crear nuevo proyecto
@@ -431,7 +438,12 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                       const SizedBox(height: 32),
 
                       // File Picker
-                      const CustomFilePicker(),
+                      CustomFilePicker(
+                        onImageSelected: (imagePath) {
+                          // Aquí puedes manejar la imagen seleccionada
+                          print('Imagen seleccionada: $imagePath');
+                        },
+                      ),
                     ],
 
                     const SizedBox(height: 40),
@@ -460,7 +472,9 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                                 ),
                               )
                             : Text(
-                                isUpdate ? 'Enviar Actualización' : 'Crear Proyecto',
+                                isUpdate
+                                    ? 'Enviar Actualización'
+                                    : 'Crear Proyecto',
                                 style: AppTextStyles.buttonText,
                               ),
                       ),

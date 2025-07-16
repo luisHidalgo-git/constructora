@@ -11,7 +11,7 @@ import '../services/auth_service.dart';
 import '../models/project_model.dart';
 import '../models/stats_model.dart';
 import '../models/user_model.dart';
-import 'home_screen.dart';
+import 'update_project_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,16 +21,62 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
   List<ProjectModel> _projects = [];
+  List<ProjectModel> _filteredProjects = [];
   StatsModel? _stats;
   UserModel? _currentUser;
   bool _isLoading = true;
   String? _error;
+  String _selectedFilter = 'Todos';
+
+  final List<String> _filterOptions = [
+    'Todos',
+    'Activo',
+    'Pausado',
+    'Completado',
+    'Cancelado',
+  ];
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(_onSearchChanged);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    _filterProjects();
+  }
+
+  void _filterProjects() {
+    setState(() {
+      _filteredProjects = _projects.where((project) {
+        final matchesSearch =
+            _searchController.text.isEmpty ||
+            project.name.toLowerCase().contains(
+              _searchController.text.toLowerCase(),
+            ) ||
+            project.clientName.toLowerCase().contains(
+              _searchController.text.toLowerCase(),
+            ) ||
+            project.location.toLowerCase().contains(
+              _searchController.text.toLowerCase(),
+            );
+
+        final matchesFilter =
+            _selectedFilter == 'Todos' || project.status == _selectedFilter;
+
+        return matchesSearch && matchesFilter;
+      }).toList();
+    });
   }
 
   Future<void> _loadData() async {
@@ -45,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _projects = []; // Iniciar vacío
+        _filteredProjects = [];
         _stats = null; // Iniciar vacío
         _currentUser =
             user ??
@@ -80,8 +127,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _projects = results[0] as List<ProjectModel>;
+        _filteredProjects = _projects;
         _stats = results[1] as StatsModel;
       });
+      _filterProjects();
     } catch (e) {
       // Si no hay datos reales, mantener vacío
       print('No hay datos reales disponibles: $e');
@@ -90,6 +139,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refreshData() async {
     await _loadRealData();
+  }
+
+  void _navigateToCreateProject() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const UpdateProjectScreen()),
+    );
+
+    // Si se creó un proyecto, actualizar la lista
+    if (result != null) {
+      _refreshData();
+    }
   }
 
   @override
@@ -119,6 +180,31 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   const Spacer(),
+                  // Add Project Button
+                  Container(
+                    width: 40,
+                    height: 40,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: GestureDetector(
+                      onTap: _navigateToCreateProject,
+                      child: const Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
                   Container(
                     width: 40,
                     height: 40,
@@ -169,6 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
                 child: TextField(
+                  controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Buscar un proyecto...',
                     hintStyle: AppTextStyles.hintText.copyWith(fontSize: 14),
@@ -177,6 +264,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: AppColors.iconGray,
                       size: 20,
                     ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(
+                              Icons.clear,
+                              color: AppColors.iconGray,
+                              size: 20,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -192,6 +291,52 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
+            // Filter Chips
+            Container(
+              height: 50,
+              margin: const EdgeInsets.only(top: 16),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                itemCount: _filterOptions.length,
+                itemBuilder: (context, index) {
+                  final filter = _filterOptions[index];
+                  final isSelected = _selectedFilter == filter;
+
+                  return Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    child: FilterChip(
+                      label: Text(
+                        filter,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: isSelected ? Colors.white : AppColors.textGray,
+                        ),
+                      ),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedFilter = filter;
+                        });
+                        _filterProjects();
+                      },
+                      backgroundColor: Colors.white,
+                      selectedColor: AppColors.primary,
+                      checkmarkColor: Colors.white,
+                      side: BorderSide(
+                        color: isSelected
+                            ? AppColors.primary
+                            : Colors.grey.withOpacity(0.3),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
             const SizedBox(height: 16),
 
             // Stats Cards
@@ -218,7 +363,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Proyectos Recientes',
+                            _searchController.text.isNotEmpty ||
+                                    _selectedFilter != 'Todos'
+                                ? 'Resultados (${_filteredProjects.length})'
+                                : 'Proyectos Recientes',
                             style: AppTextStyles.header.copyWith(fontSize: 18),
                           ),
                           TextButton(
@@ -351,6 +499,30 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    if (_filteredProjects.isEmpty && _projects.isNotEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No se encontraron proyectos',
+              style: AppTextStyles.header.copyWith(
+                fontSize: 18,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Intenta con otros términos de búsqueda',
+              style: AppTextStyles.subtitle,
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_projects.isEmpty) {
       return Center(
         child: Column(
@@ -370,6 +542,19 @@ class _HomeScreenState extends State<HomeScreen> {
               'Crea tu primer proyecto para comenzar',
               style: AppTextStyles.subtitle,
             ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _navigateToCreateProject,
+              icon: const Icon(Icons.add),
+              label: const Text('Crear Proyecto'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ],
         ),
       );
@@ -380,7 +565,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
         children: [
-          ..._projects
+          ..._filteredProjects
               .map(
                 (project) => Padding(
                   padding: const EdgeInsets.only(bottom: 16),

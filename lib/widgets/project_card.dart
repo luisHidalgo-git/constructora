@@ -25,13 +25,20 @@ class ProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => UpdateProjectScreen(project: project),
           ),
         );
+
+        // Si se actualizó el proyecto, notificar al padre para que actualice
+        if (result != null && context.mounted) {
+          // Trigger a rebuild of the parent widget
+          (context.findAncestorStateOfType<State>() as dynamic)?._refreshData
+              ?.call();
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -61,9 +68,9 @@ class ProjectCard extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Project Info
               Expanded(
                 child: Column(
@@ -75,7 +82,9 @@ class ProjectCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             title,
-                            style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                            style: AppTextStyles.fieldLabel.copyWith(
+                              fontSize: 14,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -100,16 +109,16 @@ class ProjectCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 4),
-                    
+
                     Text(
                       subtitle,
                       style: AppTextStyles.subtitle.copyWith(fontSize: 12),
                     ),
-                    
+
                     const SizedBox(height: 12),
-                    
+
                     // Progress Bar
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
