@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
+import 'home_screen.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/social_login_button.dart';
 import '../utils/app_colors.dart';
@@ -46,9 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result['success']) {
         _showMessage('¡Bienvenido ${result['user'].name}!');
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const HomeScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       } else {
         _showMessage(result['message'], isError: true);
@@ -72,6 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,9 +81,10 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SingleChildScrollView(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - 
-                         MediaQuery.of(context).padding.top - 
-                         MediaQuery.of(context).padding.bottom,
+              minHeight:
+                  MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
             ),
             child: IntrinsicHeight(
               child: Padding(
@@ -251,9 +252,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    
+
                     // Espacio adicional para evitar overflow
-                    SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 20 : 0),
+                    SizedBox(
+                      height: MediaQuery.of(context).viewInsets.bottom > 0
+                          ? 20
+                          : 0,
+                    ),
                   ],
                 ),
               ),

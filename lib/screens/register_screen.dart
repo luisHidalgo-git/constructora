@@ -4,6 +4,7 @@ import '../widgets/social_login_button.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import 'login_screen.dart';
+import 'home_screen.dart';
 import 'platform_selection_screen.dart';
 import '../services/auth_service.dart';
 
@@ -18,9 +19,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   final TextEditingController _positionController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
@@ -55,7 +57,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         role: _selectedRole,
-        position: _positionController.text.trim().isEmpty 
+        position: _positionController.text.trim().isEmpty
             ? _getRoleDefaultPosition(_selectedRole)
             : _positionController.text.trim(),
       );
@@ -63,9 +65,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (result['success']) {
         _showMessage('¡Registro exitoso! Bienvenido ${result['user'].name}!');
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const HomeScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       } else {
         _showMessage(result['message'], isError: true);
@@ -96,7 +96,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_passwordController.text.length < 6) {
-      _showMessage('La contraseña debe tener al menos 6 caracteres', isError: true);
+      _showMessage(
+        'La contraseña debe tener al menos 6 caracteres',
+        isError: true,
+      );
       return false;
     }
 
@@ -145,9 +148,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SingleChildScrollView(
           child: ConstrainedBox(
             constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - 
-                         MediaQuery.of(context).padding.top - 
-                         MediaQuery.of(context).padding.bottom,
+              minHeight:
+                  MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom,
             ),
             child: IntrinsicHeight(
               child: Padding(
@@ -280,7 +284,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         onChanged: (value) {
                           setState(() {
                             _selectedRole = value!;
-                            _positionController.text = _getRoleDefaultPosition(value);
+                            _positionController.text = _getRoleDefaultPosition(
+                              value,
+                            );
                           });
                         },
                       ),
@@ -324,7 +330,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 16),
 
                     // Confirm Password Field
-                    Text('Confirmar Contraseña', style: AppTextStyles.fieldLabel),
+                    Text(
+                      'Confirmar Contraseña',
+                      style: AppTextStyles.fieldLabel,
+                    ),
                     const SizedBox(height: 6),
                     CustomTextField(
                       controller: _confirmPasswordController,
@@ -431,9 +440,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ],
                     ),
-                    
+
                     // Espacio adicional para evitar overflow
-                    SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 20 : 0),
+                    SizedBox(
+                      height: MediaQuery.of(context).viewInsets.bottom > 0
+                          ? 20
+                          : 0,
+                    ),
                   ],
                 ),
               ),
