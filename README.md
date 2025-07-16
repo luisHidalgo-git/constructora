@@ -22,5 +22,5 @@ npm run dev
 ## Variables de entorno Backend
 ```
 MONGODB_URI=mongodb://localhost:27017/constructora
-PORT=localhost:3000
+PORT=3000
 ```

@@ -12,10 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Conexión a MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGODB_URI)
 .then(() => {
   console.log(`✅ Conectado a MongoDB`);
 })
@@ -64,13 +61,13 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-  console.log(`📱 API disponible en: ${PORT}`);
-  console.log(`🔗 Health check: ${PORT}/health`);
+  console.log(`📱 API disponible en: http://localhost:${PORT}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`📊 Rutas disponibles:`);
-  console.log(`   • ${PORT}/api/auth`);
-  console.log(`   • ${PORT}/api/projects`);
-  console.log(`   • ${PORT}/api/activities`);
-  console.log(`   • ${PORT}/api/stats`);
+  console.log(`   • http://localhost:${PORT}/api/auth`);
+  console.log(`   • http://localhost:${PORT}/api/projects`);
+  console.log(`   • http://localhost:${PORT}/api/activities`);
+  console.log(`   • http://localhost:${PORT}/api/stats`);
 });
