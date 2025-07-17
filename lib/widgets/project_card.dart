@@ -89,6 +89,7 @@ class ProjectCard extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -112,9 +113,13 @@ class ProjectCard extends StatelessWidget {
 
                     const SizedBox(height: 4),
 
-                    Text(
-                      subtitle,
-                      style: AppTextStyles.subtitle.copyWith(fontSize: 12),
+                    Flexible(
+                      child: Text(
+                        subtitle,
+                        style: AppTextStyles.subtitle.copyWith(fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
 
                     const SizedBox(height: 12),
