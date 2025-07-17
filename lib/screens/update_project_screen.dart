@@ -3,6 +3,7 @@ import '../screens/home_screen.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_date_field.dart';
 import '../widgets/custom_file_picker.dart';
+import '../widgets/location_picker_widget.dart';
 import '../widgets/progress_indicator_widget.dart';
 import '../widgets/status_selector.dart';
 import '../widgets/key_indicators_widget.dart';
@@ -339,9 +340,13 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                       style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
                     ),
                     const SizedBox(height: 8),
-                    CustomTextField(
-                      controller: _locationController,
-                      hintText: 'Ej. Santiago Papasquiero',
+                    LocationPickerWidget(
+                      initialLocation: _locationController.text,
+                      onLocationSelected: (location) {
+                        setState(() {
+                          _locationController.text = location;
+                        });
+                      },
                     ),
 
                     const SizedBox(height: 24),

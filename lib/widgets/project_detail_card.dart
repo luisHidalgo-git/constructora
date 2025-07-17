@@ -62,16 +62,8 @@ class ProjectDetailCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          title,
-                          style: AppTextStyles.fieldLabel.copyWith(
-                            fontSize: 16,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.location_on_outlined,
@@ -79,20 +71,21 @@ class ProjectDetailCard extends StatelessWidget {
                               color: AppColors.textGray,
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              location,
-                              style: AppTextStyles.subtitle.copyWith(
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Text(
-                              date,
-                              style: AppTextStyles.subtitle.copyWith(
-                                fontSize: 12,
+                            Flexible(
+                              child: Text(
+                                location,
+                                style: AppTextStyles.subtitle.copyWith(
+                                  fontSize: 12,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          date,
+                          style: AppTextStyles.subtitle.copyWith(fontSize: 12),
                         ),
                       ],
                     ),
@@ -161,24 +154,23 @@ class ProjectDetailCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             // Budget Info
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Gasto emocional ABC',
-                      style: AppTextStyles.subtitle.copyWith(fontSize: 12),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Presupuesto: $budget',
-                      style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                    ),
-                  ],
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Gasto emocional ABC',
+                    style: AppTextStyles.subtitle.copyWith(fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Presupuesto: $budget',
+                    style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

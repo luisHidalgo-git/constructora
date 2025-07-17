@@ -41,6 +41,7 @@ class ProjectCard extends StatelessWidget {
         }
       },
       child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -55,6 +56,7 @@ class ProjectCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Project Image
               Container(
@@ -75,9 +77,11 @@ class ProjectCard extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Title and Status Row
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
@@ -85,7 +89,7 @@ class ProjectCard extends StatelessWidget {
                             style: AppTextStyles.fieldLabel.copyWith(
                               fontSize: 14,
                             ),
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -113,21 +117,22 @@ class ProjectCard extends StatelessWidget {
 
                     const SizedBox(height: 4),
 
-                    Flexible(
-                      child: Text(
-                        subtitle,
-                        style: AppTextStyles.subtitle.copyWith(fontSize: 12),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    // Subtitle
+                    Text(
+                      subtitle,
+                      style: AppTextStyles.subtitle.copyWith(fontSize: 12),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
 
                     const SizedBox(height: 12),
 
-                    // Progress Bar
+                    // Progress Section
                     Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Progress Bar
                         Container(
                           height: 6,
                           decoration: BoxDecoration(
@@ -146,12 +151,16 @@ class ProjectCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          '${(progress * 100).toInt()}%',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textGray,
+                        // Progress Percentage
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '${(progress * 100).toInt()}%',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textGray,
+                            ),
                           ),
                         ),
                       ],
