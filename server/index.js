@@ -1,10 +1,16 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const url = require('url');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+// Extraer puerto de la URL base de la API
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000/api';
+const parsedUrl = new URL(API_BASE_URL);
+const PORT = parsedUrl.port || 3000;
+const API_PATH = parsedUrl.pathname || '/api';
 
 // Middleware
 app.use(cors());
@@ -25,7 +31,8 @@ app.get('/', (req, res) => {
   res.json({
     message: 'API Constructora - Avanze 360',
     version: '1.0.0',
-    status: 'running'
+    status: 'running',
+    api_base_url: API_BASE_URL
   });
 });
 
@@ -35,15 +42,15 @@ app.get('/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    server_url: `http://localhost:${PORT}`
+    api_base_url: API_BASE_URL
   });
 });
 
 // Importar rutas (se agregarán después)
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/projects', require('./routes/projects'));
-app.use('/api/activities', require('./routes/activities'));
-app.use('/api/stats', require('./routes/stats'));
+app.use(`${API_PATH}/auth`, require('./routes/auth'));
+app.use(`${API_PATH}/projects`, require('./routes/projects'));
+app.use(`${API_PATH}/activities`, require('./routes/activities'));
+app.use(`${API_PATH}/stats`, require('./routes/stats'));
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
@@ -63,11 +70,11 @@ app.use('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-  console.log(`📱 API disponible en: http://localhost:${PORT}`);
+  console.log(`📱 API disponible en: ${API_BASE_URL}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`📊 Rutas disponibles:`);
-  console.log(`   • http://localhost:${PORT}/api/auth`);
-  console.log(`   • http://localhost:${PORT}/api/projects`);
-  console.log(`   • http://localhost:${PORT}/api/activities`);
-  console.log(`   • http://localhost:${PORT}/api/stats`);
+  console.log(`   • ${API_BASE_URL}/auth`);
+  console.log(`   • ${API_BASE_URL}/projects`);
+  console.log(`   • ${API_BASE_URL}/activities`);
+  console.log(`   • ${API_BASE_URL}/stats`);
 });
