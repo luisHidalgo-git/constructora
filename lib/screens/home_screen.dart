@@ -518,18 +518,6 @@ class _HomeScreenState extends State<HomeScreen> {
               style: AppTextStyles.subtitle,
             ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _navigateToCreateProject,
-              icon: const Icon(Icons.add),
-              label: const Text('Crear Proyecto'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
           ],
         ),
       );
