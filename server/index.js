@@ -19,12 +19,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI)
-.then(() => {
-  console.log(`✅ Conectado a MongoDB`);
-})
-.catch((error) => {
-  console.error('❌ Error conectando a MongoDB:', error);
-});
+  .then(() => {
+    console.log(`✅ Conectado a MongoDB`);
+  })
+  .catch((error) => {
+    console.error('❌ Error conectando a MongoDB:', error);
+  });
 
 // Rutas básicas
 app.get('/', (req, res) => {
@@ -69,9 +69,9 @@ app.use('*', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+  console.log(`🚀 Servidor corriendo en puerto ${API_BASE_URL}`);
   console.log(`📱 API disponible en: ${API_BASE_URL}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔗 Health check: ${API_BASE_URL}/health`);
   console.log(`📊 Rutas disponibles:`);
   console.log(`   • ${API_BASE_URL}/auth`);
   console.log(`   • ${API_BASE_URL}/projects`);
