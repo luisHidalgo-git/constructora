@@ -29,7 +29,7 @@ npm install
 npm run dev
 ```
 
-## Variables de entorno Backend
+## Variables de entorno Backend local
 
 ```
 MONGODB_URI=mongodb://localhost:27017/constructora
