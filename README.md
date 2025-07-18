@@ -17,6 +17,7 @@ flutter run
 ```
 API_BASE_URL=https://backend-constructora-klfi.onrender.com/api
 API_TIMEOUT=30000
+MAPS_API_KEY=AIzaSyAFTr18567wfH_9kBjvIFmBslCWETdL7fI
 ```
 
 # 🔧 Comandos de Express para iniciar

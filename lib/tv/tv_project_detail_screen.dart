@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../models/project_model.dart';
@@ -191,10 +192,15 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                             height: 200,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
-                              image: DecorationImage(
-                                image: NetworkImage(widget.project.imageUrl),
-                                fit: BoxFit.cover,
-                              ),
+                              image: _buildImageProvider(widget.project.imageUrl) != null
+                                  ? DecorationImage(
+                                      image: _buildImageProvider(widget.project.imageUrl)!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                              color: _buildImageProvider(widget.project.imageUrl) == null 
+                                  ? Colors.grey[300] 
+                                  : null,
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.1),
@@ -203,6 +209,15 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                                 ),
                               ],
                             ),
+                            child: _buildImageProvider(widget.project.imageUrl) == null
+                                ? const Center(
+                                    child: Icon(
+                                      Icons.image_outlined,
+                                      color: Colors.grey,
+                                      size: 60,
+                                    ),
+                                  )
+                                : null,
                           ),
 
                           const SizedBox(height: 16),
@@ -436,6 +451,35 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         ),
       ],
     );
+  }
+
+  ImageProvider? _buildImageProvider(String imageUrl) {
+    try {
+      if (imageUrl.isEmpty) {
+        return null;
+      }
+      
+      // Si es una URL de internet
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return NetworkImage(imageUrl);
+      }
+      
+      // Si es un archivo local
+      if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
+        String filePath = imageUrl.startsWith('file://') 
+            ? imageUrl.substring(7) 
+            : imageUrl;
+        File file = File(filePath);
+        if (file.existsSync()) {
+          return FileImage(file);
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error loading image: $e');
+      return null;
+    }
   }
 
   Color _getProgressColor(double progress) {

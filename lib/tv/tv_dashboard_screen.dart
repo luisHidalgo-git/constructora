@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import 'tv_project_detail_screen.dart';
@@ -661,11 +662,23 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                       height: 50,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(6),
-                        image: DecorationImage(
-                          image: NetworkImage(project.imageUrl),
-                          fit: BoxFit.cover,
-                        ),
+                        image: _buildImageProvider(project.imageUrl) != null
+                            ? DecorationImage(
+                                image: _buildImageProvider(project.imageUrl)!,
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                        color: _buildImageProvider(project.imageUrl) == null 
+                            ? Colors.grey[300] 
+                            : null,
                       ),
+                      child: _buildImageProvider(project.imageUrl) == null
+                          ? const Icon(
+                              Icons.image_outlined,
+                              color: Colors.grey,
+                              size: 25,
+                            )
+                          : null,
                     ),
 
                     const SizedBox(width: 12),
@@ -802,6 +815,35 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         ],
       ),
     );
+  }
+
+  ImageProvider? _buildImageProvider(String imageUrl) {
+    try {
+      if (imageUrl.isEmpty) {
+        return null;
+      }
+      
+      // Si es una URL de internet
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return NetworkImage(imageUrl);
+      }
+      
+      // Si es un archivo local
+      if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
+        String filePath = imageUrl.startsWith('file://') 
+            ? imageUrl.substring(7) 
+            : imageUrl;
+        File file = File(filePath);
+        if (file.existsSync()) {
+          return FileImage(file);
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error loading image: $e');
+      return null;
+    }
   }
 
   int _calculateDaysRemaining(ProjectModel project) {

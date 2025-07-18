@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../screens/update_project_screen.dart';
@@ -118,11 +119,25 @@ class ProjectDetailCard extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                image: DecorationImage(
-                  image: NetworkImage(imageUrl),
-                  fit: BoxFit.cover,
-                ),
+                image: _buildImageProvider(imageUrl) != null
+                    ? DecorationImage(
+                        image: _buildImageProvider(imageUrl)!,
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                color: _buildImageProvider(imageUrl) == null 
+                    ? Colors.grey[300] 
+                    : null,
               ),
+              child: _buildImageProvider(imageUrl) == null
+                  ? const Center(
+                      child: Icon(
+                        Icons.image_outlined,
+                        color: Colors.grey,
+                        size: 60,
+                      ),
+                    )
+                  : null,
             ),
 
             // Progress and Budget Info
@@ -178,6 +193,34 @@ class ProjectDetailCard extends StatelessWidget {
     );
   }
 
+  ImageProvider? _buildImageProvider(String imageUrl) {
+    try {
+      if (imageUrl.isEmpty) {
+        return null;
+      }
+      
+      // Si es una URL de internet
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return NetworkImage(imageUrl);
+      }
+      
+      // Si es un archivo local
+      if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
+        String filePath = imageUrl.startsWith('file://') 
+            ? imageUrl.substring(7) 
+            : imageUrl;
+        File file = File(filePath);
+        if (file.existsSync()) {
+          return FileImage(file);
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error loading image: $e');
+      return null;
+    }
+  }
   Color _getProgressColor() {
     if (progress >= 0.7) {
       return const Color(0xFF10B981); // Green
