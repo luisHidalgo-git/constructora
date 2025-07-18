@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_date_field.dart';
+import '../widgets/custom_budget_field.dart';
 import '../widgets/custom_file_picker.dart';
 import '../widgets/location_picker_widget.dart';
 import '../widgets/progress_indicator_widget.dart';
@@ -42,12 +43,35 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     'Satisfacción': 0.0,
   };
   bool _isLoading = false;
+  bool _hasUnsavedChanges = false;
+  String? _selectedImagePath;
 
   @override
   void initState() {
     super.initState();
     if (widget.project != null) {
       _loadProjectData();
+    } else {
+      // Para proyectos nuevos, detectar cambios
+      _setupChangeListeners();
+    }
+  }
+
+  void _setupChangeListeners() {
+    _projectNameController.addListener(_onFieldChanged);
+    _clientNameController.addListener(_onFieldChanged);
+    _projectManagerController.addListener(_onFieldChanged);
+    _locationController.addListener(_onFieldChanged);
+    _budgetController.addListener(_onFieldChanged);
+    _startDateController.addListener(_onFieldChanged);
+    _endDateController.addListener(_onFieldChanged);
+  }
+
+  void _onFieldChanged() {
+    if (!_hasUnsavedChanges) {
+      setState(() {
+        _hasUnsavedChanges = true;
+      });
     }
   }
 
@@ -63,6 +87,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     _projectProgress = project.progress;
     _projectStatus = project.status;
     _keyIndicators = Map.from(project.keyIndicators);
+    _selectedImagePath = project.imageUrl;
   }
 
   @override
@@ -78,17 +103,88 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     super.dispose();
   }
 
+  Future<bool> _onWillPop() async {
+    final isUpdate = widget.project != null;
+    
+    // Si es actualización o no hay cambios, permitir salir
+    if (isUpdate || !_hasUnsavedChanges) {
+      return true;
+    }
+
+    // Si es creación y hay cambios, mostrar confirmación
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.warning_outlined,
+                  color: Colors.orange,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Salir sin guardar',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            '¿Estás seguro de que deseas salir? Se perderán todos los cambios realizados.',
+            style: TextStyle(fontSize: 16, color: AppColors.textGray),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                'Continuar editando',
+                style: TextStyle(
+                  color: AppColors.textGray,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Salir sin guardar',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
+  }
+
   Future<void> _updateProject() async {
-    if (_projectNameController.text.isEmpty ||
-        _clientNameController.text.isEmpty ||
-        _locationController.text.isEmpty ||
-        _budgetController.text.isEmpty ||
-        _startDateController.text.isEmpty ||
-        _endDateController.text.isEmpty) {
-      _showMessage(
-        'Por favor completa todos los campos obligatorios',
-        isError: true,
-      );
+    // Validación mejorada con mensajes específicos
+    String? validationError = _validateFields();
+    if (validationError != null) {
+      _showMessage(validationError, isError: true);
       return;
     }
 
@@ -109,7 +205,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
         progress: _projectProgress,
         status: _projectStatus,
         keyIndicators: _keyIndicators,
-        imageUrl:
+        imageUrl: _selectedImagePath ?? 
             widget.project?.imageUrl ??
             'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
       );
@@ -126,6 +222,10 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
         // Crear nuevo proyecto
         result = await ProjectService.createProject(projectData);
         _showMessage('Proyecto creado exitosamente');
+        // Marcar como guardado
+        setState(() {
+          _hasUnsavedChanges = false;
+        });
       }
 
       Navigator.pop(context, result);
@@ -138,6 +238,44 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     }
   }
 
+  String? _validateFields() {
+    List<String> missingFields = [];
+
+    if (_projectNameController.text.trim().isEmpty) {
+      missingFields.add('Nombre del proyecto');
+    }
+    if (_clientNameController.text.trim().isEmpty) {
+      missingFields.add('Nombre del cliente');
+    }
+    if (_projectManagerController.text.trim().isEmpty) {
+      missingFields.add('Descripción del proyecto');
+    }
+    if (_locationController.text.trim().isEmpty) {
+      missingFields.add('Ubicación');
+    }
+    if (_budgetController.text.trim().isEmpty) {
+      missingFields.add('Presupuesto');
+    }
+    if (_startDateController.text.trim().isEmpty) {
+      missingFields.add('Fecha de inicio');
+    }
+    if (_endDateController.text.trim().isEmpty) {
+      missingFields.add('Fecha de fin');
+    }
+
+    if (missingFields.isEmpty) {
+      return null;
+    }
+
+    if (missingFields.length == 1) {
+      return 'Por favor completa el campo: ${missingFields.first}';
+    } else if (missingFields.length <= 3) {
+      return 'Por favor completa los campos: ${missingFields.join(', ')}';
+    } else {
+      return 'Por favor completa todos los campos obligatorios (${missingFields.length} campos faltantes)';
+    }
+  }
+
   void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -145,6 +283,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
         backgroundColor: isError ? Colors.red : const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: Duration(seconds: isError ? 4 : 2),
       ),
     );
   }
@@ -232,7 +371,9 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
   Widget build(BuildContext context) {
     final isUpdate = widget.project != null;
 
-    return Scaffold(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
@@ -243,17 +384,20 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () {
-                      if (Navigator.canPop(context)) {
-                        Navigator.pop(context);
-                      } else {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const HomeScreen(),
-                          ),
-                          (route) => false,
-                        );
+                    onTap: () async {
+                      final shouldPop = await _onWillPop();
+                      if (shouldPop) {
+                        if (Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        } else {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HomeScreen(),
+                            ),
+                            (route) => false,
+                          );
+                        }
                       }
                     },
                     child: Container(
@@ -345,6 +489,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                       onLocationSelected: (location) {
                         setState(() {
                           _locationController.text = location;
+                          _onFieldChanged();
                         });
                       },
                     ),
@@ -357,10 +502,10 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                       style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
                     ),
                     const SizedBox(height: 8),
-                    CustomTextField(
+                    CustomBudgetField(
                       controller: _budgetController,
-                      hintText: '\$2,500,000',
-                      keyboardType: TextInputType.number,
+                      hintText: '2,500,000',
+                      onChanged: _onFieldChanged,
                     ),
 
                     const SizedBox(height: 24),
@@ -382,6 +527,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                               CustomDateField(
                                 controller: _startDateController,
                                 hintText: 'dd/mm/aaaa',
+                                onChanged: _onFieldChanged,
                               ),
                             ],
                           ),
@@ -401,6 +547,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                               CustomDateField(
                                 controller: _endDateController,
                                 hintText: 'dd/mm/aaaa',
+                                onChanged: _onFieldChanged,
                               ),
                             ],
                           ),
@@ -444,10 +591,46 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
 
                       // File Picker
                       CustomFilePicker(
+                        initialImagePath: _selectedImagePath,
                         onImageSelected: (imagePath) {
-                          // Aquí puedes manejar la imagen seleccionada
-                          print('Imagen seleccionada: $imagePath');
+                          setState(() {
+                            _selectedImagePath = imagePath;
+                          });
+                          _onFieldChanged();
                         },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Campos obligatorios info
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: AppColors.primary,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                'Los campos marcados con (*) son obligatorios',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
 
@@ -492,6 +675,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

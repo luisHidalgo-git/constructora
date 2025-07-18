@@ -5,11 +5,13 @@ import '../utils/app_text_styles.dart';
 class CustomDateField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
+  final VoidCallback? onChanged;
 
   const CustomDateField({
     super.key,
     required this.controller,
     required this.hintText,
+    this.onChanged,
   });
 
   @override
@@ -52,6 +54,9 @@ class CustomDateField extends StatelessWidget {
           );
           if (picked != null) {
             controller.text = "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+            if (onChanged != null) {
+              onChanged!();
+            }
           }
         },
         decoration: InputDecoration(

@@ -7,8 +7,13 @@ import '../utils/app_text_styles.dart';
 
 class CustomFilePicker extends StatefulWidget {
   final Function(String)? onImageSelected;
+  final String? initialImagePath;
 
-  const CustomFilePicker({super.key, this.onImageSelected});
+  const CustomFilePicker({
+    super.key, 
+    this.onImageSelected,
+    this.initialImagePath,
+  });
 
   @override
   State<CustomFilePicker> createState() => _CustomFilePickerState();
@@ -17,6 +22,15 @@ class CustomFilePicker extends StatefulWidget {
 class _CustomFilePickerState extends State<CustomFilePicker> {
   String? _selectedImagePath;
   final ImagePicker _picker = ImagePicker();
+  
+  @override
+  void initState() {
+    super.initState();
+    // Si hay una imagen inicial, mostrarla
+    if (widget.initialImagePath != null) {
+      _selectedImagePath = widget.initialImagePath;
+    }
+  }
 
   Future<bool> _requestPermissions() async {
     if (Platform.isAndroid) {
