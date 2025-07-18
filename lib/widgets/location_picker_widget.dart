@@ -28,29 +28,68 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
     _selectedLocation = widget.initialLocation ?? '';
   }
 
-  Future<void> _openLocationPicker() async {
+  Future<bool> _checkLocationPermissions() async {
     try {
-      // Verificar permisos de ubicación
+      // Verificar si el servicio de ubicación está habilitado
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showMessage(
+          'Por favor habilita el servicio de ubicación en configuración',
+          isError: true,
+        );
+        return false;
+      }
+
+      // Verificar permisos
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           _showMessage('Permisos de ubicación denegados', isError: true);
-          return;
+          return false;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        _showMessage('Permisos de ubicación denegados permanentemente', isError: true);
-        return;
+        _showMessage(
+          'Permisos de ubicación denegados permanentemente. Ve a configuración para habilitarlos.',
+          isError: true,
+        );
+        return false;
       }
 
-      // Obtener ubicación actual
+      return true;
+    } catch (e) {
+      _showMessage(
+        'Error verificando permisos: ${e.toString()}',
+        isError: true,
+      );
+      return false;
+    }
+  }
+
+  Future<void> _openLocationPicker() async {
+    try {
+      // Verificar permisos
+      bool hasPermission = await _checkLocationPermissions();
+      if (!hasPermission) return;
+
+      // Mostrar indicador de carga
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Obtener ubicación actual con timeout más largo
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
       );
 
       if (!mounted) return;
+      Navigator.pop(context); // Cerrar indicador de carga
 
       // Abrir el mapa para seleccionar ubicación
       final result = await Navigator.push(
@@ -69,7 +108,34 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
         widget.onLocationSelected(result);
       }
     } catch (e) {
-      _showMessage('Error al obtener ubicación: ${e.toString()}', isError: true);
+      if (mounted) {
+        Navigator.of(
+          context,
+          rootNavigator: true,
+        ).pop(); // Cerrar indicador de carga si está abierto
+
+        // Usar ubicación por defecto si hay error
+        final defaultLocation = LatLng(-12.0464, -77.0428); // Lima, Perú
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                MapPickerScreen(initialPosition: defaultLocation),
+          ),
+        );
+
+        if (result != null && result is String) {
+          setState(() {
+            _selectedLocation = result;
+          });
+          widget.onLocationSelected(result);
+        }
+
+        _showMessage(
+          'No se pudo obtener ubicación actual. Usa el mapa para seleccionar manualmente.',
+          isError: true,
+        );
+      }
     }
   }
 
@@ -81,6 +147,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
         backgroundColor: isError ? Colors.red : Colors.green,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: Duration(seconds: isError ? 4 : 2),
       ),
     );
   }
@@ -165,7 +232,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
                   ],
                 ),
               ),
-              Icon(
+              const Icon(
                 Icons.arrow_forward_ios,
                 color: AppColors.iconGray,
                 size: 16,
@@ -181,10 +248,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 class MapPickerScreen extends StatefulWidget {
   final LatLng initialPosition;
 
-  const MapPickerScreen({
-    super.key,
-    required this.initialPosition,
-  });
+  const MapPickerScreen({super.key, required this.initialPosition});
 
   @override
   State<MapPickerScreen> createState() => _MapPickerScreenState();
@@ -214,23 +278,46 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         position.longitude,
       );
 
-      if (placemarks.isNotEmpty) {
+      if (placemarks.isNotEmpty && mounted) {
         Placemark place = placemarks[0];
+        String address = '';
+
+        if (place.street != null && place.street!.isNotEmpty) {
+          address += place.street!;
+        }
+        if (place.locality != null && place.locality!.isNotEmpty) {
+          if (address.isNotEmpty) address += ', ';
+          address += place.locality!;
+        }
+        if (place.administrativeArea != null &&
+            place.administrativeArea!.isNotEmpty) {
+          if (address.isNotEmpty) address += ', ';
+          address += place.administrativeArea!;
+        }
+        if (place.country != null && place.country!.isNotEmpty) {
+          if (address.isNotEmpty) address += ', ';
+          address += place.country!;
+        }
+
         setState(() {
-          _selectedAddress = 
-              '${place.street ?? ''}, ${place.locality ?? ''}, ${place.administrativeArea ?? ''}, ${place.country ?? ''}'
-                  .replaceAll(RegExp(r'^,\s*|,\s*$'), '')
-                  .replaceAll(RegExp(r',\s*,'), ',');
+          _selectedAddress = address.isNotEmpty
+              ? address
+              : 'Ubicación seleccionada';
         });
       }
     } catch (e) {
-      setState(() {
-        _selectedAddress = 'Ubicación seleccionada';
-      });
+      if (mounted) {
+        setState(() {
+          _selectedAddress =
+              'Lat: ${position.latitude.toStringAsFixed(6)}, Lng: ${position.longitude.toStringAsFixed(6)}';
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -244,6 +331,66 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   void _confirmSelection() {
     if (_selectedAddress.isNotEmpty) {
       Navigator.pop(context, _selectedAddress);
+    }
+  }
+
+  Future<void> _moveToCurrentLocation() async {
+    try {
+      bool hasPermission = await _checkLocationPermissions();
+      if (!hasPermission) return;
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+
+      final newPosition = LatLng(position.latitude, position.longitude);
+
+      _controller?.animateCamera(CameraUpdate.newLatLng(newPosition));
+
+      setState(() {
+        _selectedPosition = newPosition;
+      });
+
+      _getAddressFromLatLng(newPosition);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al obtener ubicación actual: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<bool> _checkLocationPermissions() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Servicio de ubicación deshabilitado'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return false;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return false;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -291,16 +438,14 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.05),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.2),
-              ),
+              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.location_on,
                       color: AppColors.primary,
                       size: 20,
@@ -389,7 +534,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                         }
                       : {},
                   myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
+                  myLocationButtonEnabled: false,
                   zoomControlsEnabled: true,
                   mapToolbarEnabled: false,
                 ),
@@ -398,6 +543,25 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
           ),
 
           const SizedBox(height: 16),
+
+          // Current location button
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _moveToCurrentLocation,
+              icon: const Icon(Icons.my_location, size: 20),
+              label: const Text('Usar mi ubicación actual'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
 
           // Instructions
           Container(
@@ -409,19 +573,12 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             ),
             child: const Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  color: AppColors.textGray,
-                  size: 16,
-                ),
+                Icon(Icons.info_outline, color: AppColors.textGray, size: 16),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Toca en cualquier lugar del mapa para seleccionar la ubicación del proyecto',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textGray,
-                    ),
+                    style: TextStyle(fontSize: 12, color: AppColors.textGray),
                   ),
                 ),
               ],

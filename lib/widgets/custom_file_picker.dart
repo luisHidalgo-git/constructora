@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 
@@ -13,6 +15,7 @@ class CustomFilePicker extends StatefulWidget {
 
 class _CustomFilePickerState extends State<CustomFilePicker> {
   String? _selectedImagePath;
+  final ImagePicker _picker = ImagePicker();
 
   void _showImageSourceDialog() {
     showDialog(
@@ -202,46 +205,85 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
     );
   }
 
-  void _selectFromCamera() {
-    // Simular selección de cámara
-    setState(() {
-      _selectedImagePath =
-          "camera_image_${DateTime.now().millisecondsSinceEpoch}.jpg";
-    });
+  Future<void> _selectFromCamera() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
 
-    if (widget.onImageSelected != null) {
-      widget.onImageSelected!(_selectedImagePath!);
+      if (image != null) {
+        setState(() {
+          _selectedImagePath = image.path;
+        });
+
+        if (widget.onImageSelected != null) {
+          widget.onImageSelected!(image.path);
+        }
+
+        _showMessage('Foto tomada exitosamente');
+      }
+    } catch (e) {
+      _showMessage(
+        'Error al tomar la foto. Verifica los permisos de cámara en configuración.',
+        isError: true,
+      );
     }
-
-    // Mostrar confirmación
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Foto tomada exitosamente'),
-        backgroundColor: Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
   }
 
-  void _selectFromGallery() {
-    // Simular selección de galería
-    setState(() {
-      _selectedImagePath =
-          "gallery_image_${DateTime.now().millisecondsSinceEpoch}.jpg";
-    });
+  Future<void> _selectFromGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
 
-    if (widget.onImageSelected != null) {
-      widget.onImageSelected!(_selectedImagePath!);
+      if (image != null) {
+        setState(() {
+          _selectedImagePath = image.path;
+        });
+
+        if (widget.onImageSelected != null) {
+          widget.onImageSelected!(image.path);
+        }
+
+        _showMessage('Imagen seleccionada de la galería');
+      }
+    } catch (e) {
+      _showMessage(
+        'Error al seleccionar la imagen. Verifica los permisos de almacenamiento en configuración.',
+        isError: true,
+      );
     }
+  }
 
-    // Mostrar confirmación
+  void _showMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Imagen seleccionada de la galería'),
-        backgroundColor: Color(0xFF10B981),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: isError
+            ? SnackBarAction(
+                label: 'Configuración',
+                textColor: Colors.white,
+                onPressed: () {
+                  // El usuario puede ir manualmente a configuración
+                  _showMessage(
+                    'Ve a Configuración > Aplicaciones > Constructora > Permisos',
+                    isError: false,
+                  );
+                },
+              )
+            : null,
       ),
     );
   }
@@ -273,26 +315,37 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         ),
         child: Column(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: (_selectedImagePath != null
-                    ? AppColors.primary
-                    : AppColors.primary.withOpacity(0.1)),
-                borderRadius: BorderRadius.circular(12),
+            // Preview de la imagen si existe
+            if (_selectedImagePath != null) ...[
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  image: DecorationImage(
+                    image: FileImage(File(_selectedImagePath!)),
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
-              child: Icon(
-                _selectedImagePath != null
-                    ? Icons.check_circle
-                    : Icons.camera_alt_outlined,
-                color: _selectedImagePath != null
-                    ? Colors.white
-                    : AppColors.primary,
-                size: 24,
+              const SizedBox(height: 12),
+            ] else ...[
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.camera_alt_outlined,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+            ],
+
             Text(
               _selectedImagePath != null
                   ? 'Imagen Seleccionada'
@@ -305,27 +358,19 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
                   : AppTextStyles.hintText.copyWith(fontSize: 14)),
               textAlign: TextAlign.center,
             ),
-            if (_selectedImagePath != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Toca para cambiar la imagen',
-                style: AppTextStyles.subtitle.copyWith(
-                  fontSize: 12,
-                  color: AppColors.textGray,
-                ),
-                textAlign: TextAlign.center,
+
+            const SizedBox(height: 4),
+
+            Text(
+              _selectedImagePath != null
+                  ? 'Toca para cambiar la imagen'
+                  : 'Toca para seleccionar una imagen',
+              style: AppTextStyles.subtitle.copyWith(
+                fontSize: 12,
+                color: AppColors.textGray,
               ),
-            ] else ...[
-              const SizedBox(height: 4),
-              Text(
-                'Toca para seleccionar una imagen',
-                style: AppTextStyles.subtitle.copyWith(
-                  fontSize: 12,
-                  color: AppColors.textGray,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
