@@ -2,6 +2,8 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Project = require('../models/Project');
 const { auth, authorize } = require('../middleware/auth');
+const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
 
@@ -177,6 +179,19 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'No tienes permisos para eliminar este proyecto' });
     }
 
+    // Eliminar imagen del servidor si existe
+    if (project.imageUrl && project.imageUrl.includes('/uploads/')) {
+      try {
+        const filename = path.basename(project.imageUrl);
+        const filePath = path.join(__dirname, '../uploads', filename);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`Imagen eliminada: ${filename}`);
+        }
+      } catch (error) {
+        console.error('Error eliminando imagen:', error);
+      }
+    }
     project.isActive = false;
     await project.save();
 
