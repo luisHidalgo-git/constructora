@@ -66,7 +66,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         _projects = results[0] as List<ProjectModel>;
         _stats = results[1] as StatsModel;
         _isLoading = false;
-        
+
         // Reset selected index if needed
         if (_selectedProjectIndex >= _projects.length) {
           _selectedProjectIndex = _projects.isNotEmpty ? 0 : -1;
@@ -85,9 +85,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFFF5F5F5),
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -248,10 +246,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Selected Project Detail
-                            Expanded(
-                              flex: 3,
-                              child: _buildProjectDetail(),
-                            ),
+                            Expanded(flex: 3, child: _buildProjectDetail()),
 
                             const SizedBox(height: 12),
 
@@ -434,7 +429,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   }
 
   Widget _buildProjectDetail() {
-    if (_projects.isEmpty || _selectedProjectIndex < 0 || _selectedProjectIndex >= _projects.length) {
+    if (_projects.isEmpty ||
+        _selectedProjectIndex < 0 ||
+        _selectedProjectIndex >= _projects.length) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -451,10 +448,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         child: const Center(
           child: Text(
             'Selecciona un proyecto',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textGray,
-            ),
+            style: TextStyle(fontSize: 14, color: AppColors.textGray),
           ),
         ),
       );
@@ -492,10 +486,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           const SizedBox(height: 4),
           Text(
             selectedProject.clientName,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textGray,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppColors.textGray),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -580,11 +571,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.construction,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.construction, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             const Text(
               'No hay proyectos',
@@ -620,7 +607,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
             return KeyEventResult.handled;
           } else if (event.logicalKey == LogicalKeyboardKey.select ||
               event.logicalKey == LogicalKeyboardKey.enter) {
-            if (_selectedProjectIndex >= 0 && _selectedProjectIndex < _projects.length) {
+            if (_selectedProjectIndex >= 0 &&
+                _selectedProjectIndex < _projects.length) {
               _openProjectDetail(_projects[_selectedProjectIndex]);
             }
             return KeyEventResult.handled;
@@ -674,8 +662,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                                 fit: BoxFit.cover,
                               )
                             : null,
-                        color: _buildImageProvider(project.imageUrl) == null 
-                            ? Colors.grey[300] 
+                        color: _buildImageProvider(project.imageUrl) == null
+                            ? Colors.grey[300]
                             : null,
                       ),
                       child: _buildImageProvider(project.imageUrl) == null
@@ -695,16 +683,14 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Project name
-                            'Hola, ${_currentUser.name}!',
+                          Flexible(
                             child: Text(
-                              project.name,
+                              'Hola, ${_currentUser.name}!',
                               style: const TextStyle(
-                                fontSize: 11,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textDark,
                               ),
-                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -734,8 +720,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                           const SizedBox(height: 2),
 
                           // Days remaining
-                          const Text(
-                            'Conectado desde móvil',
+                          Text(
+                            'Días restantes: ${_calculateDaysRemaining(project)}',
                             style: const TextStyle(
                               fontSize: 9,
                               color: AppColors.textGray,
@@ -828,23 +814,23 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       if (imageUrl.isEmpty) {
         return null;
       }
-      
+
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         return NetworkImage(imageUrl);
       }
-      
+
       // Si es un archivo local
       if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
-        String filePath = imageUrl.startsWith('file://') 
-            ? imageUrl.substring(7) 
+        String filePath = imageUrl.startsWith('file://')
+            ? imageUrl.substring(7)
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
           return FileImage(file);
         }
       }
-      
+
       return null;
     } catch (e) {
       print('Error loading image: $e');

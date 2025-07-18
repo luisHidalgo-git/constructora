@@ -96,9 +96,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                             setState(() {
                               isScanned = true;
                             });
-                            _showResult(barcode.rawValue!);
+                            _handleQRCode(barcode.rawValue!);
                             break;
-                        _handleQRCode(barcode.rawValue!);
+                          }
                         }
                       }
                     },
@@ -146,7 +146,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     try {
       // Intentar parsear como JSON para verificar si es un QR de TV
       final qrData = jsonDecode(code);
-      
+
       if (qrData['type'] == 'tv_auth' && qrData['sessionId'] != null) {
         // Es un QR de autenticación de TV
         await _connectToTV(qrData['sessionId']);
@@ -155,7 +155,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     } catch (e) {
       // No es JSON válido o no es un QR de TV, mostrar resultado normal
     }
-    
+
     // Mostrar resultado normal para otros tipos de QR
     _showResult(code);
   }
@@ -172,10 +172,10 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
     try {
       final result = await TVService.connectToTV(sessionId);
-      
+
       if (!mounted) return;
       Navigator.pop(context); // Cerrar loading
-      
+
       if (result['success']) {
         _showTVConnectionResult(
           success: true,
@@ -183,10 +183,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           userName: result['user']['name'],
         );
       } else {
-        _showTVConnectionResult(
-          success: false,
-          message: result['message'],
-        );
+        _showTVConnectionResult(success: false, message: result['message']);
       }
     } catch (e) {
       if (mounted) {
