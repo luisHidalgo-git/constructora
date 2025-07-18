@@ -1,3 +1,4 @@
+import 'dart:async'; // <-- Agrega esta línea
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,27 +10,65 @@ class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
 
+  // Método para debug de la URL
+  static void _debugApiCall(String endpoint, Map<String, dynamic> body) {
+    print('🔗 API Call Debug:');
+    print('   Endpoint: $endpoint');
+    print('   Body: ${jsonEncode(body)}');
+  }
+
   // Login
   static Future<Map<String, dynamic>> login(
     String email,
     String password,
   ) async {
     try {
-      // Crear cliente HTTP con configuración específica para Linux
-      final client = http.Client();
+      final requestBody = {'email': email, 'password': password};
+
+      // Debug de la llamada
+      _debugApiCall(ApiConfig.authLogin, requestBody);
+
+      // Headers mejorados para el backend desplegado
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'ConstructoraApp/1.0',
+        'Cache-Control': 'no-cache',
+      };
+
+      print('🔍 Request headers: $headers');
+      print('🔍 Request URL: ${ApiConfig.authLogin}');
+      print('🔍 Request body: ${jsonEncode(requestBody)}');
 
       final response = await http
           .post(
             Uri.parse(ApiConfig.authLogin),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'email': email, 'password': password}),
+            headers: headers,
+            body: jsonEncode(requestBody),
           )
           .timeout(Duration(milliseconds: ApiConfig.timeout));
 
-      client.close();
+      print('🔍 Response Status: ${response.statusCode}');
+      print('🔍 Response Headers: ${response.headers}');
+      print('🔍 Response Body: ${response.body}');
 
-      final data = jsonDecode(response.body);
+      // Verificar si la respuesta es válida
+      if (response.body.isEmpty) {
+        print('❌ Empty response body');
+        return {'success': false, 'message': 'Respuesta vacía del servidor'};
+      }
 
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (e) {
+        print('❌ JSON decode error: $e');
+        print('❌ Raw response: ${response.body}');
+        return {
+          'success': false,
+          'message': 'Error en el formato de respuesta del servidor',
+        };
+      }
       if (response.statusCode == 200) {
         // Guardar token y datos del usuario
         await _saveToken(data['token']);
@@ -41,20 +80,38 @@ class AuthService {
           'token': data['token'],
         };
       } else {
+        print('❌ Login failed with status: ${response.statusCode}');
+        print('❌ Error response: ${response.body}');
         return {
           'success': false,
           'message': data['message'] ?? 'Credenciales inválidas',
         };
       }
     } on SocketException catch (e) {
+      print('❌ Socket Exception: $e');
       return {
         'success': false,
         'message':
-            'Error de conexión: Verifica que el servidor esté ejecutándose en http://127.0.0.1:3000',
+            'Error de conexión: No se puede conectar al servidor. Verifica tu conexión a internet.',
+      };
+    } on TimeoutException catch (e) {
+      print('❌ Timeout Exception: $e');
+      return {
+        'success': false,
+        'message':
+            'Tiempo de espera agotado. El servidor puede estar sobrecargado.',
       };
     } on HttpException catch (e) {
+      print('❌ HTTP Exception: $e');
       return {'success': false, 'message': 'Error HTTP: ${e.message}'};
+    } on FormatException catch (e) {
+      print('❌ Format Exception: $e');
+      return {
+        'success': false,
+        'message': 'Error en el formato de respuesta del servidor',
+      };
     } catch (e) {
+      print('❌ General Exception: $e');
       return {'success': false, 'message': 'Error inesperado: ${e.toString()}'};
     }
   }
@@ -68,19 +125,30 @@ class AuthService {
     String position = 'Supervisor',
   }) async {
     try {
+      final requestBody = {
+        'name': name,
+        'email': email,
+        'password': password,
+        'role': role,
+        'position': position,
+      };
+
+      // Debug de la llamada
+      _debugApiCall(ApiConfig.authRegister, requestBody);
+
       final response = await http
           .post(
             Uri.parse(ApiConfig.authRegister),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'name': name,
-              'email': email,
-              'password': password,
-              'role': role,
-              'position': position,
-            }),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode(requestBody),
           )
           .timeout(Duration(milliseconds: ApiConfig.timeout));
+
+      print('🔍 Register Response Status: ${response.statusCode}');
+      print('🔍 Register Response Body: ${response.body}');
 
       final data = jsonDecode(response.body);
 
@@ -100,6 +168,7 @@ class AuthService {
         };
       }
     } catch (e) {
+      print('❌ Register Exception: $e');
       return {
         'success': false,
         'message': 'Error de conexión: ${e.toString()}',
@@ -118,6 +187,7 @@ class AuthService {
             Uri.parse(ApiConfig.authMe),
             headers: {
               'Content-Type': 'application/json',
+              'Accept': 'application/json',
               'Authorization': 'Bearer $token',
             },
           )

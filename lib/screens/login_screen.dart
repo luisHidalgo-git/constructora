@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
@@ -7,6 +8,7 @@ import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import 'platform_selection_screen.dart';
 import '../services/auth_service.dart';
+import '../config/api_config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,21 +40,50 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
+    // Verificar conectividad antes del login
+    print('🔍 Checking connectivity...');
     try {
+      final hasConnectivity = await ApiConfig.checkConnectivity();
+      if (!hasConnectivity) {
+        _showMessage('No se puede conectar al servidor. Verifica tu conexión a internet.', isError: true);
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      print('✅ Connectivity check passed');
+    } catch (e) {
+      print('❌ Connectivity check error: $e');
+      _showMessage('Error verificando conectividad: ${e.toString()}', isError: true);
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      print('🔐 Attempting login with email: ${_emailController.text}');
+      print('🔗 Using API URL: ${ApiConfig.authLogin}');
+      
       final result = await AuthService.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
+      print('🔍 Login result: $result');
+
       if (result['success']) {
+        print('✅ Login successful');
         _showMessage('¡Bienvenido ${result['user'].name}!');
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
       } else {
+        print('❌ Login failed: ${result['message']}');
         _showMessage(result['message'], isError: true);
       }
     } catch (e) {
+      print('❌ Login exception: $e');
       _showMessage('Error de conexión: ${e.toString()}', isError: true);
     } finally {
       setState(() {

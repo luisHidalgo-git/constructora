@@ -1,25 +1,29 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 
 class ApiConfig {
   static String get baseUrl {
     try {
-      // Para desarrollo en Linux, usar 127.0.0.1 en lugar de localhost
       String url = dotenv.env['API_BASE_URL'] ?? 'http://127.0.0.1:3000/api';
-      // Reemplazar localhost con 127.0.0.1 si existe
-      if (url.contains('localhost')) {
-        url = url.replaceAll('localhost', '127.0.0.1');
-      }
+      
+      // Debug de la URL
+      print('🔗 API Base URL: $url');
+      
       return url;
     } catch (e) {
+      print('❌ Error loading API_BASE_URL: $e');
       return 'http://127.0.0.1:3000/api';
     }
   }
 
   static int get timeout {
     try {
-      return int.parse(dotenv.env['API_TIMEOUT'] ?? '30000');
+      final timeout = int.parse(dotenv.env['API_TIMEOUT'] ?? '60000');
+      print('⏱️ API Timeout: ${timeout}ms');
+      return timeout;
     } catch (e) {
-      return 30000;
+      print('❌ Error loading API_TIMEOUT: $e');
+      return 60000;
     }
   }
 
@@ -35,4 +39,28 @@ class ApiConfig {
   static String activitiesByProject(String projectId) =>
       '$activities/project/$projectId';
   static String activityById(String id) => '$activities/$id';
+
+  // Método para verificar la conectividad
+  static Future<bool> checkConnectivity() async {
+    try {
+      print('🔍 Checking connectivity to: $baseUrl');
+      final healthUrl = baseUrl.replaceAll('/api', '/health');
+      print('🔍 Health check URL: $healthUrl');
+      
+      final response = await http.get(
+        Uri.parse(healthUrl),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(Duration(seconds: 15));
+      
+      print('🔍 Health check status: ${response.statusCode}');
+      print('🔍 Health check response: ${response.body}');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Connectivity check failed: $e');
+      return false;
+    }
+  }
 }
