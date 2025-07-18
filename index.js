@@ -3,9 +3,18 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const url = require('url');
 const path = require('path');
+const http = require('http');
+const socketIo = require('socket.io');
 require('dotenv').config();
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 
 // Extraer puerto de la URL base de la API
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000/api';
@@ -20,6 +29,26 @@ app.use(express.urlencoded({ extended: true }));
 
 // Servir archivos estáticos (imágenes subidas)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Hacer io disponible en las rutas
+app.set('io', io);
+
+// WebSocket connection handling
+io.on('connection', (socket) => {
+  console.log('📺 Cliente conectado:', socket.id);
+
+  // TV se une a su sala específica
+  socket.on('join_tv_session', (sessionId) => {
+    socket.join(`tv_${sessionId}`);
+    console.log(`📺 TV se unió a sesión: ${sessionId}`);
+  });
+
+  // Manejar desconexión
+  socket.on('disconnect', () => {
+    console.log('📺 Cliente desconectado:', socket.id);
+  });
+});
+
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
@@ -55,6 +84,7 @@ app.use(`${API_PATH}/projects`, require('./routes/projects'));
 app.use(`${API_PATH}/activities`, require('./routes/activities'));
 app.use(`${API_PATH}/stats`, require('./routes/stats'));
 app.use(`${API_PATH}/upload`, require('./routes/upload'));
+app.use(`${API_PATH}/tv`, require('./routes/tv'));
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
@@ -72,13 +102,15 @@ app.use('*', (req, res) => {
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor corriendo en puerto ${API_BASE_URL}`);
   console.log(`📱 API disponible en: ${API_BASE_URL}`);
   console.log(`🔗 Health check: ${API_BASE_URL}/health`);
+  console.log(`📺 WebSocket disponible en: ws://localhost:${PORT}`);
   console.log(`📊 Rutas disponibles:`);
   console.log(`   • ${API_BASE_URL}/auth`);
   console.log(`   • ${API_BASE_URL}/projects`);
   console.log(`   • ${API_BASE_URL}/activities`);
   console.log(`   • ${API_BASE_URL}/stats`);
+  console.log(`   • ${API_BASE_URL}/tv`);
 });
