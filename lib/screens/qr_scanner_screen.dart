@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'dart:convert';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
+import '../services/tv_service.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -96,7 +98,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                             });
                             _showResult(barcode.rawValue!);
                             break;
-                          }
+                        _handleQRCode(barcode.rawValue!);
                         }
                       }
                     },
@@ -137,6 +139,183 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _handleQRCode(String code) async {
+    try {
+      // Intentar parsear como JSON para verificar si es un QR de TV
+      final qrData = jsonDecode(code);
+      
+      if (qrData['type'] == 'tv_auth' && qrData['sessionId'] != null) {
+        // Es un QR de autenticación de TV
+        await _connectToTV(qrData['sessionId']);
+        return;
+      }
+    } catch (e) {
+      // No es JSON válido o no es un QR de TV, mostrar resultado normal
+    }
+    
+    // Mostrar resultado normal para otros tipos de QR
+    _showResult(code);
+  }
+
+  Future<void> _connectToTV(String sessionId) async {
+    // Mostrar loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      ),
+    );
+
+    try {
+      final result = await TVService.connectToTV(sessionId);
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Cerrar loading
+      
+      if (result['success']) {
+        _showTVConnectionResult(
+          success: true,
+          message: result['message'],
+          userName: result['user']['name'],
+        );
+      } else {
+        _showTVConnectionResult(
+          success: false,
+          message: result['message'],
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Cerrar loading
+        _showTVConnectionResult(
+          success: false,
+          message: 'Error de conexión: ${e.toString()}',
+        );
+      }
+    }
+  }
+
+  void _showTVConnectionResult({
+    required bool success,
+    required String message,
+    String? userName,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (success ? Colors.green : Colors.red).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  success ? Icons.tv : Icons.error_outline,
+                  color: success ? Colors.green : Colors.red,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                success ? 'Conectado a TV' : 'Error de Conexión',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: success ? Colors.green : Colors.red,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                message,
+                style: const TextStyle(fontSize: 14, color: AppColors.textGray),
+              ),
+              if (success && userName != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Usuario conectado:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            if (!success)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _resetScanner();
+                },
+                child: const Text(
+                  'Escanear Otro',
+                  style: TextStyle(
+                    color: AppColors.textGray,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: success ? Colors.green : Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Cerrar',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

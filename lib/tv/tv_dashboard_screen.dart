@@ -12,7 +12,14 @@ import '../models/stats_model.dart';
 import '../models/user_model.dart';
 
 class TVDashboardScreen extends StatefulWidget {
-  const TVDashboardScreen({super.key});
+  final String sessionId;
+  final Map<String, dynamic> connectedUser;
+
+  const TVDashboardScreen({
+    super.key,
+    required this.sessionId,
+    required this.connectedUser,
+  });
 
   @override
   State<TVDashboardScreen> createState() => _TVDashboardScreenState();
@@ -22,13 +29,24 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   int _selectedProjectIndex = 0;
   List<ProjectModel> _projects = [];
   StatsModel? _stats;
-  UserModel? _currentUser;
+  late UserModel _currentUser;
   bool _isLoading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
+    // Crear usuario desde los datos conectados
+    _currentUser = UserModel(
+      id: widget.connectedUser['id'] ?? 'demo',
+      name: widget.connectedUser['name'] ?? 'Usuario Demo',
+      email: widget.connectedUser['email'] ?? 'demo@example.com',
+      role: widget.connectedUser['role'] ?? 'supervisor',
+      position: widget.connectedUser['position'] ?? 'Supervisor',
+      isActive: true,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
     _loadData();
   }
 
@@ -42,23 +60,11 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       final results = await Future.wait([
         ProjectService.getProjects(),
         StatsService.getStats(),
-        AuthService.getSavedUser() ?? Future.value(null),
       ]);
 
       setState(() {
         _projects = results[0] as List<ProjectModel>;
         _stats = results[1] as StatsModel;
-        _currentUser = results[2] as UserModel? ?? 
-            UserModel(
-              id: 'demo',
-              name: 'Usuario Demo',
-              email: 'demo@example.com',
-              role: 'supervisor',
-              position: 'Supervisor',
-              isActive: true,
-              createdAt: DateTime.now(),
-              updatedAt: DateTime.now(),
-            );
         _isLoading = false;
         
         // Reset selected index if needed
@@ -195,16 +201,16 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'Hola, ${_currentUser?.name ?? 'Usuario'}!',
+                                  'Hola, ${_currentUser.name}!',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textDark,
                                   ),
                                 ),
-                                const Text(
-                                  'Bienvenido',
-                                  style: const TextStyle(
+                                Text(
+                                  _currentUser.position,
+                                  style: TextStyle(
                                     fontSize: 12,
                                     color: AppColors.textGray,
                                   ),
@@ -690,7 +696,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           // Project name
-                          Flexible(
+                            'Hola, ${_currentUser.name}!',
                             child: Text(
                               project.name,
                               style: const TextStyle(
@@ -728,8 +734,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                           const SizedBox(height: 2),
 
                           // Days remaining
-                          Text(
-                            '${_calculateDaysRemaining(project)} días restantes',
+                          const Text(
+                            'Conectado desde móvil',
                             style: const TextStyle(
                               fontSize: 9,
                               color: AppColors.textGray,
