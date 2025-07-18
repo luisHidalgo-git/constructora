@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:async';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 
@@ -31,7 +32,6 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
   Future<bool> _checkLocationPermissions() async {
     try {
-      // Verificar permisos usando permission_handler
       PermissionStatus locationStatus = await Permission.location.request();
 
       if (locationStatus.isDenied) {
@@ -41,17 +41,16 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
       if (locationStatus.isPermanentlyDenied) {
         _showMessage(
-          'Permisos de ubicación denegados permanentemente. Ve a Configuración > Aplicaciones > Constructora > Permisos para habilitarlos.',
+          'Ve a Configuración > Aplicaciones > Constructora > Permisos para habilitar ubicación.',
           isError: true,
         );
         return false;
       }
 
-      // Verificar si el servicio de ubicación está habilitado
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         _showMessage(
-          'El servicio de ubicación está deshabilitado. Por favor habilítalo en Configuración > Ubicación.',
+          'Habilita el servicio de ubicación en Configuración.',
           isError: true,
         );
         return false;
@@ -69,32 +68,49 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
   Future<void> _openLocationPicker() async {
     try {
-      // Verificar permisos
       bool hasPermission = await _checkLocationPermissions();
       if (!hasPermission) return;
 
-      // Mostrar indicador de carga
-      if (!mounted) return;
+      // Mostrar loading
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
 
-      // Obtener ubicación actual con timeout más largo
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 20),
-      );
+      // Obtener ubicación actual
+      Position position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 15),
+        );
+      } catch (e) {
+        // Si falla, usar ubicación por defecto (Lima, Perú)
+        position = Position(
+          latitude: -12.0464,
+          longitude: -77.0428,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          altitudeAccuracy: 0,
+          heading: 0,
+          headingAccuracy: 0,
+          speed: 0,
+          speedAccuracy: 0,
+        );
+      }
 
       if (!mounted) return;
-      Navigator.pop(context); // Cerrar indicador de carga
+      Navigator.pop(context); // Cerrar loading
 
-      // Abrir el mapa para seleccionar ubicación
+      // Abrir mapa
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => MapPickerScreen(
+          builder: (context) => SimpleMapPickerScreen(
             initialPosition: LatLng(position.latitude, position.longitude),
           ),
         ),
@@ -108,32 +124,8 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.of(
-          context,
-          rootNavigator: true,
-        ).pop(); // Cerrar indicador de carga si está abierto
-
-        // Usar ubicación por defecto si hay error
-        final defaultLocation = LatLng(-12.0464, -77.0428); // Lima, Perú
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                MapPickerScreen(initialPosition: defaultLocation),
-          ),
-        );
-
-        if (result != null && result is String) {
-          setState(() {
-            _selectedLocation = result;
-          });
-          widget.onLocationSelected(result);
-        }
-
-        _showMessage(
-          'No se pudo obtener ubicación actual. Usa el mapa para seleccionar manualmente.',
-          isError: true,
-        );
+        Navigator.of(context, rootNavigator: true).pop();
+        _showMessage('Error: ${e.toString()}', isError: true);
       }
     }
   }
@@ -244,20 +236,21 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
   }
 }
 
-class MapPickerScreen extends StatefulWidget {
+class SimpleMapPickerScreen extends StatefulWidget {
   final LatLng initialPosition;
 
-  const MapPickerScreen({super.key, required this.initialPosition});
+  const SimpleMapPickerScreen({super.key, required this.initialPosition});
 
   @override
-  State<MapPickerScreen> createState() => _MapPickerScreenState();
+  State<SimpleMapPickerScreen> createState() => _SimpleMapPickerScreenState();
 }
 
-class _MapPickerScreenState extends State<MapPickerScreen> {
-  GoogleMapController? _controller;
+class _SimpleMapPickerScreenState extends State<SimpleMapPickerScreen> {
+  GoogleMapController? _mapController;
   LatLng? _selectedPosition;
   String _selectedAddress = '';
-  bool _isLoading = false;
+  bool _isLoadingAddress = false;
+  bool _mapReady = false;
 
   @override
   void initState() {
@@ -268,7 +261,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
 
   Future<void> _getAddressFromLatLng(LatLng position) async {
     setState(() {
-      _isLoading = true;
+      _isLoadingAddress = true;
     });
 
     try {
@@ -314,7 +307,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isLoadingAddress = false;
         });
       }
     }
@@ -334,28 +327,21 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   }
 
   Future<void> _moveToCurrentLocation() async {
+    if (_mapController == null) return;
+
     try {
-      // Verificar permisos usando permission_handler
-      PermissionStatus locationStatus = await Permission.location.request();
-
-      if (!locationStatus.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Se necesitan permisos de ubicación'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
+        timeLimit: const Duration(seconds: 10),
       );
 
       final newPosition = LatLng(position.latitude, position.longitude);
 
-      _controller?.animateCamera(CameraUpdate.newLatLng(newPosition));
+      await _mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: newPosition, zoom: 16.0),
+        ),
+      );
 
       setState(() {
         _selectedPosition = newPosition;
@@ -365,11 +351,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error al obtener ubicación actual: ${e.toString()}'),
+          content: Text('Error al obtener ubicación: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );
-      // Si falla, no intentes lógica adicional aquí, solo muestra el error.
     }
   }
 
@@ -422,15 +407,11 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(
-                      Icons.location_on,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
+                    Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                    SizedBox(width: 8),
+                    Text(
                       'Ubicación seleccionada:',
                       style: TextStyle(
                         fontSize: 14,
@@ -441,7 +422,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                if (_isLoading)
+                if (_isLoadingAddress)
                   const Row(
                     children: [
                       SizedBox(
@@ -466,7 +447,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   Text(
                     _selectedAddress.isNotEmpty
                         ? _selectedAddress
-                        : 'Toca en el mapa para seleccionar una ubicación',
+                        : 'Toca en el mapa para seleccionar',
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textGray,
@@ -492,41 +473,88 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: widget.initialPosition,
-                    zoom: 15,
-                  ),
-                  onMapCreated: (GoogleMapController controller) {
-                    _controller = controller;
-                  },
-                  onCameraMove: (CameraPosition position) {
-                    // Opcional: actualizar posición mientras se mueve el mapa
-                  },
-                  onTap: _onMapTapped,
-                  markers: _selectedPosition != null
-                      ? {
-                          Marker(
-                            markerId: const MarkerId('selected'),
-                            position: _selectedPosition!,
-                            infoWindow: const InfoWindow(
-                              title: 'Ubicación seleccionada',
-                            ),
-                            icon: BitmapDescriptor.defaultMarkerWithHue(
-                              BitmapDescriptor.hueBlue,
-                            ),
+                child: Stack(
+                  children: [
+                    GoogleMap(
+                      mapType: MapType.normal,
+                      initialCameraPosition: CameraPosition(
+                        target: widget.initialPosition,
+                        zoom: 15.0,
+                      ),
+                      onMapCreated: (GoogleMapController controller) {
+                        _mapController = controller;
+                        // Dar tiempo para que el mapa se inicialice
+                        Future.delayed(const Duration(milliseconds: 1000), () {
+                          if (mounted) {
+                            setState(() {
+                              _mapReady = true;
+                            });
+                          }
+                        });
+                      },
+                      onTap: _onMapTapped,
+                      markers: _selectedPosition != null
+                          ? {
+                              Marker(
+                                markerId: const MarkerId('selected'),
+                                position: _selectedPosition!,
+                                infoWindow: const InfoWindow(
+                                  title: 'Ubicación seleccionada',
+                                ),
+                              ),
+                            }
+                          : {},
+                      myLocationEnabled: true,
+                      myLocationButtonEnabled: false,
+                      zoomControlsEnabled: true,
+                      mapToolbarEnabled: false,
+                      compassEnabled: true,
+                      rotateGesturesEnabled: true,
+                      scrollGesturesEnabled: true,
+                      tiltGesturesEnabled: true,
+                      zoomGesturesEnabled: true,
+                      buildingsEnabled: true,
+                      indoorViewEnabled: true,
+                      trafficEnabled: false,
+                      liteModeEnabled: false,
+                    ),
+
+                    // Loading overlay
+                    if (!_mapReady)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(
+                                color: AppColors.primary,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Cargando Google Maps...',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: AppColors.textDark,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Esto puede tomar unos segundos',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.textGray,
+                                ),
+                              ),
+                            ],
                           ),
-                        }
-                      : {},
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: true,
-                  mapToolbarEnabled: false,
-                  compassEnabled: true,
-                  rotateGesturesEnabled: true,
-                  scrollGesturesEnabled: true,
-                  tiltGesturesEnabled: true,
-                  zoomGesturesEnabled: true,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -539,11 +567,11 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 16),
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _moveToCurrentLocation,
+              onPressed: _mapReady ? _moveToCurrentLocation : null,
               icon: const Icon(Icons.my_location, size: 20),
               label: const Text('Usar mi ubicación actual'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: _mapReady ? AppColors.primary : Colors.grey,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
@@ -567,7 +595,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Toca en cualquier lugar del mapa para seleccionar la ubicación del proyecto',
+                    'Toca en cualquier lugar del mapa para seleccionar la ubicación del proyecto.',
                     style: TextStyle(fontSize: 12, color: AppColors.textGray),
                   ),
                 ),
@@ -577,5 +605,11 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 }

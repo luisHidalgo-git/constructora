@@ -55,5 +55,11 @@
 	<string>Esta aplicación necesita acceso a la galería de fotos para seleccionar imágenes del proyecto</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Esta aplicación necesita acceso para guardar fotos en la galería</string>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
+	<key>GMSApiKey</key>
+	<string>AIzaSyAFTr18567wfH_9kBjvIFmBslCWETdL7fI</string>
 </dict>
 </plist>
