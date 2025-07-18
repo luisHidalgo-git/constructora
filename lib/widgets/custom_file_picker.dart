@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
+import '../services/image_service.dart';
 
 class CustomFilePicker extends StatefulWidget {
   final Function(String)? onImageSelected;
@@ -22,6 +23,7 @@ class CustomFilePicker extends StatefulWidget {
 class _CustomFilePickerState extends State<CustomFilePicker> {
   String? _selectedImagePath;
   final ImagePicker _picker = ImagePicker();
+  bool _isUploading = false;
   
   @override
   void initState() {
@@ -266,15 +268,34 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
       if (image != null) {
         setState(() {
           _selectedImagePath = image.path;
+          _isUploading = true;
         });
 
-        if (widget.onImageSelected != null) {
-          widget.onImageSelected!(image.path);
+        // Subir imagen al servidor
+        try {
+          final serverImageUrl = await ImageService.uploadImage(image.path);
+          
+          setState(() {
+            _selectedImagePath = serverImageUrl;
+            _isUploading = false;
+          });
+          
+          if (widget.onImageSelected != null) {
+            widget.onImageSelected!(serverImageUrl);
+          }
+          
+          _showMessage('Foto subida exitosamente al servidor');
+        } catch (e) {
+          setState(() {
+            _isUploading = false;
+          });
+          _showMessage('Error al subir foto: ${e.toString()}', isError: true);
         }
-
-        _showMessage('Foto tomada exitosamente');
       }
     } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
       _showMessage(
         'Error al tomar la foto. Verifica los permisos de cámara en configuración.',
         isError: true,
@@ -304,15 +325,34 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
       if (image != null) {
         setState(() {
           _selectedImagePath = image.path;
+          _isUploading = true;
         });
 
-        if (widget.onImageSelected != null) {
-          widget.onImageSelected!(image.path);
+        // Subir imagen al servidor
+        try {
+          final serverImageUrl = await ImageService.uploadImage(image.path);
+          
+          setState(() {
+            _selectedImagePath = serverImageUrl;
+            _isUploading = false;
+          });
+          
+          if (widget.onImageSelected != null) {
+            widget.onImageSelected!(serverImageUrl);
+          }
+          
+          _showMessage('Imagen subida exitosamente al servidor');
+        } catch (e) {
+          setState(() {
+            _isUploading = false;
+          });
+          _showMessage('Error al subir imagen: ${e.toString()}', isError: true);
         }
-
-        _showMessage('Imagen seleccionada de la galería');
       }
     } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
       _showMessage(
         'Error al seleccionar la imagen. Verifica los permisos de almacenamiento en configuración.',
         isError: true,
@@ -376,18 +416,48 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           children: [
             // Preview de la imagen si existe
             if (_selectedImagePath != null) ...[
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: DecorationImage(
-                    image: FileImage(File(_selectedImagePath!)),
-                    fit: BoxFit.cover,
+              if (_isUploading) ...[
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey[200],
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
+              ] else ...[
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    image: _buildImageProvider(_selectedImagePath!) != null
+                        ? DecorationImage(
+                            image: _buildImageProvider(_selectedImagePath!)!,
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    color: _buildImageProvider(_selectedImagePath!) == null 
+                        ? Colors.grey[300] 
+                        : null,
+                  ),
+                  child: _buildImageProvider(_selectedImagePath!) == null
+                      ? const Icon(
+                          Icons.image_outlined,
+                          color: Colors.grey,
+                          size: 30,
+                        )
+                      : null,
+                ),
+                const SizedBox(height: 12),
+              ],
             ] else ...[
               Container(
                 width: 48,
@@ -406,10 +476,17 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             ],
 
             Text(
-              _selectedImagePath != null
-                  ? 'Imagen Seleccionada'
+              _isUploading
+                  ? 'Subiendo imagen...'
+                  : _selectedImagePath != null
+                  ? 'Imagen Subida al Servidor'
                   : 'Agregar Foto del Proyecto',
-              style: (_selectedImagePath != null
+              style: (_isUploading
+                  ? AppTextStyles.fieldLabel.copyWith(
+                      fontSize: 14,
+                      color: Colors.orange,
+                    )
+                  : _selectedImagePath != null
                   ? AppTextStyles.fieldLabel.copyWith(
                       fontSize: 14,
                       color: AppColors.primary,
@@ -421,7 +498,9 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             const SizedBox(height: 4),
 
             Text(
-              _selectedImagePath != null
+              _isUploading
+                  ? 'Por favor espera...'
+                  : _selectedImagePath != null
                   ? 'Toca para cambiar la imagen'
                   : 'Toca para seleccionar una imagen',
               style: AppTextStyles.subtitle.copyWith(
@@ -434,5 +513,34 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         ),
       ),
     );
+  }
+
+  ImageProvider? _buildImageProvider(String imageUrl) {
+    try {
+      if (imageUrl.isEmpty) {
+        return null;
+      }
+      
+      // Si es una URL de internet (del servidor)
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return NetworkImage(imageUrl);
+      }
+      
+      // Si es un archivo local
+      if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
+        String filePath = imageUrl.startsWith('file://') 
+            ? imageUrl.substring(7) 
+            : imageUrl;
+        File file = File(filePath);
+        if (file.existsSync()) {
+          return FileImage(file);
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error loading image: $e');
+      return null;
+    }
   }
 }

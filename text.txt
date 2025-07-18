@@ -1,0 +1,3 @@
+(BACKEND DESPLEGADO) Cuando estoy depurando mi aplicacion a mi telefono, en mis proyectos creados puedo ver las imagenes que he escogido para dichos proyectos, pero cuando no depuro la aplicacion pero si la uso en mi telefono (se queda descargado) en mis proyectos creados no puedo ver dichas imagenes que he escogido, lo que quiero saber es si mi backend esta diseñado para guardar dichas imagenes de los proyectos a mi base de datos, si es asi hazmelo saber, si no implementalo
+
+en server tengo que crear manualmente el directorio "uploads"? porque preferiria que si aun no hay imagenes y cuando cree un proyecto (con una imagen que seleccione) el directorio se cree automaticamente, si no lo tiene agregalo

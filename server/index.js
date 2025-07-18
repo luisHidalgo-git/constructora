@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const url = require('url');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -17,6 +18,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Servir archivos estáticos (imágenes subidas)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
@@ -51,6 +54,7 @@ app.use(`${API_PATH}/auth`, require('./routes/auth'));
 app.use(`${API_PATH}/projects`, require('./routes/projects'));
 app.use(`${API_PATH}/activities`, require('./routes/activities'));
 app.use(`${API_PATH}/stats`, require('./routes/stats'));
+app.use(`${API_PATH}/upload`, require('./routes/upload'));
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
