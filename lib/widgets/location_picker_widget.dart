@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 
@@ -30,29 +31,27 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
   Future<bool> _checkLocationPermissions() async {
     try {
-      // Verificar si el servicio de ubicación está habilitado
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
+      // Verificar permisos usando permission_handler
+      PermissionStatus locationStatus = await Permission.location.request();
+
+      if (locationStatus.isDenied) {
+        _showMessage('Permisos de ubicación denegados', isError: true);
+        return false;
+      }
+
+      if (locationStatus.isPermanentlyDenied) {
         _showMessage(
-          'Por favor habilita el servicio de ubicación en configuración',
+          'Permisos de ubicación denegados permanentemente. Ve a Configuración > Aplicaciones > Constructora > Permisos para habilitarlos.',
           isError: true,
         );
         return false;
       }
 
-      // Verificar permisos
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          _showMessage('Permisos de ubicación denegados', isError: true);
-          return false;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
+      // Verificar si el servicio de ubicación está habilitado
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
         _showMessage(
-          'Permisos de ubicación denegados permanentemente. Ve a configuración para habilitarlos.',
+          'El servicio de ubicación está deshabilitado. Por favor habilítalo en Configuración > Ubicación.',
           isError: true,
         );
         return false;
@@ -85,7 +84,7 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
       // Obtener ubicación actual con timeout más largo
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
+        timeLimit: const Duration(seconds: 20),
       );
 
       if (!mounted) return;
@@ -336,12 +335,22 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
 
   Future<void> _moveToCurrentLocation() async {
     try {
-      bool hasPermission = await _checkLocationPermissions();
-      if (!hasPermission) return;
+      // Verificar permisos usando permission_handler
+      PermissionStatus locationStatus = await Permission.location.request();
+
+      if (!locationStatus.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Se necesitan permisos de ubicación'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
+        timeLimit: const Duration(seconds: 15),
       );
 
       final newPosition = LatLng(position.latitude, position.longitude);
@@ -360,37 +369,7 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
           backgroundColor: Colors.red,
         ),
       );
-    }
-  }
-
-  Future<bool> _checkLocationPermissions() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Servicio de ubicación deshabilitado'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return false;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          return false;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        return false;
-      }
-
-      return true;
-    } catch (e) {
-      return false;
+      // Si falla, no intentes lógica adicional aquí, solo muestra el error.
     }
   }
 
@@ -521,6 +500,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   onMapCreated: (GoogleMapController controller) {
                     _controller = controller;
                   },
+                  onCameraMove: (CameraPosition position) {
+                    // Opcional: actualizar posición mientras se mueve el mapa
+                  },
                   onTap: _onMapTapped,
                   markers: _selectedPosition != null
                       ? {
@@ -530,6 +512,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                             infoWindow: const InfoWindow(
                               title: 'Ubicación seleccionada',
                             ),
+                            icon: BitmapDescriptor.defaultMarkerWithHue(
+                              BitmapDescriptor.hueBlue,
+                            ),
                           ),
                         }
                       : {},
@@ -537,6 +522,11 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                   myLocationButtonEnabled: false,
                   zoomControlsEnabled: true,
                   mapToolbarEnabled: false,
+                  compassEnabled: true,
+                  rotateGesturesEnabled: true,
+                  scrollGesturesEnabled: true,
+                  tiltGesturesEnabled: true,
+                  zoomGesturesEnabled: true,
                 ),
               ),
             ),

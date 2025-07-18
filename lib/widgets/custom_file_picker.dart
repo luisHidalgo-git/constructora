@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
@@ -16,6 +17,29 @@ class CustomFilePicker extends StatefulWidget {
 class _CustomFilePickerState extends State<CustomFilePicker> {
   String? _selectedImagePath;
   final ImagePicker _picker = ImagePicker();
+
+  Future<bool> _requestPermissions() async {
+    if (Platform.isAndroid) {
+      // Para Android 13+ (API 33+)
+      if (await Permission.photos.request().isGranted) {
+        return true;
+      }
+      // Para versiones anteriores de Android
+      if (await Permission.storage.request().isGranted) {
+        return true;
+      }
+    } else if (Platform.isIOS) {
+      if (await Permission.photos.request().isGranted) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  Future<bool> _requestCameraPermission() async {
+    return await Permission.camera.request().isGranted;
+  }
 
   void _showImageSourceDialog() {
     showDialog(
@@ -207,11 +231,22 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
   Future<void> _selectFromCamera() async {
     try {
+      // Verificar permisos de cámara
+      bool hasCameraPermission = await _requestCameraPermission();
+      if (!hasCameraPermission) {
+        _showMessage(
+          'Se necesitan permisos de cámara. Ve a Configuración > Aplicaciones > Constructora > Permisos y habilita la cámara.',
+          isError: true,
+        );
+        return;
+      }
+
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
         maxWidth: 1920,
         maxHeight: 1080,
         imageQuality: 85,
+        preferredCameraDevice: CameraDevice.rear,
       );
 
       if (image != null) {
@@ -235,6 +270,16 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
   Future<void> _selectFromGallery() async {
     try {
+      // Verificar permisos de galería
+      bool hasGalleryPermission = await _requestPermissions();
+      if (!hasGalleryPermission) {
+        _showMessage(
+          'Se necesitan permisos de galería. Ve a Configuración > Aplicaciones > Constructora > Permisos y habilita el acceso a fotos.',
+          isError: true,
+        );
+        return;
+      }
+
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1920,

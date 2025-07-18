@@ -51,5 +51,9 @@
 	<string>Esta aplicación necesita acceso a la ubicación para seleccionar la ubicación del proyecto</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Esta aplicación necesita acceso a la ubicación para seleccionar la ubicación del proyecto</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Esta aplicación necesita acceso a la galería de fotos para seleccionar imágenes del proyecto</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Esta aplicación necesita acceso para guardar fotos en la galería</string>
 </dict>
 </plist>

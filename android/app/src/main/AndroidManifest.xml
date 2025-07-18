@@ -1,13 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
+                     android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+                     android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
     
     <!-- Para Android 13+ (API 33+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     
     <!-- TV support -->
     <uses-feature
@@ -23,8 +26,9 @@
         android:icon="@mipmap/ic_launcher"
         android:banner="@mipmap/ic_launcher">
         
+        <!-- Reemplaza con tu API key real de Google Maps -->
         <meta-data android:name="com.google.android.geo.API_KEY"
-                   android:value="YOUR_API_KEY_HERE"/>
+                   android:value="AIzaSyDemoKeyForDevelopment123456789"/>
         
         <activity
             android:name=".MainActivity"
