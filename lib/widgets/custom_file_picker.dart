@@ -259,9 +259,9 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
         preferredCameraDevice: CameraDevice.rear,
       );
 
@@ -287,31 +287,35 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             widget.onImageSelected!(serverImageUrl);
           }
           
-          _showMessage('✅ Foto subida exitosamente al servidor');
+          _showMessage('✅ Foto subida exitosamente');
         } catch (e) {
           print('❌ Error uploading camera image: $e');
           setState(() {
-            _selectedImagePath = null; // Limpiar imagen si falla la subida
+            _selectedImagePath = image.path; // Mantener imagen local como fallback
             _isUploading = false;
           });
           
-          String errorMessage = 'Error al subir foto';
-          if (e.toString().contains('ClientException') || e.toString().contains('SocketException')) {
-            errorMessage = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
-          } else if (e.toString().contains('TimeoutException')) {
-            errorMessage = 'Tiempo de espera agotado. Intenta con una imagen más pequeña.';
-          } else {
-            errorMessage = 'Error: ${e.toString()}';
+          // Notificar con la imagen local como fallback
+          if (widget.onImageSelected != null) {
+            widget.onImageSelected!(image.path);
           }
           
-          _showMessage(errorMessage, isError: true);
+          String errorMessage = 'Error al subir foto';
+          if (e.toString().contains('ClientException') || e.toString().contains('SocketException')) {
+            errorMessage = 'Sin conexión. La imagen se guardó localmente.';
+          } else if (e.toString().contains('TimeoutException')) {
+            errorMessage = 'Tiempo agotado. La imagen se guardó localmente.';
+          } else {
+            errorMessage = 'Error de servidor. La imagen se guardó localmente.';
+          }
+          
+          _showMessage(errorMessage, isError: false);
         }
       }
     } catch (e) {
       print('❌ Camera selection error: $e');
       setState(() {
         _isUploading = false;
-        _selectedImagePath = null;
       });
       _showMessage(
         'Error al tomar la foto. Verifica los permisos de cámara en configuración.',
@@ -334,9 +338,9 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
       );
 
       if (image != null) {
@@ -361,31 +365,35 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             widget.onImageSelected!(serverImageUrl);
           }
           
-          _showMessage('✅ Imagen subida exitosamente al servidor');
+          _showMessage('✅ Imagen subida exitosamente');
         } catch (e) {
           print('❌ Error uploading gallery image: $e');
           setState(() {
-            _selectedImagePath = null; // Limpiar imagen si falla la subida
+            _selectedImagePath = image.path; // Mantener imagen local como fallback
             _isUploading = false;
           });
           
-          String errorMessage = 'Error al subir imagen';
-          if (e.toString().contains('ClientException') || e.toString().contains('SocketException')) {
-            errorMessage = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
-          } else if (e.toString().contains('TimeoutException')) {
-            errorMessage = 'Tiempo de espera agotado. Intenta con una imagen más pequeña.';
-          } else {
-            errorMessage = 'Error: ${e.toString()}';
+          // Notificar con la imagen local como fallback
+          if (widget.onImageSelected != null) {
+            widget.onImageSelected!(image.path);
           }
           
-          _showMessage(errorMessage, isError: true);
+          String errorMessage = 'Error al subir imagen';
+          if (e.toString().contains('ClientException') || e.toString().contains('SocketException')) {
+            errorMessage = 'Sin conexión. La imagen se guardó localmente.';
+          } else if (e.toString().contains('TimeoutException')) {
+            errorMessage = 'Tiempo agotado. La imagen se guardó localmente.';
+          } else {
+            errorMessage = 'Error de servidor. La imagen se guardó localmente.';
+          }
+          
+          _showMessage(errorMessage, isError: false);
         }
       }
     } catch (e) {
       print('❌ Gallery selection error: $e');
       setState(() {
         _isUploading = false;
-        _selectedImagePath = null;
       });
       _showMessage(
         'Error al seleccionar la imagen. Verifica los permisos de almacenamiento en configuración.',

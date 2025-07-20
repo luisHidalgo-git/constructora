@@ -14,15 +14,25 @@ router.post('/image', auth, upload.single('image'), (req, res) => {
       return res.status(400).json({ message: 'No se ha subido ningún archivo' });
     }
 
+    console.log('📁 File uploaded:', {
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    });
+
     // Construir URL completa de la imagen
     const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+    console.log('🔗 Generated image URL:', imageUrl);
 
     res.json({
       message: 'Imagen subida exitosamente',
       imageUrl: imageUrl,
       filename: req.file.filename,
       originalName: req.file.originalname,
-      size: req.file.size
+      size: req.file.size,
+      mimetype: req.file.mimetype
     });
 
   } catch (error) {

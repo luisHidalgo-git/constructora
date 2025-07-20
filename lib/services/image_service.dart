@@ -26,9 +26,9 @@ class ImageService {
     };
   }
 
-  // Subir imagen al servidor con reintentos
+  // Subir imagen al servidor con reintentos mejorados
   static Future<String> uploadImage(String imagePath) async {
-    int maxRetries = 3;
+    int maxRetries = 5;
     int currentRetry = 0;
     
     while (currentRetry < maxRetries) {
@@ -45,9 +45,9 @@ class ImageService {
         final fileSize = file.lengthSync();
         print('✅ Image file exists, size: $fileSize bytes');
         
-        // Verificar tamaño del archivo (máximo 5MB)
-        if (fileSize > 5 * 1024 * 1024) {
-          throw Exception('La imagen es demasiado grande. Máximo 5MB permitido.');
+        // Verificar tamaño del archivo (máximo 10MB)
+        if (fileSize > 10 * 1024 * 1024) {
+          throw Exception('La imagen es demasiado grande. Máximo 10MB permitido.');
         }
         
         final headers = await _getMultipartHeaders();
@@ -60,10 +60,10 @@ class ImageService {
         var request = http.MultipartRequest('POST', uri);
         request.headers.addAll(headers);
         
-        // Agregar archivo con nombre único
+        // Agregar archivo con nombre único y extensión correcta
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final extension = imagePath.split('.').last.toLowerCase();
-        final filename = 'project_image_${timestamp}.$extension';
+        final filename = 'project_${timestamp}.$extension';
         
         var multipartFile = await http.MultipartFile.fromPath(
           'image', 
@@ -76,7 +76,7 @@ class ImageService {
         
         // Enviar request con timeout extendido
         var streamedResponse = await request.send().timeout(
-          const Duration(seconds: 60), // Timeout más largo para subida
+          const Duration(seconds: 120), // Timeout más largo para subida
         );
         var response = await http.Response.fromStream(streamedResponse);
         
@@ -90,9 +90,25 @@ class ImageService {
           print('✅ Server response: $data');
           print('✅ Image URL: $imageUrl');
           
-          // Verificar que la URL es válida
+          // Verificar que la URL es válida y accesible
           if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) {
-            return imageUrl;
+            // Verificar que la imagen es accesible
+            try {
+              final testResponse = await http.head(Uri.parse(imageUrl)).timeout(
+                const Duration(seconds: 10),
+              );
+              if (testResponse.statusCode == 200) {
+                print('✅ Image URL is accessible');
+                return imageUrl;
+              } else {
+                print('❌ Image URL not accessible: ${testResponse.statusCode}');
+                throw Exception('La imagen se subió pero no es accesible');
+              }
+            } catch (e) {
+              print('❌ Error verifying image URL: $e');
+              // Aún así devolver la URL, puede ser un problema temporal
+              return imageUrl;
+            }
           } else {
             throw Exception('URL de imagen inválida recibida del servidor');
           }
@@ -104,7 +120,7 @@ class ImageService {
           if (response.statusCode >= 500 && currentRetry < maxRetries - 1) {
             currentRetry++;
             print('🔄 Retrying upload due to server error...');
-            await Future.delayed(Duration(seconds: currentRetry * 2));
+            await Future.delayed(Duration(seconds: currentRetry * 3));
             continue;
           }
           
@@ -122,11 +138,12 @@ class ImageService {
         // Si es un error de conectividad y no es el último intento, reintentar
         if ((e.toString().contains('ClientException') || 
              e.toString().contains('SocketException') ||
-             e.toString().contains('TimeoutException')) && 
+             e.toString().contains('TimeoutException') ||
+             e.toString().contains('HandshakeException')) && 
             currentRetry < maxRetries - 1) {
           currentRetry++;
           print('🔄 Retrying upload due to connectivity error...');
-          await Future.delayed(Duration(seconds: currentRetry * 3));
+          await Future.delayed(Duration(seconds: currentRetry * 5));
           continue;
         }
         
@@ -204,13 +221,49 @@ class ImageService {
       if (!isServerImage(imageUrl)) return false;
       
       final response = await http.head(Uri.parse(imageUrl)).timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: 15),
       );
       
+      print('🔍 Image exists check for $imageUrl: ${response.statusCode}');
       return response.statusCode == 200;
     } catch (e) {
       print('Error checking image existence: $e');
       return false;
     }
+  }
+
+  // Método para obtener una imagen válida (con fallback)
+  static Future<String> getValidImageUrl(String? imageUrl) async {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
+    }
+
+    // Si es una URL del servidor, verificar que existe
+    if (isServerImage(imageUrl)) {
+      final exists = await checkImageExists(imageUrl);
+      if (exists) {
+        return imageUrl;
+      } else {
+        print('❌ Server image does not exist: $imageUrl');
+        return 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
+      }
+    }
+
+    // Si es una imagen local, verificar que existe
+    if (isLocalImage(imageUrl)) {
+      String filePath = imageUrl.startsWith('file://') 
+          ? imageUrl.substring(7) 
+          : imageUrl;
+      File file = File(filePath);
+      if (file.existsSync()) {
+        return imageUrl;
+      } else {
+        print('❌ Local image does not exist: $imageUrl');
+        return 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
+      }
+    }
+
+    // Si no es ninguno de los anteriores, usar imagen por defecto
+    return 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
   }
 }

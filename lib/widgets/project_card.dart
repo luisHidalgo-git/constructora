@@ -214,6 +214,8 @@ class ProjectCard extends StatelessWidget {
           return FileImage(file);
         } else {
           print('❌ ProjectCard - Local file does not exist: $filePath');
+          // Si el archivo local no existe, usar imagen por defecto
+          return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
         }
       }
       
@@ -232,10 +234,12 @@ class ProjectCard extends StatelessWidget {
       }
       
       print('❌ ProjectCard - Could not determine image provider type for: $imageUrl');
-      return null;
+      // Usar imagen por defecto si no se puede determinar el tipo
+      return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
     } catch (e) {
       print('Error loading image: $e');
-      return null;
+      // Usar imagen por defecto en caso de error
+      return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
     }
   }
   Color _getProgressColor() {

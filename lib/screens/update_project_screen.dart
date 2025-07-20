@@ -13,6 +13,7 @@ import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../models/project_model.dart';
 import '../services/project_service.dart';
+import '../services/image_service.dart';
 
 class UpdateProjectScreen extends StatefulWidget {
   final ProjectModel? project;
@@ -105,7 +106,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
 
   Future<bool> _onWillPop() async {
     final isUpdate = widget.project != null;
-    
+
     // Si es actualización o no hay cambios, permitir salir
     if (isUpdate || !_hasUnsavedChanges) {
       return true;
@@ -113,71 +114,72 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
 
     // Si es creación y hay cambios, mostrar confirmación
     return await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.warning_outlined,
-                  color: Colors.orange,
-                  size: 24,
-                ),
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(width: 12),
-              const Text(
-                'Salir sin guardar',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textDark,
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.warning_outlined,
+                      color: Colors.orange,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Salir sin guardar',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textDark,
+                    ),
+                  ),
+                ],
+              ),
+              content: const Text(
+                '¿Estás seguro de que deseas salir? Se perderán todos los cambios realizados.',
+                style: TextStyle(fontSize: 16, color: AppColors.textGray),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text(
+                    'Continuar editando',
+                    style: TextStyle(
+                      color: AppColors.textGray,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          content: const Text(
-            '¿Estás seguro de que deseas salir? Se perderán todos los cambios realizados.',
-            style: TextStyle(fontSize: 16, color: AppColors.textGray),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                'Continuar editando',
-                style: TextStyle(
-                  color: AppColors.textGray,
-                  fontWeight: FontWeight.w500,
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Salir sin guardar',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
                 ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Salir sin guardar',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-        );
-      },
-    ) ?? false;
+              ],
+            );
+          },
+        ) ??
+        false;
   }
 
   Future<void> _updateProject() async {
@@ -193,13 +195,36 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     });
 
     try {
-      // Asegurar que tenemos una imagen válida
-      String finalImageUrl = _selectedImagePath ?? 
-          widget.project?.imageUrl ??
-          'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
-      
+      // Procesar la imagen seleccionada
+      String finalImageUrl;
+
+      if (_selectedImagePath != null && _selectedImagePath!.isNotEmpty) {
+        // Si hay una imagen seleccionada, usarla
+        finalImageUrl = _selectedImagePath!;
+
+        // Si es una imagen local y no se ha subido al servidor, intentar subirla ahora
+        if (ImageService.isLocalImage(finalImageUrl)) {
+          try {
+            print(
+              '🔍 Attempting to upload local image before saving project...',
+            );
+            final serverUrl = await ImageService.uploadImage(finalImageUrl);
+            finalImageUrl = serverUrl;
+            print('✅ Successfully uploaded image to server: $serverUrl');
+          } catch (e) {
+            print('❌ Failed to upload image, keeping local path: $e');
+            // Mantener la imagen local si falla la subida
+          }
+        }
+      } else {
+        // Si no hay imagen seleccionada, usar la imagen existente o por defecto
+        finalImageUrl =
+            widget.project?.imageUrl ??
+            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
+      }
+
       print('🔍 Final image URL for project: $finalImageUrl');
-      
+
       final projectData = ProjectModel(
         id: widget.project?.id ?? '',
         name: _projectNameController.text,
@@ -380,309 +405,311 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () async {
-                      final shouldPop = await _onWillPop();
-                      if (shouldPop) {
-                        if (Navigator.canPop(context)) {
-                          Navigator.pop(context);
-                        } else {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HomeScreen(),
-                            ),
-                            (route) => false,
-                          );
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final shouldPop = await _onWillPop();
+                        if (shouldPop) {
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          } else {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const HomeScreen(),
+                              ),
+                              (route) => false,
+                            );
+                          }
                         }
-                      }
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
+                      },
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back,
+                          color: AppColors.iconDark,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        isUpdate ? 'Actualizar Proyecto' : 'Crear Proyecto',
+                        style: AppTextStyles.header.copyWith(fontSize: 20),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Form Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Project Name
+                      Text(
+                        'Nombre del proyecto',
+                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      CustomTextField(
+                        controller: _projectNameController,
+                        hintText: 'Complejo Industrial Norte',
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Client Name
+                      Text(
+                        'Nombre del cliente',
+                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      CustomTextField(
+                        controller: _clientNameController,
+                        hintText: 'Ej. Manufactura Industrial SAC',
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Project Description
+                      Text(
+                        'Descripción del proyecto',
+                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      CustomTextField(
+                        controller: _projectManagerController,
+                        hintText: 'Ej. Una breve descripción del proyecto...',
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Location
+                      Text(
+                        'Ubicación',
+                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      LocationPickerWidget(
+                        initialLocation: _locationController.text,
+                        onLocationSelected: (location) {
+                          setState(() {
+                            _locationController.text = location;
+                            _onFieldChanged();
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Total Budget
+                      Text(
+                        'Presupuesto Total',
+                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      CustomBudgetField(
+                        controller: _budgetController,
+                        hintText: '2,500,000',
+                        onChanged: _onFieldChanged,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Date Fields
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Fecha de Inicio',
+                                  style: AppTextStyles.fieldLabel.copyWith(
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                CustomDateField(
+                                  controller: _startDateController,
+                                  hintText: 'dd/mm/aaaa',
+                                  onChanged: _onFieldChanged,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Fecha de Fin',
+                                  style: AppTextStyles.fieldLabel.copyWith(
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                CustomDateField(
+                                  controller: _endDateController,
+                                  hintText: 'dd/mm/aaaa',
+                                  onChanged: _onFieldChanged,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: AppColors.iconDark,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      isUpdate ? 'Actualizar Proyecto' : 'Crear Proyecto',
-                      style: AppTextStyles.header.copyWith(fontSize: 20),
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
-            // Form Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Project Name
-                    Text(
-                      'Nombre del proyecto',
-                      style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    CustomTextField(
-                      controller: _projectNameController,
-                      hintText: 'Complejo Industrial Norte',
-                    ),
+                      if (isUpdate) ...[
+                        const SizedBox(height: 32),
 
-                    const SizedBox(height: 24),
-
-                    // Client Name
-                    Text(
-                      'Nombre del cliente',
-                      style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    CustomTextField(
-                      controller: _clientNameController,
-                      hintText: 'Ej. Manufactura Industrial SAC',
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Project Description
-                    Text(
-                      'Descripción del proyecto',
-                      style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    CustomTextField(
-                      controller: _projectManagerController,
-                      hintText: 'Ej. Una breve descripción del proyecto...',
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Location
-                    Text(
-                      'Ubicación',
-                      style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    LocationPickerWidget(
-                      initialLocation: _locationController.text,
-                      onLocationSelected: (location) {
-                        setState(() {
-                          _locationController.text = location;
-                          _onFieldChanged();
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Total Budget
-                    Text(
-                      'Presupuesto Total',
-                      style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    CustomBudgetField(
-                      controller: _budgetController,
-                      hintText: '2,500,000',
-                      onChanged: _onFieldChanged,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Date Fields
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Fecha de Inicio',
-                                style: AppTextStyles.fieldLabel.copyWith(
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              CustomDateField(
-                                controller: _startDateController,
-                                hintText: 'dd/mm/aaaa',
-                                onChanged: _onFieldChanged,
-                              ),
-                            ],
-                          ),
+                        // Project Progress
+                        ProgressIndicatorWidget(
+                          progress: _projectProgress,
+                          onProgressChanged: _updateProgressProportionally,
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+
+                        const SizedBox(height: 24),
+
+                        // Project Status
+                        StatusSelector(
+                          currentStatus: _projectStatus,
+                          onStatusChanged: _updateStatusProportionally,
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Key Indicators
+                        KeyIndicatorsWidget(
+                          indicators: _keyIndicators,
+                          onIndicatorsChanged: _updateIndicatorsProportionally,
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Update Notes
+                        UpdateNotesWidget(controller: _notesController),
+                      ],
+
+                      if (!isUpdate) ...[
+                        const SizedBox(height: 32),
+
+                        // File Picker
+                        CustomFilePicker(
+                          initialImagePath: _selectedImagePath,
+                          onImageSelected: (imagePath) {
+                            print(
+                              '🔍 Image selected in UpdateProjectScreen: $imagePath',
+                            );
+                            setState(() {
+                              _selectedImagePath = imagePath;
+                            });
+                            _onFieldChanged();
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Campos obligatorios info
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.primary.withOpacity(0.2),
+                            ),
+                          ),
+                          child: Row(
                             children: [
-                              Text(
-                                'Fecha de Fin',
-                                style: AppTextStyles.fieldLabel.copyWith(
-                                  fontSize: 14,
-                                ),
+                              Icon(
+                                Icons.info_outline,
+                                color: AppColors.primary,
+                                size: 16,
                               ),
-                              const SizedBox(height: 8),
-                              CustomDateField(
-                                controller: _endDateController,
-                                hintText: 'dd/mm/aaaa',
-                                onChanged: _onFieldChanged,
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'Los campos marcados con (*) son obligatorios',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ],
-                    ),
 
-                    if (isUpdate) ...[
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 40),
 
-                      // Project Progress
-                      ProgressIndicatorWidget(
-                        progress: _projectProgress,
-                        onProgressChanged: _updateProgressProportionally,
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Project Status
-                      StatusSelector(
-                        currentStatus: _projectStatus,
-                        onStatusChanged: _updateStatusProportionally,
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Key Indicators
-                      KeyIndicatorsWidget(
-                        indicators: _keyIndicators,
-                        onIndicatorsChanged: _updateIndicatorsProportionally,
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Update Notes
-                      UpdateNotesWidget(controller: _notesController),
-                    ],
-
-                    if (!isUpdate) ...[
-                      const SizedBox(height: 32),
-
-                      // File Picker
-                      CustomFilePicker(
-                        initialImagePath: _selectedImagePath,
-                        onImageSelected: (imagePath) {
-                          print('🔍 Image selected in UpdateProjectScreen: $imagePath');
-                          setState(() {
-                            _selectedImagePath = imagePath;
-                          });
-                          _onFieldChanged();
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Campos obligatorios info
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.2),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: AppColors.primary,
-                              size: 16,
+                      // Action Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _updateProject,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
                             ),
-                            const SizedBox(width: 8),
-                            const Expanded(
-                              child: Text(
-                                'Los campos marcados con (*) son obligatorios',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 40),
-
-                    // Action Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _updateProject,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
                           ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  isUpdate
+                                      ? 'Enviar Actualización'
+                                      : 'Crear Proyecto',
+                                  style: AppTextStyles.buttonText,
                                 ),
-                              )
-                            : Text(
-                                isUpdate
-                                    ? 'Enviar Actualización'
-                                    : 'Crear Proyecto',
-                                style: AppTextStyles.buttonText,
-                              ),
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 40),
-                  ],
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
