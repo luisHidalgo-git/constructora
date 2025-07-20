@@ -853,6 +853,13 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         return NetworkImage(fullUrl);
       }
       
+      // Si parece ser un nombre de archivo, intentar construir URL del servidor
+      if (!imageUrl.contains('/') && (imageUrl.contains('.jpg') || imageUrl.contains('.png') || imageUrl.contains('.jpeg'))) {
+        final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
+        print('✅ TVDashboard - Built server URL from filename: $fullUrl');
+        return NetworkImage(fullUrl);
+      }
+      
       print('❌ TVDashboard - Could not determine image provider type for: $imageUrl');
       return null;
     } catch (e) {

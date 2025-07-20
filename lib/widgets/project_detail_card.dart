@@ -229,6 +229,13 @@ class ProjectDetailCard extends StatelessWidget {
         return NetworkImage(fullUrl);
       }
       
+      // Si parece ser un nombre de archivo, intentar construir URL del servidor
+      if (!imageUrl.contains('/') && (imageUrl.contains('.jpg') || imageUrl.contains('.png') || imageUrl.contains('.jpeg'))) {
+        final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
+        print('✅ ProjectDetailCard - Built server URL from filename: $fullUrl');
+        return NetworkImage(fullUrl);
+      }
+      
       print('❌ ProjectDetailCard - Could not determine image provider type for: $imageUrl');
       return null;
     } catch (e) {

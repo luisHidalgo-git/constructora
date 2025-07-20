@@ -271,34 +271,47 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           _isUploading = true;
         });
 
-        // Subir imagen al servidor
+        // Subir imagen al servidor con manejo de errores mejorado
         try {
+          print('🔍 Starting camera image upload...');
           final serverImageUrl = await ImageService.uploadImage(image.path);
           
           print('✅ Image uploaded to server: $serverImageUrl');
           
           setState(() {
-            _selectedImagePath = image.path; // Mantener ruta local temporalmente
+            _selectedImagePath = serverImageUrl; // Usar URL del servidor
             _isUploading = false;
           });
           
           if (widget.onImageSelected != null) {
-            widget.onImageSelected!(serverImageUrl); // Pasar URL del servidor al callback
+            widget.onImageSelected!(serverImageUrl);
           }
           
-          _showMessage('Foto subida exitosamente al servidor');
+          _showMessage('✅ Foto subida exitosamente al servidor');
         } catch (e) {
           print('❌ Error uploading camera image: $e');
           setState(() {
+            _selectedImagePath = null; // Limpiar imagen si falla la subida
             _isUploading = false;
           });
-          _showMessage('Error al subir foto: ${e.toString()}', isError: true);
+          
+          String errorMessage = 'Error al subir foto';
+          if (e.toString().contains('ClientException') || e.toString().contains('SocketException')) {
+            errorMessage = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
+          } else if (e.toString().contains('TimeoutException')) {
+            errorMessage = 'Tiempo de espera agotado. Intenta con una imagen más pequeña.';
+          } else {
+            errorMessage = 'Error: ${e.toString()}';
+          }
+          
+          _showMessage(errorMessage, isError: true);
         }
       }
     } catch (e) {
       print('❌ Camera selection error: $e');
       setState(() {
         _isUploading = false;
+        _selectedImagePath = null;
       });
       _showMessage(
         'Error al tomar la foto. Verifica los permisos de cámara en configuración.',
@@ -332,34 +345,47 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           _isUploading = true;
         });
 
-        // Subir imagen al servidor
+        // Subir imagen al servidor con manejo de errores mejorado
         try {
+          print('🔍 Starting gallery image upload...');
           final serverImageUrl = await ImageService.uploadImage(image.path);
           
           print('✅ Gallery image uploaded to server: $serverImageUrl');
           
           setState(() {
-            _selectedImagePath = image.path; // Mantener ruta local temporalmente
+            _selectedImagePath = serverImageUrl; // Usar URL del servidor
             _isUploading = false;
           });
           
           if (widget.onImageSelected != null) {
-            widget.onImageSelected!(serverImageUrl); // Pasar URL del servidor al callback
+            widget.onImageSelected!(serverImageUrl);
           }
           
-          _showMessage('Imagen subida exitosamente al servidor');
+          _showMessage('✅ Imagen subida exitosamente al servidor');
         } catch (e) {
           print('❌ Error uploading gallery image: $e');
           setState(() {
+            _selectedImagePath = null; // Limpiar imagen si falla la subida
             _isUploading = false;
           });
-          _showMessage('Error al subir imagen: ${e.toString()}', isError: true);
+          
+          String errorMessage = 'Error al subir imagen';
+          if (e.toString().contains('ClientException') || e.toString().contains('SocketException')) {
+            errorMessage = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
+          } else if (e.toString().contains('TimeoutException')) {
+            errorMessage = 'Tiempo de espera agotado. Intenta con una imagen más pequeña.';
+          } else {
+            errorMessage = 'Error: ${e.toString()}';
+          }
+          
+          _showMessage(errorMessage, isError: true);
         }
       }
     } catch (e) {
       print('❌ Gallery selection error: $e');
       setState(() {
         _isUploading = false;
+        _selectedImagePath = null;
       });
       _showMessage(
         'Error al seleccionar la imagen. Verifica los permisos de almacenamiento en configuración.',
@@ -376,18 +402,14 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         content: Text(message),
         backgroundColor: isError ? Colors.red : const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
+        duration: Duration(seconds: isError ? 5 : 3),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        action: isError
+        action: isError && message.contains('conexión')
             ? SnackBarAction(
-                label: 'Configuración',
+                label: 'Reintentar',
                 textColor: Colors.white,
                 onPressed: () {
-                  // El usuario puede ir manualmente a configuración
-                  _showMessage(
-                    'Ve a Configuración > Aplicaciones > Constructora > Permisos',
-                    isError: false,
-                  );
+                  _showImageSourceDialog();
                 },
               )
             : null,

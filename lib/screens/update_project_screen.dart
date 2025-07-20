@@ -193,6 +193,13 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     });
 
     try {
+      // Asegurar que tenemos una imagen válida
+      String finalImageUrl = _selectedImagePath ?? 
+          widget.project?.imageUrl ??
+          'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
+      
+      print('🔍 Final image URL for project: $finalImageUrl');
+      
       final projectData = ProjectModel(
         id: widget.project?.id ?? '',
         name: _projectNameController.text,
@@ -205,9 +212,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
         progress: _projectProgress,
         status: _projectStatus,
         keyIndicators: _keyIndicators,
-        imageUrl: _selectedImagePath ?? 
-            widget.project?.imageUrl ??
-            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+        imageUrl: finalImageUrl,
       );
 
       ProjectModel result;
@@ -230,6 +235,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
 
       Navigator.pop(context, result);
     } catch (e) {
+      print('❌ Error saving project: $e');
       _showMessage('Error: ${e.toString()}', isError: true);
     } finally {
       setState(() {
