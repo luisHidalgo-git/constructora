@@ -593,6 +593,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                       CustomFilePicker(
                         initialImagePath: _selectedImagePath,
                         onImageSelected: (imagePath) {
+                          print('🔍 Image selected in UpdateProjectScreen: $imagePath');
                           setState(() {
                             _selectedImagePath = imagePath;
                           });

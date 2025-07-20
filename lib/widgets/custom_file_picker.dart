@@ -278,12 +278,12 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           print('✅ Image uploaded to server: $serverImageUrl');
           
           setState(() {
-            _selectedImagePath = serverImageUrl;
+            _selectedImagePath = image.path; // Mantener ruta local temporalmente
             _isUploading = false;
           });
           
           if (widget.onImageSelected != null) {
-            widget.onImageSelected!(serverImageUrl);
+            widget.onImageSelected!(serverImageUrl); // Pasar URL del servidor al callback
           }
           
           _showMessage('Foto subida exitosamente al servidor');
@@ -339,12 +339,12 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           print('✅ Gallery image uploaded to server: $serverImageUrl');
           
           setState(() {
-            _selectedImagePath = serverImageUrl;
+            _selectedImagePath = image.path; // Mantener ruta local temporalmente
             _isUploading = false;
           });
           
           if (widget.onImageSelected != null) {
-            widget.onImageSelected!(serverImageUrl);
+            widget.onImageSelected!(serverImageUrl); // Pasar URL del servidor al callback
           }
           
           _showMessage('Imagen subida exitosamente al servidor');

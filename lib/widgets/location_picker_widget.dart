@@ -503,16 +503,10 @@ class _SimpleMapPickerScreenState extends State<SimpleMapPickerScreen> {
                       ),
                       onMapCreated: (GoogleMapController controller) {
                         _mapController = controller;
-                        // Dar tiempo para que el mapa se inicialice
-                        Future.delayed(const Duration(milliseconds: 1000), () {
-                    print('✅ Google Maps controller created');
-                          if (mounted) {
-                            setState(() {
-                              _mapReady = true;
-                        print('✅ Google Maps ready');
-                            });
-                          }
+                        setState(() {
+                          _mapReady = true;
                         });
+                        print('✅ Google Maps controller created and ready');
                       },
                       onTap: _onMapTapped,
                       markers: _selectedPosition != null

@@ -5,18 +5,12 @@ import 'package:flutter/foundation.dart';
 class ApiConfig {
   static String get baseUrl {
     try {
-      // En producción (release), usar siempre el servidor desplegado
-      if (kReleaseMode) {
-        String url = 'https://backend-constructora-klfi.onrender.com/api';
-        print('🚀 PRODUCTION MODE - Using deployed server: $url');
-        return url;
-      }
-      
-      // En desarrollo, usar variable de entorno o fallback al servidor desplegado
+      // Siempre usar el servidor desplegado para mayor estabilidad
       String url = dotenv.env['API_BASE_URL'] ?? 'https://backend-constructora-klfi.onrender.com/api';
       
       // Debug de la URL
-      print('🔗 DEBUG MODE - API Base URL: $url');
+      print('🔗 API Base URL: $url');
+      print('🔗 Release Mode: $kReleaseMode');
       
       return url;
     } catch (e) {
@@ -55,7 +49,7 @@ class ApiConfig {
   static Future<bool> checkConnectivity() async {
     try {
       print('🔍 Checking connectivity to: $baseUrl');
-      final healthUrl = baseUrl.replaceAll('/api', '') + '/health';
+      final healthUrl = serverBaseUrl + '/health';
       print('🔍 Health check URL: $healthUrl');
       
       final response = await http.get(
@@ -65,7 +59,7 @@ class ApiConfig {
           'Content-Type': 'application/json',
           'User-Agent': 'ConstructoraApp/1.0',
         },
-      ).timeout(Duration(seconds: 20));
+      ).timeout(Duration(seconds: 15));
       
       print('🔍 Health check status: ${response.statusCode}');
       print('🔍 Health check response: ${response.body}');
