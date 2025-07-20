@@ -4,6 +4,7 @@ import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../models/project_model.dart';
+import '../services/image_service.dart';
 
 class TVProjectDetailScreen extends StatefulWidget {
   final ProjectModel project;
@@ -459,8 +460,11 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         return null;
       }
       
+      print('🔍 TVProjectDetail - Building image provider for: $imageUrl');
+      
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        print('✅ TVProjectDetail - Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
       
@@ -471,10 +475,21 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
+          print('✅ TVProjectDetail - Using FileImage for: $filePath');
           return FileImage(file);
+        } else {
+          print('❌ TVProjectDetail - Local file does not exist: $filePath');
         }
       }
       
+      // Si es una ruta del servidor sin dominio, construir URL completa
+      if (imageUrl.startsWith('/uploads/')) {
+        final fullUrl = ImageService.buildServerImageUrl(imageUrl);
+        print('✅ TVProjectDetail - Built server URL: $fullUrl');
+        return NetworkImage(fullUrl);
+      }
+      
+      print('❌ TVProjectDetail - Could not determine image provider type for: $imageUrl');
       return null;
     } catch (e) {
       print('Error loading image: $e');

@@ -7,6 +7,7 @@ import 'tv_project_detail_screen.dart';
 import '../services/project_service.dart';
 import '../services/stats_service.dart';
 import '../services/auth_service.dart';
+import '../services/image_service.dart';
 import '../models/project_model.dart';
 import '../models/stats_model.dart';
 import '../models/user_model.dart';
@@ -823,8 +824,11 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         return null;
       }
       
+      print('🔍 TVDashboard - Building image provider for: $imageUrl');
+      
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        print('✅ TVDashboard - Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
       
@@ -835,10 +839,21 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
+          print('✅ TVDashboard - Using FileImage for: $filePath');
           return FileImage(file);
+        } else {
+          print('❌ TVDashboard - Local file does not exist: $filePath');
         }
       }
       
+      // Si es una ruta del servidor sin dominio, construir URL completa
+      if (imageUrl.startsWith('/uploads/')) {
+        final fullUrl = ImageService.buildServerImageUrl(imageUrl);
+        print('✅ TVDashboard - Built server URL: $fullUrl');
+        return NetworkImage(fullUrl);
+      }
+      
+      print('❌ TVDashboard - Could not determine image provider type for: $imageUrl');
       return null;
     } catch (e) {
       print('Error loading image: $e');

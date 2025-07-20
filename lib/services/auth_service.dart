@@ -1,4 +1,4 @@
-import 'dart:async'; // <-- Agrega esta línea
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,6 +34,7 @@ class AuthService {
         'Accept': 'application/json',
         'User-Agent': 'ConstructoraApp/1.0',
         'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       };
 
       print('🔍 Request headers: $headers');
@@ -69,11 +70,13 @@ class AuthService {
           'message': 'Error en el formato de respuesta del servidor',
         };
       }
+
       if (response.statusCode == 200) {
         // Guardar token y datos del usuario
         await _saveToken(data['token']);
         await _saveUser(data['user']);
 
+        print('✅ Login successful, token saved');
         return {
           'success': true,
           'user': UserModel.fromJson(data['user']),
@@ -142,6 +145,7 @@ class AuthService {
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
+              'User-Agent': 'ConstructoraApp/1.0',
             },
             body: jsonEncode(requestBody),
           )
@@ -156,6 +160,7 @@ class AuthService {
         await _saveToken(data['token']);
         await _saveUser(data['user']);
 
+        print('✅ Registration successful, token saved');
         return {
           'success': true,
           'user': UserModel.fromJson(data['user']),
@@ -182,6 +187,7 @@ class AuthService {
       final token = await getToken();
       if (token == null) return null;
 
+      print('🔍 Getting current user with token: ${token.substring(0, 20)}...');
       final response = await http
           .get(
             Uri.parse(ApiConfig.authMe),
@@ -189,15 +195,21 @@ class AuthService {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
               'Authorization': 'Bearer $token',
+              'User-Agent': 'ConstructoraApp/1.0',
             },
           )
           .timeout(Duration(milliseconds: ApiConfig.timeout));
 
+      print('🔍 Current user response status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final user = UserModel.fromJson(data);
         await _saveUser(data);
+        print('✅ Current user retrieved successfully');
         return user;
+      } else {
+        print('❌ Failed to get current user: ${response.statusCode}');
+        print('❌ Response: ${response.body}');
       }
     } catch (e) {
       print('Error getting current user: $e');
@@ -208,17 +220,29 @@ class AuthService {
   // Verificar si está autenticado
   static Future<bool> isAuthenticated() async {
     final token = await getToken();
-    if (token == null) return false;
+    if (token == null) {
+      print('❌ No token found');
+      return false;
+    }
 
+    print('🔍 Token found, verifying with server...');
     // Verificar si el token es válido
     final user = await getCurrentUser();
-    return user != null;
+    final isAuth = user != null;
+    print(isAuth ? '✅ User is authenticated' : '❌ User is not authenticated');
+    return isAuth;
   }
 
   // Obtener token
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    final token = prefs.getString(_tokenKey);
+    if (token != null) {
+      print('🔍 Token retrieved from storage: ${token.substring(0, 20)}...');
+    } else {
+      print('❌ No token found in storage');
+    }
+    return token;
   }
 
   // Obtener usuario guardado
@@ -227,7 +251,10 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       final userData = prefs.getString(_userKey);
       if (userData != null) {
+        print('✅ Saved user data found');
         return UserModel.fromJson(jsonDecode(userData));
+      } else {
+        print('❌ No saved user data found');
       }
     } catch (e) {
       print('Error getting saved user: $e');
@@ -237,19 +264,23 @@ class AuthService {
 
   // Logout
   static Future<void> logout() async {
+    print('🔍 Logging out user...');
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
+    print('✅ User logged out, tokens cleared');
   }
 
   // Métodos privados
   static Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
+    print('✅ Token saved to storage');
   }
 
   static Future<void> _saveUser(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, jsonEncode(userData));
+    print('✅ User data saved to storage');
   }
 }

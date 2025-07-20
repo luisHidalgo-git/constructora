@@ -29,7 +29,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        manifestPlaceholders["MAPS_API_KEY"] = project.findProperty("MAPS_API_KEY") ?: ""
+        manifestPlaceholders["MAPS_API_KEY"] = project.findProperty("MAPS_API_KEY") ?: "AIzaSyAFTr18567wfH_9kBjvIFmBslCWETdL7fI"
     }
 
     buildTypes {
@@ -37,6 +37,10 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Configuración para release
+            minifyEnabled = false
+            shrinkResources = false
         }
     }
 }

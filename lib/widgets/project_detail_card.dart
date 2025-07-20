@@ -4,6 +4,7 @@ import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../screens/update_project_screen.dart';
 import '../models/project_model.dart';
+import '../services/image_service.dart';
 
 class ProjectDetailCard extends StatelessWidget {
   final ProjectModel project;
@@ -199,8 +200,11 @@ class ProjectDetailCard extends StatelessWidget {
         return null;
       }
       
+      print('🔍 ProjectDetailCard - Building image provider for: $imageUrl');
+      
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        print('✅ ProjectDetailCard - Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
       
@@ -211,10 +215,21 @@ class ProjectDetailCard extends StatelessWidget {
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
+          print('✅ ProjectDetailCard - Using FileImage for: $filePath');
           return FileImage(file);
+        } else {
+          print('❌ ProjectDetailCard - Local file does not exist: $filePath');
         }
       }
       
+      // Si es una ruta del servidor sin dominio, construir URL completa
+      if (imageUrl.startsWith('/uploads/')) {
+        final fullUrl = ImageService.buildServerImageUrl(imageUrl);
+        print('✅ ProjectDetailCard - Built server URL: $fullUrl');
+        return NetworkImage(fullUrl);
+      }
+      
+      print('❌ ProjectDetailCard - Could not determine image provider type for: $imageUrl');
       return null;
     } catch (e) {
       print('Error loading image: $e');

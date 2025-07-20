@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
@@ -32,14 +33,19 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
   Future<bool> _checkLocationPermissions() async {
     try {
+      print('🔍 Checking location permissions...');
+      
       PermissionStatus locationStatus = await Permission.location.request();
+      print('🔍 Location permission status: $locationStatus');
 
       if (locationStatus.isDenied) {
+        print('❌ Location permission denied');
         _showMessage('Permisos de ubicación denegados', isError: true);
         return false;
       }
 
       if (locationStatus.isPermanentlyDenied) {
+        print('❌ Location permission permanently denied');
         _showMessage(
           'Ve a Configuración > Aplicaciones > Constructora > Permisos para habilitar ubicación.',
           isError: true,
@@ -48,7 +54,10 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
       }
 
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      print('🔍 Location service enabled: $serviceEnabled');
+      
       if (!serviceEnabled) {
+        print('❌ Location service not enabled');
         _showMessage(
           'Habilita el servicio de ubicación en Configuración.',
           isError: true,
@@ -56,8 +65,10 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
         return false;
       }
 
+      print('✅ Location permissions and services OK');
       return true;
     } catch (e) {
+      print('❌ Error checking location permissions: $e');
       _showMessage(
         'Error verificando permisos: ${e.toString()}',
         isError: true,
@@ -68,6 +79,8 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
 
   Future<void> _openLocationPicker() async {
     try {
+      print('🔍 Opening location picker...');
+      
       bool hasPermission = await _checkLocationPermissions();
       if (!hasPermission) return;
 
@@ -83,11 +96,14 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
       // Obtener ubicación actual
       Position position;
       try {
+        print('🔍 Getting current position...');
         position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
           timeLimit: const Duration(seconds: 15),
         );
+        print('✅ Got current position: ${position.latitude}, ${position.longitude}');
       } catch (e) {
+        print('❌ Error getting current position: $e');
         // Si falla, usar ubicación por defecto (Lima, Perú)
         position = Position(
           latitude: -12.0464,
@@ -101,12 +117,14 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
           speed: 0,
           speedAccuracy: 0,
         );
+        print('🔍 Using default position (Lima): ${position.latitude}, ${position.longitude}');
       }
 
       if (!mounted) return;
       Navigator.pop(context); // Cerrar loading
 
       // Abrir mapa
+      print('🔍 Opening map picker...');
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -117,12 +135,14 @@ class _LocationPickerWidgetState extends State<LocationPickerWidget> {
       );
 
       if (result != null && result is String) {
+        print('✅ Location selected: $result');
         setState(() {
           _selectedLocation = result;
         });
         widget.onLocationSelected(result);
       }
     } catch (e) {
+      print('❌ Error in location picker: $e');
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
         _showMessage('Error: ${e.toString()}', isError: true);
@@ -485,9 +505,11 @@ class _SimpleMapPickerScreenState extends State<SimpleMapPickerScreen> {
                         _mapController = controller;
                         // Dar tiempo para que el mapa se inicialice
                         Future.delayed(const Duration(milliseconds: 1000), () {
+                    print('✅ Google Maps controller created');
                           if (mounted) {
                             setState(() {
                               _mapReady = true;
+                        print('✅ Google Maps ready');
                             });
                           }
                         });
@@ -508,7 +530,6 @@ class _SimpleMapPickerScreenState extends State<SimpleMapPickerScreen> {
                       myLocationButtonEnabled: false,
                       zoomControlsEnabled: true,
                       mapToolbarEnabled: false,
-                      compassEnabled: true,
                       rotateGesturesEnabled: true,
                       scrollGesturesEnabled: true,
                       tiltGesturesEnabled: true,

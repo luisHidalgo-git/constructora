@@ -275,6 +275,8 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         try {
           final serverImageUrl = await ImageService.uploadImage(image.path);
           
+          print('✅ Image uploaded to server: $serverImageUrl');
+          
           setState(() {
             _selectedImagePath = serverImageUrl;
             _isUploading = false;
@@ -286,6 +288,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           
           _showMessage('Foto subida exitosamente al servidor');
         } catch (e) {
+          print('❌ Error uploading camera image: $e');
           setState(() {
             _isUploading = false;
           });
@@ -293,6 +296,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         }
       }
     } catch (e) {
+      print('❌ Camera selection error: $e');
       setState(() {
         _isUploading = false;
       });
@@ -332,6 +336,8 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         try {
           final serverImageUrl = await ImageService.uploadImage(image.path);
           
+          print('✅ Gallery image uploaded to server: $serverImageUrl');
+          
           setState(() {
             _selectedImagePath = serverImageUrl;
             _isUploading = false;
@@ -343,6 +349,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           
           _showMessage('Imagen subida exitosamente al servidor');
         } catch (e) {
+          print('❌ Error uploading gallery image: $e');
           setState(() {
             _isUploading = false;
           });
@@ -350,6 +357,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         }
       }
     } catch (e) {
+      print('❌ Gallery selection error: $e');
       setState(() {
         _isUploading = false;
       });
@@ -521,8 +529,11 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         return null;
       }
       
+      print('🔍 Building image provider for: $imageUrl');
+      
       // Si es una URL de internet (del servidor)
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        print('✅ Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
       
@@ -533,10 +544,21 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
+          print('✅ Using FileImage for: $filePath');
           return FileImage(file);
+        } else {
+          print('❌ Local file does not exist: $filePath');
         }
       }
       
+      // Si es una ruta del servidor sin dominio, construir URL completa
+      if (imageUrl.startsWith('/uploads/')) {
+        final fullUrl = ImageService.buildServerImageUrl(imageUrl);
+        print('✅ Built server URL: $fullUrl');
+        return NetworkImage(fullUrl);
+      }
+      
+      print('❌ Could not determine image provider type for: $imageUrl');
       return null;
     } catch (e) {
       print('Error loading image: $e');
