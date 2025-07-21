@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TVAuthService {
@@ -18,6 +19,8 @@ class TVAuthService {
       'createdAt': DateTime.now().millisecondsSinceEpoch,
       'authenticatedAt': null,
       'userToken': null,
+      'appName': 'Avanze360',
+      'type': 'tv_login',
     };
     
     await _saveTVSession(sessionId, sessionData);
@@ -115,17 +118,41 @@ class TVAuthService {
     }
   }
   
+  // Validar formato de QR
+  static bool isValidTVQRCode(String qrData) {
+    try {
+      final data = jsonDecode(qrData);
+      return data['type'] == 'tv_login' && 
+             data['sessionId'] != null && 
+             data['appName'] == 'Avanze360';
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  // Extraer sessionId del QR
+  static String? extractSessionIdFromQR(String qrData) {
+    try {
+      final data = jsonDecode(qrData);
+      if (isValidTVQRCode(qrData)) {
+        return data['sessionId'];
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+  
   // Métodos privados
   static String _generateSessionId() {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final random = DateTime.now().millisecondsSinceEpoch;
-    return chars[(random ~/ 1000) % chars.length] +
-           chars[(random ~/ 100) % chars.length] +
-           chars[(random ~/ 10) % chars.length] +
-           chars[random % chars.length] +
-           chars[(random ~/ 10000) % chars.length] +
-           chars[(random ~/ 100000) % chars.length] +
-           DateTime.now().millisecondsSinceEpoch.toString().substring(8);
+    final random = Random();
+    return String.fromCharCodes(
+      Iterable.generate(
+        16,
+        (_) => chars.codeUnitAt(random.nextInt(chars.length)),
+      ),
+    );
   }
   
   static Future<void> _saveTVSession(String sessionId, Map<String, dynamic> sessionData) async {
@@ -158,6 +185,16 @@ class TVAuthService {
     } catch (e) {
       print('❌ Error getting all TV sessions: $e');
       return {};
+    }
+  }
+  
+  static Future<String?> _getCurrentTVSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_currentTVSessionKey);
+    } catch (e) {
+      print('❌ Error getting current TV session: $e');
+      return null;
     }
   }
   

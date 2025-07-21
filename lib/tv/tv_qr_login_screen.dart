@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
-import 'dart:async';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../services/auth_service.dart';
@@ -20,206 +18,141 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
   bool _isScanning = false;
   String? _qrData;
   String? _sessionId;
-  Timer? _pollTimer;
-  bool _isAuthenticated = false;
-  String _statusMessage = 'Esperando escaneo del QR';
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
-    _initializeTVSession();
-    _startPollingForLogin();
+    _generateQRData();
+    _startPollingForAuth();
   }
-
+  
   @override
   void dispose() {
-    _pollTimer?.cancel();
-    if (_sessionId != null) {
-      TVAuthService.clearTVSession(_sessionId!);
-    }
+    _pollingTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _initializeTVSession() async {
-    try {
-      // Limpiar sesiones expiradas
-      await TVAuthService.cleanupExpiredSessions();
-      
-      // Crear nueva sesión de TV
-      _sessionId = await TVAuthService.createTVSession();
-      
-      // Crear datos del QR que incluyen información para el login
-      final qrLoginData = {
-        'type': 'tv_login',
-        'sessionId': _sessionId,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-        'appName': 'Avanze360',
-        'action': 'authenticate_tv',
-        'version': '1.0.0',
-      };
+  Future<void> _generateQRData() async {
+    // Generar un ID de sesión único
+    _sessionId = await TVAuthService.createTVSession();
 
-      setState(() {
-        _qrData = jsonEncode(qrLoginData);
-      });
+    // Crear datos del QR que incluyen información para el login
+    final qrLoginData = {
+      'type': 'tv_login',
+      'sessionId': _sessionId,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'appName': 'Avanze360',
+    };
 
-      print('🔍 TV Session initialized with QR data: $_qrData');
-    } catch (e) {
-      print('❌ Error initializing TV session: $e');
-      setState(() {
-        _statusMessage = 'Error al inicializar sesión';
-      });
-    }
+    setState(() {
+      _qrData = jsonEncode(qrLoginData);
+    });
+
+    print('🔍 Generated QR data: $_qrData');
   }
 
-  void _startPollingForLogin() {
-    // Polling real para verificar si el usuario escaneó el QR
-    _pollTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted && !_isAuthenticated && _sessionId != null) {
-        _checkForLogin();
+  void _startPollingForAuth() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      if (mounted && !_isScanning && _sessionId != null) {
+        _checkForAuth();
       }
     });
   }
 
-  Future<void> _checkForLogin() async {
+  Future<void> _checkForAuth() async {
     if (_sessionId == null) return;
     
     try {
       final sessionStatus = await TVAuthService.checkTVSessionStatus(_sessionId!);
       
       if (sessionStatus == null) {
-        setState(() {
-          _statusMessage = 'Sesión no encontrada';
-        });
+        print('❌ Session not found, regenerating...');
+        await _generateQRData();
         return;
       }
       
-      final status = sessionStatus['status'] as String;
-      
-      switch (status) {
-        case 'waiting':
-          if (!_isScanning) {
-            setState(() {
-              _statusMessage = 'Esperando escaneo del QR';
-            });
-          }
-          break;
-          
-        case 'authenticated':
-          if (!_isAuthenticated && !_isScanning) {
-            print('✅ TV Session authenticated, redirecting to dashboard...');
-            await _handleSuccessfulAuthentication(sessionStatus);
-          }
-          break;
-          
-        case 'expired':
-          setState(() {
-            _statusMessage = 'Sesión expirada, generando nueva...';
-          });
-          await _initializeTVSession();
-          break;
-          
-        default:
-          setState(() {
-            _statusMessage = 'Estado desconocido: $status';
-          });
-      }
-    } catch (e) {
-      print('❌ Error checking login status: $e');
-      setState(() {
-        _statusMessage = 'Error verificando estado';
-      });
-    }
-  }
-  
-  Future<void> _handleSuccessfulAuthentication(Map<String, dynamic> sessionData) async {
-    setState(() {
-      _isScanning = true;
-      _isAuthenticated = true;
-      _statusMessage = 'Autenticación exitosa, redirigiendo...';
-    });
-    
-    _pollTimer?.cancel();
-    
-    try {
-      // Simular guardado de token de usuario en TV
-      final userToken = sessionData['userToken'] as String?;
-      if (userToken != null) {
-        await AuthService.saveToken(userToken);
+      if (sessionStatus['status'] == 'authenticated') {
+        print('✅ Session authenticated, proceeding to dashboard...');
+        _pollingTimer?.cancel();
         
-        // Simular datos de usuario para TV
-        final userData = {
-          '_id': 'tv_authenticated_user',
-          'name': 'Usuario Autenticado',
-          'email': 'tv@authenticated.com',
-          'role': 'supervisor',
-          'position': 'Supervisor TV',
-          'isActive': true,
-          'createdAt': DateTime.now().toIso8601String(),
-          'updatedAt': DateTime.now().toIso8601String(),
-        };
+        setState(() {
+          _isScanning = true;
+        });
         
-        await AuthService.saveUser(userData);
-      }
-      
-      // Limpiar la sesión
-      await TVAuthService.clearTVSession(_sessionId!);
-      
-      // Esperar un momento para mostrar el mensaje de éxito
-      await Future.delayed(const Duration(seconds: 1));
-      
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const TVDashboardScreen()),
-        );
-      }
-    } catch (e) {
-      print('❌ Error handling successful authentication: $e');
-      setState(() {
-        _isScanning = false;
-        _isAuthenticated = false;
-        _statusMessage = 'Error en autenticación';
-      });
-    }
-  }
-
-  void _handleQRScanned() {
-    if (_isScanning || _isAuthenticated || _sessionId == null) return;
-    
-    setState(() {
-      _isScanning = true;
-      _statusMessage = 'Simulando escaneo...';
-    });
-
-    // Simular proceso de autenticación manual (solo para testing)
-    Future.delayed(const Duration(seconds: 2), () async {
-      try {
-        // Simular autenticación de la sesión
-        final success = await TVAuthService.authenticateTVSession(
-          _sessionId!,
-          'simulated_token_${DateTime.now().millisecondsSinceEpoch}',
-        );
+        // Simular proceso de login
+        await Future.delayed(const Duration(seconds: 1));
         
-        if (success) {
-          print('✅ Manual authentication simulation successful');
-          // El polling detectará el cambio de estado automáticamente
-        } else {
-          print('❌ Manual authentication simulation failed');
-          setState(() {
-            _isScanning = false;
-            _statusMessage = 'Error en simulación';
-          });
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const TVDashboardScreen()),
+          );
         }
-      } catch (e) {
-        print('❌ Error in manual authentication: $e');
+      } else if (sessionStatus['status'] == 'expired') {
+        print('❌ Session expired, regenerating...');
+        await _generateQRData();
+      }
+    } catch (e) {
+      print('❌ Error checking auth status: $e');
+    }
+  }
+
+  void _simulateQRScan() {
+    if (_isScanning) return;
+    
+    setState(() {
+      _isScanning = true;
+    });
+
+    Future.delayed(const Duration(seconds: 1), () async {
+      try {
+        if (_sessionId != null) {
+          // Simular autenticación exitosa
+          final success = await TVAuthService.authenticateTVSession(
+            _sessionId!,
+            'demo_token_${DateTime.now().millisecondsSinceEpoch}',
+          );
+          
+          if (success && mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const TVDashboardScreen()),
+            );
+            return;
+          }
+        }
+
+        // Si falla, mostrar error
         if (mounted) {
           setState(() {
             _isScanning = false;
-            _statusMessage = 'Error en simulación';
           });
+          _showError('Error en la simulación de escaneo');
+        }
+      } catch (e) {
+        print('❌ Error in simulated login: $e');
+        if (mounted) {
+          setState(() {
+            _isScanning = false;
+          });
+          _showError('Error en la simulación: ${e.toString()}');
         }
       }
     });
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -232,7 +165,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
           if (event is KeyDownEvent) {
             if (event.logicalKey == LogicalKeyboardKey.select ||
                 event.logicalKey == LogicalKeyboardKey.enter) {
-              _handleQRScanned();
+              _simulateQRScan();
               return KeyEventResult.handled;
             }
           }
@@ -282,7 +215,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                     ),
                     const SizedBox(height: 20),
                     const Text(
-                      'Escanea el código QR desde tu\naplicación móvil para acceder al\ndashboard de Avanze360',
+                      'Escanea el código QR desde tu\naplicación móvil para poder acceder al\ndashboard de avance360',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 18,
@@ -296,52 +229,27 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
               // QR Code Container
               Container(
-                width: 250,
-                height: 250,
+                width: 200,
+                height: 200,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: _isScanning
                     ? const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(
-                              color: AppColors.primary,
-                              strokeWidth: 4,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'Autenticando...',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                          ],
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                          strokeWidth: 4,
                         ),
                       )
                     : Container(
-                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         child: _qrData != null
-                            ? QrImageView(
-                                data: _qrData!,
-                                version: QrVersions.auto,
-                                size: 200.0,
-                                backgroundColor: Colors.white,
-                                foregroundColor: Colors.black,
-                                errorCorrectionLevel: QrErrorCorrectLevel.M,
-                                padding: const EdgeInsets.all(8),
-                              )
+                            ? _buildQRCode(_qrData!)
                             : const Center(
                                 child: CircularProgressIndicator(
                                   color: AppColors.primary,
@@ -353,30 +261,27 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
               const SizedBox(height: 40),
 
               // Session ID Display
-              if (_sessionId != null && !_isScanning) ...[
+              if (_sessionId != null) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
-                    vertical: 12,
+                    vertical: 10,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
-                    ),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
                     children: [
                       const Text(
                         'ID de Sesión:',
-                        style: TextStyle(fontSize: 14, color: Colors.white60),
+                        style: TextStyle(fontSize: 12, color: Colors.white60),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         _sessionId!,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                           fontFamily: 'monospace',
@@ -385,70 +290,36 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 20),
               ],
 
               // Instructions
-              if (!_isScanning) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'Presiona OK/Enter para simular escaneo (solo testing)',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Usa el control remoto para navegar',
-                        style: TextStyle(fontSize: 14, color: Colors.white60),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 20),
-
-              // Status indicator
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Column(
                   children: [
                     Container(
-                      width: 8,
-                      height: 8,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
-                        color: _isScanning 
-                            ? Colors.orange 
-                            : _isAuthenticated 
-                                ? Colors.green 
-                                : AppColors.primary,
-                        shape: BoxShape.circle,
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Presiona OK/Enter para simular escaneo',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _statusMessage,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white70,
-                      ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Usa el control remoto para navegar',
+                      style: TextStyle(fontSize: 14, color: Colors.white60),
                     ),
                   ],
                 ),
@@ -456,6 +327,50 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildQRCode(String data) {
+    // Crear una representación visual simple del QR
+    // En una implementación real, usarías un paquete como qr_flutter
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Simulación visual de QR code
+          Expanded(
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 8,
+                crossAxisSpacing: 2,
+                mainAxisSpacing: 2,
+              ),
+              itemCount: 64,
+              itemBuilder: (context, index) {
+                // Generar patrón pseudo-aleatorio basado en los datos
+                final hash = data.hashCode + index;
+                final isBlack = hash % 3 == 0;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isBlack ? Colors.black : Colors.white,
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'QR Login Code',
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.black54,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

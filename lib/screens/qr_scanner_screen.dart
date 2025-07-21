@@ -3,8 +3,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:convert';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
-import '../services/auth_service.dart';
 import '../services/tv_auth_service.dart';
+import '../services/auth_service.dart';
 import '../tv/tv_dashboard_screen.dart';
 
 class QRScannerScreen extends StatefulWidget {
@@ -17,6 +17,7 @@ class QRScannerScreen extends StatefulWidget {
 class _QRScannerScreenState extends State<QRScannerScreen> {
   MobileScannerController cameraController = MobileScannerController();
   bool isScanned = false;
+  bool isProcessing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -90,15 +91,16 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                   borderRadius: BorderRadius.circular(14),
                   child: MobileScanner(
                     controller: cameraController,
-                    onDetect: (capture) {
+                    onDetect: (capture) async {
                       if (!isScanned) {
                         final List<Barcode> barcodes = capture.barcodes;
                         for (final barcode in barcodes) {
                           if (barcode.rawValue != null) {
                             setState(() {
                               isScanned = true;
+                              isProcessing = true;
                             });
-                            _processQRCode(barcode.rawValue!);
+                            await _processQRCode(barcode.rawValue!);
                             break;
                           }
                         }
@@ -144,26 +146,66 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     );
   }
 
-  void _processQRCode(String code) {
+  Future<void> _processQRCode(String qrData) async {
     try {
-      // Intentar parsear como JSON para detectar QR de TV login
-      final data = jsonDecode(code);
+      print('🔍 Processing QR code: $qrData');
       
-      if (data is Map<String, dynamic> && 
-          data['type'] == 'tv_login' && 
-          data['appName'] == 'Avanze360') {
-        _handleTVLogin(data);
+      // Verificar si es un código QR válido para TV
+      if (!TVAuthService.isValidTVQRCode(qrData)) {
+        _showGenericQRResult(qrData);
         return;
       }
+      
+      // Extraer sessionId del QR
+      final sessionId = TVAuthService.extractSessionIdFromQR(qrData);
+      if (sessionId == null) {
+        _showError('Código QR inválido para TV');
+        return;
+      }
+      
+      print('🔍 Extracted session ID: $sessionId');
+      
+      // Verificar que la sesión existe y está esperando
+      final sessionStatus = await TVAuthService.checkTVSessionStatus(sessionId);
+      if (sessionStatus == null) {
+        _showError('Sesión de TV no encontrada o expirada');
+        return;
+      }
+      
+      if (sessionStatus['status'] != 'waiting') {
+        _showError('Esta sesión de TV ya no está disponible');
+        return;
+      }
+      
+      // Obtener token del usuario actual
+      final userToken = await AuthService.getToken();
+      if (userToken == null) {
+        _showError('No hay sesión de usuario activa. Inicia sesión primero.');
+        return;
+      }
+      
+      print('🔍 Authenticating TV session...');
+      
+      // Autenticar la sesión de TV
+      final success = await TVAuthService.authenticateTVSession(sessionId, userToken);
+      
+      if (success) {
+        _showTVConnectionSuccess(sessionId);
+      } else {
+        _showError('No se pudo autenticar la sesión de TV');
+      }
+      
     } catch (e) {
-      // No es JSON válido, mostrar como QR normal
+      print('❌ Error processing QR code: $e');
+      _showError('Error procesando código QR: ${e.toString()}');
+    } finally {
+      setState(() {
+        isProcessing = false;
+      });
     }
-    
-    // Mostrar resultado normal para otros tipos de QR
-    _showResult(code);
   }
-
-  void _handleTVLogin(Map<String, dynamic> qrData) {
+  
+  void _showTVConnectionSuccess(String sessionId) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -177,18 +219,124 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: const Color(0xFF10B981).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.tv,
-                  color: AppColors.primary,
+                  color: Color(0xFF10B981),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Conectado a TV',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '¡Conexión exitosa!',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF10B981),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Tu sesión móvil se ha conectado exitosamente con la TV. Ahora puedes ver el dashboard en la pantalla grande.',
+                style: TextStyle(fontSize: 14, color: AppColors.textGray),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Color(0xFF10B981), size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'ID de Sesión: $sessionId',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF10B981),
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Cerrar QR scanner
+                // Opcional: navegar al dashboard de TV si está en móvil
+                // Navigator.push(context, MaterialPageRoute(builder: (context) => const TVDashboardScreen()));
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Continuar',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  void _showError(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
                   size: 24,
                 ),
               ),
               const SizedBox(width: 12),
               const Text(
-                'Conectar con TV',
+                'Error de Conexión',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -201,36 +349,29 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '¿Deseas autenticar tu sesión en la TV?',
-                style: TextStyle(fontSize: 16, color: AppColors.textDark),
+              Text(
+                message,
+                style: const TextStyle(fontSize: 14, color: AppColors.textGray),
               ),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
+                  color: Colors.orange.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                  border: Border.all(color: Colors.orange.withOpacity(0.2)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: const Row(
                   children: [
-                    Text(
-                      'Sesión ID: ${qrData['sessionId']}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textDark,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Aplicación: ${qrData['appName']}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textGray,
+                    Icon(Icons.lightbulb_outline, color: Colors.orange, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Asegúrate de que el código QR sea de una TV con Avanze360 activo.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange,
+                        ),
                       ),
                     ),
                   ],
@@ -245,7 +386,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 _resetScanner();
               },
               child: const Text(
-                'Cancelar',
+                'Escanear Otro',
                 style: TextStyle(
                   color: AppColors.textGray,
                   fontWeight: FontWeight.w500,
@@ -253,19 +394,19 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               ),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 Navigator.of(context).pop();
-                await _authenticateTV(qrData);
+                Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
               child: const Text(
-                'Conectar',
+                'Cerrar',
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
@@ -275,152 +416,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     );
   }
 
-  Future<void> _authenticateTV(Map<String, dynamic> qrData) async {
-    // Mostrar loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
-      ),
-    );
-
-    try {
-      // Obtener token del usuario actual
-      final userToken = await AuthService.getToken();
-      if (userToken == null) {
-        throw Exception('No hay sesión de usuario activa');
-      }
-      
-      // Autenticar la sesión de TV
-      final sessionId = qrData['sessionId'] as String;
-      final success = await TVAuthService.authenticateTVSession(sessionId, userToken);
-      
-      if (!success) {
-        throw Exception('No se pudo autenticar la sesión de TV');
-      }
-      
-      print('✅ TV session authenticated successfully from mobile');
-      
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop(); // Cerrar loading
-        
-        // Mostrar éxito
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.check_circle,
-                      color: Color(0xFF10B981),
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Conectado Exitosamente',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                ],
-              ),
-              content: const Text(
-                'Tu sesión ha sido autenticada en la TV. Ahora puedes ver el dashboard en la pantalla grande.',
-                style: TextStyle(fontSize: 16, color: AppColors.textGray),
-              ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop(); // Cerrar scanner
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Entendido',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop(); // Cerrar loading
-        
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: const Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.red, size: 24),
-                  SizedBox(width: 12),
-                  Text(
-                    'Error de Conexión',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                ],
-              ),
-              content: Text(
-                'No se pudo conectar con la TV: ${e.toString()}',
-                style: const TextStyle(fontSize: 16, color: AppColors.textGray),
-              ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _resetScanner();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Reintentar',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      }
-    }
-  }
-
-  void _showResult(String code) {
+  void _showGenericQRResult(String code) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -522,6 +518,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   void _resetScanner() {
     setState(() {
       isScanned = false;
+      isProcessing = false;
     });
   }
 
