@@ -180,36 +180,38 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   const Spacer(),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const QRScannerScreen(),
-                          ),
-                        );
-                      },
-                      child: const Icon(
-                        Icons.qr_code_scanner,
-                        color: AppColors.iconGray,
-                        size: 20,
-                      ),
-                    ),
-                  ),
+                  // Eliminar el botón QR de la parte superior derecha
+                  // (remover este bloque)
+                  // Container(
+                  //   width: 40,
+                  //   height: 40,
+                  //   decoration: BoxDecoration(
+                  //     color: Colors.white,
+                  //     borderRadius: BorderRadius.circular(12),
+                  //     boxShadow: [
+                  //       BoxShadow(
+                  //         color: Colors.black.withOpacity(0.05),
+                  //         blurRadius: 10,
+                  //         offset: const Offset(0, 2),
+                  //       ),
+                  //     ],
+                  //   ),
+                  //   child: GestureDetector(
+                  //     onTap: () {
+                  //       Navigator.push(
+                  //         context,
+                  //         MaterialPageRoute(
+                  //           builder: (context) => const QRScannerScreen(),
+                  //         ),
+                  //       );
+                  //     },
+                  //     child: const Icon(
+                  //       Icons.qr_code_scanner,
+                  //       color: AppColors.iconGray,
+                  //       size: 20,
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             ),

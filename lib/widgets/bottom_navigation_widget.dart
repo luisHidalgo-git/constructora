@@ -5,14 +5,12 @@ import '../screens/projects_screen.dart';
 import '../screens/update_project_screen.dart';
 import '../screens/platform_selection_screen.dart';
 import '../services/auth_service.dart';
+import '../screens/qr_scanner_screen.dart'; // --- Importar pantalla de escaneo QR ---
 
 class BottomNavigationWidget extends StatelessWidget {
   final int currentIndex;
 
-  const BottomNavigationWidget({
-    super.key,
-    required this.currentIndex,
-  });
+  const BottomNavigationWidget({super.key, required this.currentIndex});
 
   void _onItemTapped(BuildContext context, int index) {
     if (index == currentIndex) return;
@@ -35,9 +33,7 @@ class BottomNavigationWidget extends StatelessWidget {
       case 2:
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const UpdateProjectScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const UpdateProjectScreen()),
         );
         break;
       case 3:
@@ -74,10 +70,7 @@ class BottomNavigationWidget extends StatelessWidget {
           ),
           content: const Text(
             '¿Estás seguro de que deseas cerrar sesión?',
-            style: TextStyle(
-              fontSize: 16,
-              color: AppColors.textGray,
-            ),
+            style: TextStyle(fontSize: 16, color: AppColors.textGray),
           ),
           actions: [
             TextButton(
@@ -96,7 +89,9 @@ class BottomNavigationWidget extends StatelessWidget {
                 await AuthService.logout();
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const PlatformSelectionScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const PlatformSelectionScreen(),
+                  ),
                   (route) => false,
                 );
               },
@@ -109,9 +104,7 @@ class BottomNavigationWidget extends StatelessWidget {
               ),
               child: const Text(
                 'Cerrar Sesión',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -156,13 +149,38 @@ class BottomNavigationWidget extends StatelessWidget {
                 1,
               ),
               _buildAddButton(context),
-              _buildNavItem(
-                context,
-                Icons.folder_outlined,
-                Icons.folder,
-                'Reportes',
-                3,
+              // --- Reemplazar "Reportes" por QR ---
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const QRScannerScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.qr_code_scanner,
+                    color: AppColors.iconGray,
+                    size: 20,
+                  ),
+                ),
               ),
+              // --- Fin reemplazo ---
               _buildNavItem(
                 context,
                 Icons.person_outline,
@@ -187,11 +205,7 @@ class BottomNavigationWidget extends StatelessWidget {
           color: AppColors.primary,
           shape: BoxShape.circle,
         ),
-        child: const Icon(
-          Icons.add,
-          color: Colors.white,
-          size: 24,
-        ),
+        child: const Icon(Icons.add, color: Colors.white, size: 24),
       ),
     );
   }
@@ -204,7 +218,7 @@ class BottomNavigationWidget extends StatelessWidget {
     int index,
   ) {
     final bool isActive = currentIndex == index;
-    
+
     return GestureDetector(
       onTap: () => _onItemTapped(context, index),
       child: Container(
