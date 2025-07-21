@@ -133,8 +133,8 @@ router.post('/forgot-password', [
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ 
-        message: 'No existe una cuenta asociada a este correo electrónico' 
+      return res.status(404).json({
+        message: 'No existe una cuenta asociada a este correo electrónico'
       });
     }
 
@@ -169,8 +169,8 @@ router.post('/reset-password', [
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ 
-        message: 'No existe una cuenta asociada a este correo electrónico' 
+      return res.status(404).json({
+        message: 'No existe una cuenta asociada a este correo electrónico'
       });
     }
 
