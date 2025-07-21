@@ -116,6 +116,80 @@ router.post('/login', [
   }
 });
 
+// @route   POST /api/auth/forgot-password
+// @desc    Verify email for password reset
+// @access  Public
+router.post('/forgot-password', [
+  body('email', 'Por favor incluye un email válido').isEmail()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ 
+        message: 'No existe una cuenta asociada a este correo electrónico' 
+      });
+    }
+
+    // If user exists, return success
+    res.json({
+      message: 'Correo verificado correctamente. Procede a cambiar tu contraseña.',
+      email: email
+    });
+
+  } catch (error) {
+    console.error(error.message);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ message: 'Error del servidor' });
+  }
+});
+
+// @route   POST /api/auth/reset-password
+// @desc    Reset user password
+// @access  Public
+router.post('/reset-password', [
+  body('email', 'Por favor incluye un email válido').isEmail(),
+  body('newPassword', 'La nueva contraseña debe tener al menos 6 caracteres').isLength({ min: 6 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, newPassword } = req.body;
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ 
+        message: 'No existe una cuenta asociada a este correo electrónico' 
+      });
+    }
+
+    // Update password (will be hashed by the pre-save middleware)
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      message: 'Contraseña cambiada exitosamente',
+      email: email
+    });
+
+  } catch (error) {
+    console.error(error.message);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ message: 'Error del servidor' });
+  }
+});
+
 // @route   GET /api/auth/me
 // @desc    Get current user
 // @access  Private
