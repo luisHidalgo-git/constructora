@@ -118,6 +118,7 @@ router.post('/authenticate-session', [
     await tvSession.authenticate(token, userData, req.user._id);
 
     console.log(`✅ TV Session authenticated: ${sessionId} by user: ${req.user.name}`);
+    console.log(`✅ User data saved in session: ${JSON.stringify(userData)}`);
 
     res.json({
       success: true,
@@ -126,7 +127,8 @@ router.post('/authenticate-session', [
         sessionId: tvSession.sessionId,
         status: tvSession.status,
         authenticatedAt: tvSession.authenticatedAt,
-        userData: tvSession.userData
+        userData: tvSession.userData,
+        authenticatedBy: req.user.name
       }
     });
 
@@ -163,6 +165,9 @@ router.get('/check-session/:sessionId', async (req, res) => {
     }
 
     console.log(`🔍 TV Session status check: ${sessionId} - Status: ${tvSession.status}`);
+    if (tvSession.status === 'authenticated' && tvSession.userData) {
+      console.log(`✅ Session has user data: ${tvSession.userData.name}`);
+    }
 
     res.json({
       success: true,
@@ -172,7 +177,8 @@ router.get('/check-session/:sessionId', async (req, res) => {
         createdAt: tvSession.createdAt,
         authenticatedAt: tvSession.authenticatedAt,
         userData: tvSession.userData,
-        isExpired: tvSession.isExpired()
+        isExpired: tvSession.isExpired(),
+        hasUserData: tvSession.userData != null
       }
     });
 
