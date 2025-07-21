@@ -111,14 +111,24 @@ router.post('/authenticate-session', [
       position: req.user.position,
       isActive: req.user.isActive,
       createdAt: req.user.createdAt,
-      updatedAt: req.user.updatedAt
+      updatedAt: req.user.updatedAt,
+      authenticatedAt: new Date(),
+      platform: 'mobile'
     };
 
     // Autenticar la sesión
     await tvSession.authenticate(token, userData, req.user._id);
 
     console.log(`✅ TV Session authenticated: ${sessionId} by user: ${req.user.name}`);
-    console.log(`✅ User data saved in session: ${JSON.stringify(userData)}`);
+    console.log(`✅ User data saved in session:`, userData);
+    
+    // Verificar que los datos se guardaron correctamente
+    const verifySession = await TVSession.findOne({ sessionId });
+    if (verifySession && verifySession.userData) {
+      console.log(`✅ Verification: Session data correctly saved for ${verifySession.userData.name}`);
+    } else {
+      console.log(`❌ Verification failed: Session data not saved correctly`);
+    }
 
     res.json({
       success: true,
@@ -165,8 +175,13 @@ router.get('/check-session/:sessionId', async (req, res) => {
     }
 
     console.log(`🔍 TV Session status check: ${sessionId} - Status: ${tvSession.status}`);
-    if (tvSession.status === 'authenticated' && tvSession.userData) {
-      console.log(`✅ Session has user data: ${tvSession.userData.name}`);
+    if (tvSession.status === 'authenticated') {
+      if (tvSession.userData && tvSession.userData.name) {
+        console.log(`✅ Session has user data: ${tvSession.userData.name}`);
+        console.log(`✅ Full user data: ${JSON.stringify(tvSession.userData)}`);
+      } else {
+        console.log(`⚠️ Session authenticated but no user data available`);
+      }
     }
 
     res.json({
@@ -178,7 +193,7 @@ router.get('/check-session/:sessionId', async (req, res) => {
         authenticatedAt: tvSession.authenticatedAt,
         userData: tvSession.userData,
         isExpired: tvSession.isExpired(),
-        hasUserData: tvSession.userData != null
+        hasUserData: tvSession.userData != null && tvSession.userData.name != null
       }
     });
 
