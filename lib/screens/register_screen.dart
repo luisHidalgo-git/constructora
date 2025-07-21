@@ -5,17 +5,16 @@ import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
-import 'platform_selection_screen.dart';
-import '../services/auth_service.dart';
+import '../services/auth_service.dart'; // Ajusta la ruta según tu estructura
 
+// Asegúrate de que RegisterScreen sea un StatefulWidget
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
-
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  _RegisterScreenState createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  // Controladores de texto
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -23,16 +22,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       TextEditingController();
   final TextEditingController _positionController = TextEditingController();
 
+  // Variables de estado
+  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _isLoading = false;
-  String _selectedRole = 'supervisor';
-
-  final List<Map<String, String>> _roles = [
-    {'value': 'admin', 'label': 'Administrador'},
-    {'value': 'supervisor', 'label': 'Supervisor'},
-    {'value': 'worker', 'label': 'Trabajador'},
-  ];
 
   @override
   void dispose() {
@@ -56,9 +49,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        role: _selectedRole,
+        role: 'supervisor',
         position: _positionController.text.trim().isEmpty
-            ? _getRoleDefaultPosition(_selectedRole)
+            ? 'Supervisor de Obra'
             : _positionController.text.trim(),
       );
 
@@ -113,19 +106,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
-  }
-
-  String _getRoleDefaultPosition(String role) {
-    switch (role) {
-      case 'admin':
-        return 'Administrador';
-      case 'supervisor':
-        return 'Supervisor de Obra';
-      case 'worker':
-        return 'Trabajador';
-      default:
-        return 'Supervisor';
-    }
   }
 
   void _showMessage(String message, {bool isError = false}) {
@@ -243,63 +223,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Role Selector
-                    Text('Rol', style: AppTextStyles.fieldLabel),
-                    const SizedBox(height: 6),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedRole,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        items: _roles.map((role) {
-                          return DropdownMenuItem<String>(
-                            value: role['value'],
-                            child: Text(
-                              role['label']!,
-                              style: AppTextStyles.inputText,
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedRole = value!;
-                            _positionController.text = _getRoleDefaultPosition(
-                              value,
-                            );
-                          });
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
                     // Position Field
                     Text('Cargo/Posición', style: AppTextStyles.fieldLabel),
                     const SizedBox(height: 6),
                     CustomTextField(
                       controller: _positionController,
-                      hintText: _getRoleDefaultPosition(_selectedRole),
+                      hintText:
+                          'Ej. Supervisor de Obra, Supervisor Eléctrico, etc.',
                     ),
 
                     const SizedBox(height: 16),
@@ -403,7 +333,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const LoginScreen(),
+                                  builder: (context) => RegisterScreen(),
                                 ),
                               );
                             },
