@@ -15,6 +15,8 @@ class ProjectDetailCard extends StatelessWidget {
   final String status;
   final String budget;
   final String imageUrl;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const ProjectDetailCard({
     super.key,
@@ -26,19 +28,15 @@ class ProjectDetailCard extends StatelessWidget {
     required this.status,
     required this.budget,
     required this.imageUrl,
+    this.onTap,
+    this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => UpdateProjectScreen(project: project),
-          ),
-        );
-      },
+      onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,

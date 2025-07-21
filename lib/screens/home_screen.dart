@@ -29,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String? _error;
   String _selectedFilter = 'Todos';
+  bool _showProjects = true;
 
   final List<String> _filterOptions = [
     'Todos',
@@ -347,9 +348,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: AppTextStyles.header.copyWith(fontSize: 18),
                           ),
                           TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              setState(() {
+                                _showProjects = !_showProjects;
+                              });
+                            },
                             child: Text(
-                              'Ver todos',
+                              _showProjects ? 'Ocultar todos' : 'Ver todos',
                               style: AppTextStyles.linkText.copyWith(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w500,
@@ -361,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
 
                     // Projects List
-                    Expanded(child: _buildProjectsList()),
+                    Expanded(child: _showProjects ? _buildProjectsList() : Container()),
                   ],
                 ),
               ),
@@ -541,6 +546,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     progress: project.progress,
                     status: project.status,
                     imageUrl: project.imageUrl,
+                    onTap: null, // Deshabilitar navegación
                   ),
                 ),
               )

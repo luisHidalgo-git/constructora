@@ -13,6 +13,7 @@ class ProjectCard extends StatelessWidget {
   final double progress;
   final String status;
   final String imageUrl;
+  final VoidCallback? onTap;
 
   const ProjectCard({
     super.key,
@@ -22,26 +23,13 @@ class ProjectCard extends StatelessWidget {
     required this.progress,
     required this.status,
     required this.imageUrl,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => UpdateProjectScreen(project: project),
-          ),
-        );
-
-        // Si se actualizó el proyecto, notificar al padre para que actualice
-        if (result != null && context.mounted) {
-          // Trigger a rebuild of the parent widget
-          (context.findAncestorStateOfType<State>() as dynamic)?._refreshData
-              ?.call();
-        }
-      },
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
