@@ -5,7 +5,7 @@ import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../services/tv_auth_service.dart';
 import '../services/auth_service.dart';
-import '../tv/tv_dashboard_screen.dart';
+import '../models/user_model.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -158,28 +158,38 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       final sessionId = TVAuthService.extractSessionIdFromQR(qrData);
       if (sessionId == null) {
         print('❌ Could not extract session ID from QR');
-        _showTVConnectionSuccess('demo-session');
+        _showError('No se pudo extraer el ID de sesión del código QR');
         return;
       }
 
       print('🔍 Extracted session ID: $sessionId');
 
+      // Obtener datos del usuario autenticado
       final userToken = await AuthService.getToken();
-      if (userToken == null) {
-        print('❌ No user token available');
-        print('🔍 Using demo token for TV connection');
+      final currentUser = await AuthService.getSavedUser();
+
+      if (userToken == null || currentUser == null) {
+        print('❌ No user token or user data available');
+        _showError(
+          'Debes estar autenticado para conectar con la TV. Inicia sesión primero.',
+        );
+        return;
       }
 
-      print('🔍 Authenticating TV session with user token...');
+      print('🔍 User authenticated: ${currentUser.name}');
+      print('🔍 Authenticating TV session with user data...');
 
       final success = await TVAuthService.authenticateTVSession(
         sessionId,
-        userToken ?? 'demo-token-${DateTime.now().millisecondsSinceEpoch}',
+        userToken,
+        userData: currentUser.toJson(),
       );
 
       if (success) {
-        print('✅ TV session authenticated successfully');
-        _showTVConnectionSuccess(sessionId);
+        print(
+          '✅ TV session authenticated successfully with user: ${currentUser.name}',
+        );
+        _showTVConnectionSuccess(sessionId, currentUser);
       } else {
         print('❌ Failed to authenticate TV session');
         _showError('No se pudo autenticar la sesión de TV. Intenta de nuevo.');
@@ -194,7 +204,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     }
   }
 
-  void _showTVConnectionSuccess(String sessionId) {
+  void _showTVConnectionSuccess(String sessionId, UserModel user) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -239,9 +249,50 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Tu sesión móvil se ha conectado exitosamente con la TV. El dashboard se está cargando en la pantalla.',
-                style: TextStyle(fontSize: 14, color: AppColors.textGray),
+              Text(
+                'Hola ${user.name}! Tu sesión móvil se ha conectado exitosamente con la TV. El dashboard se está cargando en la pantalla con tu información de usuario.',
+                style: const TextStyle(fontSize: 14, color: AppColors.textGray),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.person,
+                      color: AppColors.primary,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.name,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          Text(
+                            '${user.position} - ${user.email}',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.textGray,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               Container(

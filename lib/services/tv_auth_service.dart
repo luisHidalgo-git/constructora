@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class TVAuthService {
   static const String _tvSessionsKey = 'tv_auth_sessions';
   static const String _currentTVSessionKey = 'current_tv_session';
+  static const String _tvUserDataKey = 'tv_user_data';
   static const int _sessionTimeoutMinutes = 30;
 
   // Crear una nueva sesión de TV
@@ -17,6 +18,7 @@ class TVAuthService {
       'createdAt': DateTime.now().millisecondsSinceEpoch,
       'authenticatedAt': null,
       'userToken': null,
+      'userData': null,
       'appName': 'Avanze360',
       'type': 'tv_login',
       'version': '1.0.0',
@@ -30,15 +32,16 @@ class TVAuthService {
     return sessionId;
   }
 
-  // Autenticar una sesión desde el móvil
+  // Autenticar una sesión desde el móvil con datos de usuario
   static Future<bool> authenticateTVSession(
     String sessionId,
-    String userToken,
-  ) async {
+    String userToken, {
+    Map<String, dynamic>? userData,
+  }) async {
     try {
       print('🔍 Attempting to authenticate TV session: $sessionId');
+      print('🔍 User data provided: ${userData != null}');
 
-      // Simplificar: siempre crear o actualizar la sesión como autenticada
       final now = DateTime.now().millisecondsSinceEpoch;
       final sessionData = {
         'sessionId': sessionId,
@@ -46,18 +49,25 @@ class TVAuthService {
         'createdAt': now,
         'authenticatedAt': now,
         'userToken': userToken,
+        'userData': userData,
         'appName': 'Avanze360',
         'type': 'tv_login',
         'version': '1.0.0',
       };
 
       await _saveTVSession(sessionId, sessionData);
+      
+      // Guardar datos de usuario para la TV
+      if (userData != null) {
+        await _saveTVUserData(userData);
+        print('✅ User data saved for TV: ${userData['name']}');
+      }
+      
       print('✅ TV Session authenticated successfully: $sessionId');
       return true;
     } catch (e) {
       print('❌ Error authenticating TV session: $e');
-      // En caso de error, también devolver true para que funcione
-      return true;
+      return false;
     }
   }
 
@@ -97,6 +107,24 @@ class TVAuthService {
     }
   }
 
+  // Obtener datos de usuario para la TV
+  static Future<Map<String, dynamic>?> getTVUserData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userDataJson = prefs.getString(_tvUserDataKey);
+      if (userDataJson != null) {
+        final userData = jsonDecode(userDataJson);
+        print('✅ Retrieved TV user data: ${userData['name']}');
+        return userData;
+      }
+      print('❌ No TV user data found');
+      return null;
+    } catch (e) {
+      print('❌ Error getting TV user data: $e');
+      return null;
+    }
+  }
+
   // Limpiar sesión después de usar
   static Future<void> clearTVSession(String sessionId) async {
     try {
@@ -113,6 +141,17 @@ class TVAuthService {
       print('🔍 TV Session cleared: $sessionId');
     } catch (e) {
       print('❌ Error clearing TV session: $e');
+    }
+  }
+
+  // Limpiar datos de usuario de TV
+  static Future<void> clearTVUserData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tvUserDataKey);
+      print('🔍 TV user data cleared');
+    } catch (e) {
+      print('❌ Error clearing TV user data: $e');
     }
   }
 
@@ -210,6 +249,16 @@ class TVAuthService {
       print('🔍 Session saved: $sessionId');
     } catch (e) {
       print('❌ Error saving TV session: $e');
+    }
+  }
+
+  static Future<void> _saveTVUserData(Map<String, dynamic> userData) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tvUserDataKey, jsonEncode(userData));
+      print('🔍 TV user data saved: ${userData['name']}');
+    } catch (e) {
+      print('❌ Error saving TV user data: $e');
     }
   }
 
@@ -323,11 +372,13 @@ class TVAuthService {
         final createdAt = sessionData['createdAt'] as int;
         final ageMinutes = (now - createdAt) / (1000 * 60);
         final status = sessionData['status'];
+        final userData = sessionData['userData'];
 
         print('🔍 Session ${entry.key}:');
         print('   Status: $status');
         print('   Age: ${ageMinutes.toStringAsFixed(1)} minutes');
         print('   Created: ${DateTime.fromMillisecondsSinceEpoch(createdAt)}');
+        print('   User: ${userData?['name'] ?? 'No user data'}');
       }
       print('🔍 === End Debug ===');
     } catch (e) {

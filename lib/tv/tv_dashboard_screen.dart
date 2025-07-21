@@ -7,6 +7,7 @@ import 'tv_project_detail_screen.dart';
 import '../services/project_service.dart';
 import '../services/stats_service.dart';
 import '../services/auth_service.dart';
+import '../services/tv_auth_service.dart';
 import '../services/image_service.dart';
 import '../screens/platform_selection_screen.dart';
 import '../models/project_model.dart';
@@ -41,10 +42,22 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     });
 
     try {
+      // Primero intentar obtener datos de usuario de la TV
+      UserModel? tvUser;
+      try {
+        final tvUserData = await TVAuthService.getTVUserData();
+        if (tvUserData != null) {
+          tvUser = UserModel.fromJson(tvUserData);
+          print('✅ TV User data loaded: ${tvUser.name}');
+        }
+      } catch (e) {
+        print('❌ Error loading TV user data: $e');
+      }
+
       final results = await Future.wait([
         ProjectService.getProjects(),
         StatsService.getStats(),
-        AuthService.getSavedUser() ?? Future.value(null),
+        Future.value(tvUser ?? await AuthService.getSavedUser()),
       ]);
 
       setState(() {
@@ -69,7 +82,10 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           _selectedProjectIndex = _projects.isNotEmpty ? 0 : -1;
         }
       });
+      
+      print('✅ TV Dashboard loaded with user: ${_currentUser?.name}');
     } catch (e) {
+      print('❌ Error loading TV dashboard data: $e');
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -427,6 +443,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         ),
       );
 
+      // Limpiar datos de TV
+      await TVAuthService.clearTVUserData();
+      
       // Cerrar sesión
       await AuthService.logout();
 
@@ -854,7 +873,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
                           // Days remaining
                           Text(
-                            '${_calculateDaysRemaining(project)} días restantes',
+                            '${_currentUser?.position ?? 'Supervisor'} - Conectado desde móvil',
                             style: const TextStyle(
                               fontSize: 9,
                               color: AppColors.textGray,

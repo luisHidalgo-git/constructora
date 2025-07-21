@@ -6,6 +6,8 @@ import '../utils/app_text_styles.dart';
 import '../models/project_model.dart';
 import '../services/image_service.dart';
 import '../services/auth_service.dart';
+import '../services/tv_auth_service.dart';
+import '../models/user_model.dart';
 import '../screens/platform_selection_screen.dart';
 
 class TVProjectDetailScreen extends StatefulWidget {
@@ -18,6 +20,35 @@ class TVProjectDetailScreen extends StatefulWidget {
 }
 
 class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
+  UserModel? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      // Intentar obtener datos de usuario de la TV
+      final tvUserData = await TVAuthService.getTVUserData();
+      if (tvUserData != null) {
+        setState(() {
+          _currentUser = UserModel.fromJson(tvUserData);
+        });
+        print('✅ TV Project Detail - User data loaded: ${_currentUser?.name}');
+      } else {
+        // Fallback a datos guardados localmente
+        final savedUser = await AuthService.getSavedUser();
+        setState(() {
+          _currentUser = savedUser;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading user data in TV Project Detail: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,28 +123,28 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                         ),
                       ],
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.person,
                           color: AppColors.primary,
                           size: 20,
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Hola, Supervisor Carlos!',
-                              style: TextStyle(
+                              'Hola, ${_currentUser?.name ?? 'Usuario'}!',
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textDark,
                               ),
                             ),
-                            Text(
+                            const Text(
                               'Bienvenido',
                               style: TextStyle(
                                 fontSize: 12,
@@ -137,21 +168,15 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                       decoration: BoxDecoration(
                         color: Colors.red.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.red.withOpacity(0.3),
-                        ),
+                        border: Border.all(color: Colors.red.withOpacity(0.3)),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.logout,
-                            color: Colors.red,
-                            size: 14,
-                          ),
+                          Icon(Icons.logout, color: Colors.red, size: 14),
                           SizedBox(width: 4),
                           Text(
-                            'Salir',
+                            'Cerrar Sesión',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -232,14 +257,24 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                             height: 200,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
-                              image: _buildImageProvider(widget.project.imageUrl) != null
+                              image:
+                                  _buildImageProvider(
+                                        widget.project.imageUrl,
+                                      ) !=
+                                      null
                                   ? DecorationImage(
-                                      image: _buildImageProvider(widget.project.imageUrl)!,
+                                      image: _buildImageProvider(
+                                        widget.project.imageUrl,
+                                      )!,
                                       fit: BoxFit.cover,
                                     )
                                   : null,
-                              color: _buildImageProvider(widget.project.imageUrl) == null 
-                                  ? Colors.grey[300] 
+                              color:
+                                  _buildImageProvider(
+                                        widget.project.imageUrl,
+                                      ) ==
+                                      null
+                                  ? Colors.grey[300]
                                   : null,
                               boxShadow: [
                                 BoxShadow(
@@ -249,7 +284,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                                 ),
                               ],
                             ),
-                            child: _buildImageProvider(widget.project.imageUrl) == null
+                            child:
+                                _buildImageProvider(widget.project.imageUrl) ==
+                                    null
                                 ? const Center(
                                     child: Icon(
                                       Icons.image_outlined,
@@ -283,7 +320,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                               widthFactor: widget.project.progress,
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: _getProgressColor(widget.project.progress),
+                                  color: _getProgressColor(
+                                    widget.project.progress,
+                                  ),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                               ),
@@ -297,6 +336,17 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                             style: const TextStyle(
                               fontSize: 14,
                               color: AppColors.textGray,
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          Text(
+                            '${_currentUser?.position ?? 'Supervisor'} - Conectado desde móvil',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -337,14 +387,18 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                ...widget.project.keyIndicators.entries.map((entry) {
+                                ...widget.project.keyIndicators.entries.map((
+                                  entry,
+                                ) {
                                   return Padding(
                                     padding: const EdgeInsets.only(bottom: 12),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
                                             Text(
                                               entry.key,
@@ -359,7 +413,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
-                                                color: _getIndicatorColor(entry.value),
+                                                color: _getIndicatorColor(
+                                                  entry.value,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -369,15 +425,20 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                                           height: 6,
                                           decoration: BoxDecoration(
                                             color: Colors.grey.withOpacity(0.2),
-                                            borderRadius: BorderRadius.circular(3),
+                                            borderRadius: BorderRadius.circular(
+                                              3,
+                                            ),
                                           ),
                                           child: FractionallySizedBox(
                                             alignment: Alignment.centerLeft,
                                             widthFactor: entry.value,
                                             child: Container(
                                               decoration: BoxDecoration(
-                                                color: _getIndicatorColor(entry.value),
-                                                borderRadius: BorderRadius.circular(3),
+                                                color: _getIndicatorColor(
+                                                  entry.value,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(3),
                                               ),
                                             ),
                                           ),
@@ -458,11 +519,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
           ),
           title: const Row(
             children: [
-              Icon(
-                Icons.logout,
-                color: Colors.red,
-                size: 24,
-              ),
+              Icon(Icons.logout, color: Colors.red, size: 24),
               SizedBox(width: 12),
               Text(
                 'Cerrar Sesión',
@@ -514,8 +571,11 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
   Future<void> _performLogout() async {
     try {
+      // Limpiar datos de TV
+      await TVAuthService.clearTVUserData();
+
       await AuthService.logout();
-      
+
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -530,7 +590,12 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     }
   }
 
-  Widget _buildActivityItem(String title, String date, IconData icon, Color color) {
+  Widget _buildActivityItem(
+    String title,
+    String date,
+    IconData icon,
+    Color color,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -540,11 +605,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 14,
-          ),
+          child: Icon(icon, color: color, size: 14),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -564,10 +625,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               const SizedBox(height: 2),
               Text(
                 date,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: AppColors.textGray,
-                ),
+                style: const TextStyle(fontSize: 10, color: AppColors.textGray),
               ),
             ],
           ),
@@ -581,19 +639,19 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       if (imageUrl.isEmpty) {
         return null;
       }
-      
+
       print('🔍 TVProjectDetail - Building image provider for: $imageUrl');
-      
+
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         print('✅ TVProjectDetail - Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
-      
+
       // Si es un archivo local
       if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
-        String filePath = imageUrl.startsWith('file://') 
-            ? imageUrl.substring(7) 
+        String filePath = imageUrl.startsWith('file://')
+            ? imageUrl.substring(7)
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
@@ -603,22 +661,27 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
           print('❌ TVProjectDetail - Local file does not exist: $filePath');
         }
       }
-      
+
       // Si es una ruta del servidor sin dominio, construir URL completa
       if (imageUrl.startsWith('/uploads/')) {
         final fullUrl = ImageService.buildServerImageUrl(imageUrl);
         print('✅ TVProjectDetail - Built server URL: $fullUrl');
         return NetworkImage(fullUrl);
       }
-      
+
       // Si parece ser un nombre de archivo, intentar construir URL del servidor
-      if (!imageUrl.contains('/') && (imageUrl.contains('.jpg') || imageUrl.contains('.png') || imageUrl.contains('.jpeg'))) {
+      if (!imageUrl.contains('/') &&
+          (imageUrl.contains('.jpg') ||
+              imageUrl.contains('.png') ||
+              imageUrl.contains('.jpeg'))) {
         final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
         print('✅ TVProjectDetail - Built server URL from filename: $fullUrl');
         return NetworkImage(fullUrl);
       }
-      
-      print('❌ TVProjectDetail - Could not determine image provider type for: $imageUrl');
+
+      print(
+        '❌ TVProjectDetail - Could not determine image provider type for: $imageUrl',
+      );
       return null;
     } catch (e) {
       print('Error loading image: $e');

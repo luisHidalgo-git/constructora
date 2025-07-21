@@ -149,17 +149,30 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
     Future.delayed(const Duration(milliseconds: 800), () async {
       try {
         if (_sessionId != null) {
-          // Simular autenticación exitosa con token más realista
+          // Simular autenticación exitosa con datos de usuario demo
           final demoToken =
               'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo_${DateTime.now().millisecondsSinceEpoch}';
 
+          // Datos de usuario demo para la simulación
+          final demoUserData = {
+            'id': 'demo-user-${DateTime.now().millisecondsSinceEpoch}',
+            'name': 'Carlos Mendoza',
+            'email': 'carlos.mendoza@constructora.com',
+            'role': 'supervisor',
+            'position': 'Supervisor de Obra',
+            'isActive': true,
+            'createdAt': DateTime.now().toIso8601String(),
+            'updatedAt': DateTime.now().toIso8601String(),
+          };
           print(
             '🔍 Simulating authentication with token: ${demoToken.substring(0, 30)}...',
           );
+          print('🔍 Demo user data: ${demoUserData['name']}');
 
           final success = await TVAuthService.authenticateTVSession(
             _sessionId!,
             demoToken,
+            userData: demoUserData,
           );
 
           print('🔍 Simulation authentication result: $success');

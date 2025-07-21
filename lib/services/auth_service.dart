@@ -265,6 +265,22 @@ class AuthService {
     return null;
   }
 
+  // Obtener datos completos del usuario para compartir con TV
+  static Future<Map<String, dynamic>?> getUserDataForTV() async {
+    try {
+      final user = await getSavedUser();
+      if (user != null) {
+        final userData = user.toJson();
+        print('✅ User data prepared for TV: ${userData['name']}');
+        return userData;
+      }
+      print('❌ No user data available for TV');
+      return null;
+    } catch (e) {
+      print('❌ Error getting user data for TV: $e');
+      return null;
+    }
+  }
   // Logout
   static Future<void> logout() async {
     print('🔍 Logging out user...');
