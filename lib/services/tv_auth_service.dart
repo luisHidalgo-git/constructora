@@ -99,10 +99,10 @@ class TVAuthService {
     Map<String, dynamic>? userData,
   }) async {
     try {
-      print('🔍 Attempting to authenticate TV session via backend: $sessionId');
-      print('🔍 User data provided: ${userData != null}');
+      print('🔍 Mobile: Attempting to authenticate TV session via backend: $sessionId');
+      print('🔍 Mobile: User data provided: ${userData != null}');
       if (userData != null) {
-        print('🔍 User details: ${userData['name']} - ${userData['email']}');
+        print('🔍 Mobile: User details: ${userData['name']} - ${userData['email']}');
       }
 
       final response = await http.post(
@@ -118,8 +118,8 @@ class TVAuthService {
         }),
       ).timeout(Duration(milliseconds: ApiConfig.timeout));
 
-      print('🔍 Authenticate session response status: ${response.statusCode}');
-      print('🔍 Authenticate session response body: ${response.body}');
+      print('🔍 Mobile: Authenticate session response status: ${response.statusCode}');
+      print('🔍 Mobile: Authenticate session response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -127,29 +127,29 @@ class TVAuthService {
         // Guardar datos de usuario para la TV localmente
         if (userData != null) {
           await _saveTVUserData(userData);
-          print('✅ User data saved for TV: ${userData['name']}');
+          print('✅ Mobile: User data saved for TV: ${userData['name']}');
 
           // Verificar que los datos se guardaron correctamente
           final savedData = await getTVUserData();
           if (savedData != null) {
-            print('✅ Verification: User data correctly saved: ${savedData['name']}');
+            print('✅ Mobile: Verification: User data correctly saved: ${savedData['name']}');
           } else {
-            print('❌ Verification failed: User data not saved correctly');
+            print('❌ Mobile: Verification failed: User data not saved correctly');
             return false;
           }
         }
 
-        print('✅ TV Session authenticated successfully via backend: $sessionId');
+        print('✅ Mobile: TV Session authenticated successfully via backend: $sessionId');
         return true;
       } else {
         final error = jsonDecode(response.body);
-        print('❌ Backend authentication failed: ${error['message']}');
+        print('❌ Mobile: Backend authentication failed: ${error['message']}');
         
         // Fallback al método local
         return await _authenticateLocalTVSession(sessionId, userToken, userData: userData);
       }
     } catch (e) {
-      print('❌ Error authenticating TV session via backend: $e');
+      print('❌ Mobile: Error authenticating TV session via backend: $e');
       // Fallback al método local
       return await _authenticateLocalTVSession(sessionId, userToken, userData: userData);
     }
@@ -198,21 +198,25 @@ class TVAuthService {
     String sessionId,
   ) async {
     try {
-      print('🔍 Authenticating TV session with real user data...');
+      print('🔍 Mobile: Authenticating TV session with real user data...');
+      print('🔍 Mobile: Session ID: $sessionId');
 
       // Obtener token y datos del usuario autenticado
       final userToken = await AuthService.getToken();
       final currentUser = await AuthService.getSavedUser();
 
       if (userToken == null || currentUser == null) {
-        print('❌ No authenticated user found');
+        print('❌ Mobile: No authenticated user found');
         return false;
       }
 
-      print('🔍 Authenticating with user: ${currentUser.name}');
+      print('🔍 Mobile: Authenticating with user: ${currentUser.name}');
+      print('🔍 Mobile: User email: ${currentUser.email}');
+      print('🔍 Mobile: User role: ${currentUser.role}');
 
       // Usar los datos reales del usuario
       final userData = currentUser.toJson();
+      print('🔍 Mobile: User data to send: ${jsonEncode(userData)}');
 
       return await authenticateTVSession(
         sessionId,
@@ -220,7 +224,7 @@ class TVAuthService {
         userData: userData,
       );
     } catch (e) {
-      print('❌ Error authenticating TV session with real user: $e');
+      print('❌ Mobile: Error authenticating TV session with real user: $e');
       return false;
     }
   }
@@ -319,7 +323,15 @@ class TVAuthService {
   static Future<Map<String, dynamic>?> getTVUserData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userDataJson = prefs.getString(_tvUserDataKey);
+      
+      // Intentar obtener de la clave nueva primero
+      String? userDataJson = prefs.getString('tv_user_data');
+      
+      // Si no existe, intentar con la clave anterior
+      if (userDataJson == null) {
+        userDataJson = prefs.getString(_tvUserDataKey);
+      }
+      
       if (userDataJson != null) {
         final userData = jsonDecode(userDataJson);
         print('✅ Retrieved TV user data: ${userData['name']}');
@@ -380,6 +392,7 @@ class TVAuthService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_tvUserDataKey);
+      await prefs.remove('tv_user_data'); // Limpiar también la nueva clave
       print('🔍 TV user data cleared');
     } catch (e) {
       print('❌ Error clearing TV user data: $e');

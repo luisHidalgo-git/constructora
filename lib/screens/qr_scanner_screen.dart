@@ -188,7 +188,10 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         ),
       );
 
-      print('🔍 Authenticating TV session with real user data via backend...');
+      print('🔍 Mobile: Authenticating TV session with real user data via backend...');
+      print('🔍 Mobile: Session ID: $sessionId');
+      print('🔍 Mobile: User: ${currentUser.name}');
+      
       final success = await TVAuthService.authenticateTVSessionWithRealUser(
         sessionId,
       );
@@ -199,19 +202,19 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
       if (success) {
         print(
-          '✅ TV session authenticated successfully via backend with user: ${currentUser.name}',
+          '✅ Mobile: TV session authenticated successfully via backend with user: ${currentUser.name}',
         );
 
-        // Dar tiempo para que el backend procese la autenticación
-        await Future.delayed(const Duration(milliseconds: 1000));
+        // Dar más tiempo para que el backend procese la autenticación
+        await Future.delayed(const Duration(milliseconds: 2000));
 
         _showTVConnectionSuccess(sessionId, currentUser);
       } else {
-        print('❌ Failed to authenticate TV session via backend');
+        print('❌ Mobile: Failed to authenticate TV session via backend');
         _showError('No se pudo autenticar la sesión de TV via backend. Intenta de nuevo.');
       }
     } catch (e) {
-      print('❌ Error processing QR code: $e');
+      print('❌ Mobile: Error processing QR code: $e');
       if (mounted) {
         Navigator.of(
           context,

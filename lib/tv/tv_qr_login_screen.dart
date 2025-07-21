@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:async';
 import '../utils/app_colors.dart';
@@ -60,7 +61,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
           _qrData = qrData;
           _pollingAttempts = 0; // Reset counter
         });
-
+        
         print('🔍 Generated QR data from backend: $_qrData');
         print('🔍 Session ID: $_sessionId');
       } else {
@@ -116,9 +117,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
       Duration(minutes: _regenerationIntervalMinutes),
       (timer) {
         if (!_isConnected && mounted) {
-          print(
-            '🔄 Auto-regenerating QR after $_regenerationIntervalMinutes minutes',
-          );
+          print('🔄 Auto-regenerating QR after $_regenerationIntervalMinutes minutes');
           _regenerateQR();
         }
       },
@@ -129,9 +128,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
     if (_sessionId == null) return;
 
     try {
-      print(
-        '🔍 TV: Checking auth status for session: $_sessionId (attempt $_pollingAttempts)',
-      );
+      print('🔍 TV: Checking auth status for session: $_sessionId (attempt $_pollingAttempts)');
 
       final sessionStatus = await TVAuthService.checkTVSessionStatus(
         _sessionId!,
@@ -148,21 +145,19 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
       }
 
       print('🔍 TV: Session status: ${sessionStatus['status']}');
-
+      
       if (sessionStatus['status'] == 'expired') {
         print('❌ TV: Session expired, regenerating...');
         _pollingTimer?.cancel();
         _regenerateQR();
         return;
       }
-
+      
       if (sessionStatus['status'] == 'authenticated') {
         final userData = sessionStatus['userData'];
-
+        
         if (userData != null && userData['name'] != null) {
-          print(
-            '✅ TV: Session authenticated with user data: ${userData['name']}',
-          );
+          print('✅ TV: Session authenticated with user data: ${userData['name']}');
           await _handleSuccessfulAuth(userData);
         } else {
           print('⚠️ TV: Session authenticated but waiting for user data...');
@@ -189,22 +184,25 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
   Future<void> _handleSuccessfulAuth(Map<String, dynamic> userData) async {
     if (_isAuthenticating || _isConnected) return;
-
+    
     setState(() {
       _isAuthenticating = true;
     });
-
+    
     _pollingTimer?.cancel();
     _regenerationTimer?.cancel();
 
     try {
       print('✅ TV: Processing successful authentication...');
-
-      // Guardar datos de usuario para la TV
+      
+      // Guardar datos de usuario para la TV localmente
       await TVAuthService.clearTVUserData(); // Limpiar datos anteriores
-      // Los datos de usuario ya se guardan automáticamente en el servicio de autenticación
-      // cuando se autentica la sesión desde el móvil
-
+      
+      // Guardar los datos de usuario que vienen de la sesión autenticada
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('tv_user_data', jsonEncode(userData));
+      print('✅ TV: User data saved locally: ${userData['name']}');
+      
       setState(() {
         _isConnected = true;
       });
@@ -279,7 +277,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
   void _regenerateQR() {
     if (_isAuthenticating) return;
-
+    
     setState(() {
       _isConnected = false;
       _isAuthenticating = false;
@@ -444,7 +442,10 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                   children: [
                     const Text(
                       'Esperando conexión desde móvil...',
-                      style: TextStyle(fontSize: 16, color: Colors.white70),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -494,7 +495,10 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
             SizedBox(height: 20),
             Text(
               'Generando código...',
-              style: TextStyle(fontSize: 16, color: AppColors.textGray),
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textGray,
+              ),
             ),
           ],
         ),
