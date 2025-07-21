@@ -149,52 +149,63 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   Future<void> _processQRCode(String qrData) async {
     try {
       print('🔍 Processing QR code: $qrData');
-      
+
       // Verificar si es un código QR válido para TV
       if (!TVAuthService.isValidTVQRCode(qrData)) {
+        print('❌ QR code is not valid for TV login');
         _showGenericQRResult(qrData);
         return;
       }
-      
+
       // Extraer sessionId del QR
       final sessionId = TVAuthService.extractSessionIdFromQR(qrData);
       if (sessionId == null) {
+        print('❌ Could not extract session ID from QR');
         _showError('Código QR inválido para TV');
         return;
       }
-      
+
       print('🔍 Extracted session ID: $sessionId');
-      
+
       // Verificar que la sesión existe y está esperando
       final sessionStatus = await TVAuthService.checkTVSessionStatus(sessionId);
       if (sessionStatus == null) {
+        print('❌ Session not found or expired');
         _showError('Sesión de TV no encontrada o expirada');
         return;
       }
-      
+
+      print('🔍 Session status: ${sessionStatus['status']}');
+
       if (sessionStatus['status'] != 'waiting') {
+        print('❌ Session is not in waiting state: ${sessionStatus['status']}');
         _showError('Esta sesión de TV ya no está disponible');
         return;
       }
-      
+
       // Obtener token del usuario actual
       final userToken = await AuthService.getToken();
       if (userToken == null) {
+        print('❌ No user token available');
         _showError('No hay sesión de usuario activa. Inicia sesión primero.');
         return;
       }
-      
+
       print('🔍 Authenticating TV session...');
-      
+
       // Autenticar la sesión de TV
-      final success = await TVAuthService.authenticateTVSession(sessionId, userToken);
-      
+      final success = await TVAuthService.authenticateTVSession(
+        sessionId,
+        userToken,
+      );
+
       if (success) {
+        print('✅ TV session authenticated successfully');
         _showTVConnectionSuccess(sessionId);
       } else {
+        print('❌ Failed to authenticate TV session');
         _showError('No se pudo autenticar la sesión de TV');
       }
-      
     } catch (e) {
       print('❌ Error processing QR code: $e');
       _showError('Error procesando código QR: ${e.toString()}');
@@ -204,7 +215,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       });
     }
   }
-  
+
   void _showTVConnectionSuccess(String sessionId) {
     showDialog(
       context: context,
@@ -222,11 +233,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                   color: const Color(0xFF10B981).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.tv,
-                  color: Color(0xFF10B981),
-                  size: 24,
-                ),
+                child: const Icon(Icons.tv, color: Color(0xFF10B981), size: 24),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -264,11 +271,17 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF10B981).withOpacity(0.05),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF10B981).withOpacity(0.2)),
+                  border: Border.all(
+                    color: const Color(0xFF10B981).withOpacity(0.2),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, color: Color(0xFF10B981), size: 16),
+                    const Icon(
+                      Icons.info_outline,
+                      color: Color(0xFF10B981),
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -310,7 +323,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       },
     );
   }
-  
+
   void _showError(String message) {
     showDialog(
       context: context,
@@ -363,15 +376,16 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.lightbulb_outline, color: Colors.orange, size: 16),
+                    Icon(
+                      Icons.lightbulb_outline,
+                      color: Colors.orange,
+                      size: 16,
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Asegúrate de que el código QR sea de una TV con Avanze360 activo.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.orange),
                       ),
                     ),
                   ],
