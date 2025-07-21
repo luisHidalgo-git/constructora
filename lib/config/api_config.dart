@@ -58,8 +58,10 @@ class ApiConfig {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'User-Agent': 'ConstructoraApp/1.0',
+          'Connection': 'keep-alive',
+          'Cache-Control': 'no-cache',
         },
-      ).timeout(Duration(seconds: 15));
+      ).timeout(Duration(seconds: 25));
       
       print('🔍 Health check status: ${response.statusCode}');
       print('🔍 Health check response: ${response.body}');

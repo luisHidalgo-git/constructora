@@ -259,9 +259,9 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 80,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
         preferredCameraDevice: CameraDevice.rear,
       );
 
@@ -274,6 +274,10 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         // Subir imagen al servidor con manejo de errores mejorado
         try {
           print('🔍 Starting camera image upload...');
+          
+          // Esperar un poco antes de subir para asegurar que el archivo esté listo
+          await Future.delayed(const Duration(milliseconds: 500));
+          
           final serverImageUrl = await ImageService.uploadImage(image.path);
           
           print('✅ Image uploaded to server: $serverImageUrl');
@@ -302,11 +306,11 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           
           String errorMessage = 'Error al subir foto';
           if (e.toString().contains('ClientException') || e.toString().contains('SocketException')) {
-            errorMessage = 'Sin conexión. La imagen se guardó localmente.';
+            errorMessage = 'Sin conexión a internet. La imagen se guardó localmente y se subirá cuando haya conexión.';
           } else if (e.toString().contains('TimeoutException')) {
-            errorMessage = 'Tiempo agotado. La imagen se guardó localmente.';
+            errorMessage = 'Conexión lenta. La imagen se guardó localmente y se subirá cuando mejore la conexión.';
           } else {
-            errorMessage = 'Error de servidor. La imagen se guardó localmente.';
+            errorMessage = 'Error temporal del servidor. La imagen se guardó localmente.';
           }
           
           _showMessage(errorMessage, isError: false);
@@ -338,9 +342,9 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 80,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
       );
 
       if (image != null) {
@@ -352,6 +356,10 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         // Subir imagen al servidor con manejo de errores mejorado
         try {
           print('🔍 Starting gallery image upload...');
+          
+          // Esperar un poco antes de subir para asegurar que el archivo esté listo
+          await Future.delayed(const Duration(milliseconds: 500));
+          
           final serverImageUrl = await ImageService.uploadImage(image.path);
           
           print('✅ Gallery image uploaded to server: $serverImageUrl');
@@ -380,11 +388,11 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           
           String errorMessage = 'Error al subir imagen';
           if (e.toString().contains('ClientException') || e.toString().contains('SocketException')) {
-            errorMessage = 'Sin conexión. La imagen se guardó localmente.';
+            errorMessage = 'Sin conexión a internet. La imagen se guardó localmente y se subirá cuando haya conexión.';
           } else if (e.toString().contains('TimeoutException')) {
-            errorMessage = 'Tiempo agotado. La imagen se guardó localmente.';
+            errorMessage = 'Conexión lenta. La imagen se guardó localmente y se subirá cuando mejore la conexión.';
           } else {
-            errorMessage = 'Error de servidor. La imagen se guardó localmente.';
+            errorMessage = 'Error temporal del servidor. La imagen se guardó localmente.';
           }
           
           _showMessage(errorMessage, isError: false);

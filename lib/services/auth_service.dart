@@ -35,6 +35,7 @@ class AuthService {
         'User-Agent': 'ConstructoraApp/1.0',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'Accept-Encoding': 'gzip, deflate',
       };
 
       print('🔍 Request headers: $headers');
@@ -47,7 +48,7 @@ class AuthService {
             headers: headers,
             body: jsonEncode(requestBody),
           )
-          .timeout(Duration(milliseconds: ApiConfig.timeout));
+          .timeout(Duration(milliseconds: ApiConfig.timeout * 2)); // Timeout más largo para release
 
       print('🔍 Response Status: ${response.statusCode}');
       print('🔍 Response Headers: ${response.headers}');
