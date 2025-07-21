@@ -126,8 +126,8 @@ class ProjectDetailCard extends StatelessWidget {
                         fit: BoxFit.cover,
                       )
                     : null,
-                color: _buildImageProvider(imageUrl) == null 
-                    ? Colors.grey[300] 
+                color: _buildImageProvider(imageUrl) == null
+                    ? Colors.grey[300]
                     : null,
               ),
               child: _buildImageProvider(imageUrl) == null
@@ -168,7 +168,16 @@ class ProjectDetailCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            // Aquí agregamos el nombre del proyecto
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                title,
+                style: AppTextStyles.fieldLabel.copyWith(fontSize: 15),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 8),
             // Budget Info
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -199,19 +208,19 @@ class ProjectDetailCard extends StatelessWidget {
       if (imageUrl.isEmpty) {
         return null;
       }
-      
+
       print('🔍 ProjectDetailCard - Building image provider for: $imageUrl');
-      
+
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         print('✅ ProjectDetailCard - Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
-      
+
       // Si es un archivo local
       if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
-        String filePath = imageUrl.startsWith('file://') 
-            ? imageUrl.substring(7) 
+        String filePath = imageUrl.startsWith('file://')
+            ? imageUrl.substring(7)
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
@@ -220,33 +229,45 @@ class ProjectDetailCard extends StatelessWidget {
         } else {
           print('❌ ProjectDetailCard - Local file does not exist: $filePath');
           // Si el archivo local no existe, usar imagen por defecto
-          return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
+          return const NetworkImage(
+            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+          );
         }
       }
-      
+
       // Si es una ruta del servidor sin dominio, construir URL completa
       if (imageUrl.startsWith('/uploads/')) {
         final fullUrl = ImageService.buildServerImageUrl(imageUrl);
         print('✅ ProjectDetailCard - Built server URL: $fullUrl');
         return NetworkImage(fullUrl);
       }
-      
+
       // Si parece ser un nombre de archivo, intentar construir URL del servidor
-      if (!imageUrl.contains('/') && (imageUrl.contains('.jpg') || imageUrl.contains('.png') || imageUrl.contains('.jpeg'))) {
+      if (!imageUrl.contains('/') &&
+          (imageUrl.contains('.jpg') ||
+              imageUrl.contains('.png') ||
+              imageUrl.contains('.jpeg'))) {
         final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
         print('✅ ProjectDetailCard - Built server URL from filename: $fullUrl');
         return NetworkImage(fullUrl);
       }
-      
-      print('❌ ProjectDetailCard - Could not determine image provider type for: $imageUrl');
+
+      print(
+        '❌ ProjectDetailCard - Could not determine image provider type for: $imageUrl',
+      );
       // Usar imagen por defecto si no se puede determinar el tipo
-      return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
+      return const NetworkImage(
+        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
     } catch (e) {
       print('Error loading image: $e');
       // Usar imagen por defecto en caso de error
-      return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
+      return const NetworkImage(
+        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
     }
   }
+
   Color _getProgressColor() {
     if (progress >= 0.7) {
       return const Color(0xFF10B981); // Green

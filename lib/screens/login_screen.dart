@@ -45,7 +45,10 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final hasConnectivity = await ApiConfig.checkConnectivity();
       if (!hasConnectivity) {
-        _showMessage('No se puede conectar al servidor. Verifica tu conexión a internet.', isError: true);
+        _showMessage(
+          'No se puede conectar al servidor. Verifica tu conexión a internet.',
+          isError: true,
+        );
         setState(() {
           _isLoading = false;
         });
@@ -54,7 +57,10 @@ class _LoginScreenState extends State<LoginScreen> {
       print('✅ Connectivity check passed');
     } catch (e) {
       print('❌ Connectivity check error: $e');
-      _showMessage('Error verificando conectividad: ${e.toString()}', isError: true);
+      _showMessage(
+        'Error verificando conectividad: ${e.toString()}',
+        isError: true,
+      );
       setState(() {
         _isLoading = false;
       });
@@ -64,7 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       print('🔐 Attempting login with email: ${_emailController.text}');
       print('🔗 Using API URL: ${ApiConfig.authLogin}');
-      
+
       final result = await AuthService.login(
         _emailController.text.trim(),
         _passwordController.text,
@@ -263,26 +269,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
 
                     const SizedBox(height: 20),
-
-                    // Social Login Buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SocialLoginButton(
-                          icon: Icons.apple,
-                          onPressed: () {
-                            // Handle Apple login
-                          },
-                        ),
-                        const SizedBox(width: 24),
-                        SocialLoginButton(
-                          icon: Icons.g_mobiledata,
-                          onPressed: () {
-                            // Handle Google login
-                          },
-                        ),
-                      ],
-                    ),
 
                     // Espacio adicional para evitar overflow
                     SizedBox(

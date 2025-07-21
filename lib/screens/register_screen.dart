@@ -421,26 +421,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                     const SizedBox(height: 20),
 
-                    // Social Login Buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SocialLoginButton(
-                          icon: Icons.apple,
-                          onPressed: () {
-                            // Handle Apple login
-                          },
-                        ),
-                        const SizedBox(width: 24),
-                        SocialLoginButton(
-                          icon: Icons.g_mobiledata,
-                          onPressed: () {
-                            // Handle Google login
-                          },
-                        ),
-                      ],
-                    ),
-
                     // Espacio adicional para evitar overflow
                     SizedBox(
                       height: MediaQuery.of(context).viewInsets.bottom > 0
