@@ -5,6 +5,8 @@ import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../models/project_model.dart';
 import '../services/image_service.dart';
+import '../services/auth_service.dart';
+import '../screens/platform_selection_screen.dart';
 
 class TVProjectDetailScreen extends StatefulWidget {
   final ProjectModel project;
@@ -121,6 +123,43 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                           ],
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Logout Button
+                  GestureDetector(
+                    onTap: _showLogoutDialog,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.red.withOpacity(0.3),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.logout,
+                            color: Colors.red,
+                            size: 14,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Salir',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -406,6 +445,89 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         ),
       ),
     );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.logout,
+                color: Colors.red,
+                size: 24,
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Cerrar Sesión',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            '¿Estás seguro de que deseas cerrar sesión?',
+            style: TextStyle(fontSize: 16, color: AppColors.textGray),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(
+                  color: AppColors.textGray,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _performLogout();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Cerrar Sesión',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _performLogout() async {
+    try {
+      await AuthService.logout();
+      
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PlatformSelectionScreen(),
+          ),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      print('❌ Error during logout: $e');
+    }
   }
 
   Widget _buildActivityItem(String title, String date, IconData icon, Color color) {

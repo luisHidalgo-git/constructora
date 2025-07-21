@@ -48,7 +48,9 @@ class AuthService {
             headers: headers,
             body: jsonEncode(requestBody),
           )
-          .timeout(Duration(milliseconds: ApiConfig.timeout * 2)); // Timeout más largo para release
+          .timeout(
+            Duration(milliseconds: ApiConfig.timeout * 2),
+          ); // Timeout más largo para release
 
       print('🔍 Response Status: ${response.statusCode}');
       print('🔍 Response Headers: ${response.headers}');
@@ -283,5 +285,13 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userKey, jsonEncode(userData));
     print('✅ User data saved to storage');
+  }
+
+  static Future<void> saveUser(Map<String, dynamic> user) async {
+    // Implementa aquí el guardado de usuario (ejemplo usando SharedPreferences)
+  }
+
+  static Future<void> saveToken(String token) async {
+    // Implementa aquí el guardado de token (ejemplo usando SharedPreferences)
   }
 }

@@ -8,6 +8,7 @@ import '../services/project_service.dart';
 import '../services/stats_service.dart';
 import '../services/auth_service.dart';
 import '../services/image_service.dart';
+import '../screens/platform_selection_screen.dart';
 import '../models/project_model.dart';
 import '../models/stats_model.dart';
 import '../models/user_model.dart';
@@ -49,7 +50,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       setState(() {
         _projects = results[0] as List<ProjectModel>;
         _stats = results[1] as StatsModel;
-        _currentUser = results[2] as UserModel? ?? 
+        _currentUser =
+            results[2] as UserModel? ??
             UserModel(
               id: 'demo',
               name: 'Usuario Demo',
@@ -61,7 +63,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
               updatedAt: DateTime.now(),
             );
         _isLoading = false;
-        
+
         // Reset selected index if needed
         if (_selectedProjectIndex >= _projects.length) {
           _selectedProjectIndex = _projects.isNotEmpty ? 0 : -1;
@@ -80,9 +82,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFFF5F5F5),
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -205,7 +205,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                                 ),
                                 const Text(
                                   'Bienvenido',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     color: AppColors.textGray,
                                   ),
@@ -213,6 +213,39 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                               ],
                             ),
                           ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Logout Button
+                      GestureDetector(
+                        onTap: _showLogoutDialog,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.red.withOpacity(0.3),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.logout, color: Colors.red, size: 16),
+                              SizedBox(width: 6),
+                              Text(
+                                'Cerrar Sesión',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -243,10 +276,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Selected Project Detail
-                            Expanded(
-                              flex: 3,
-                              child: _buildProjectDetail(),
-                            ),
+                            Expanded(flex: 3, child: _buildProjectDetail()),
 
                             const SizedBox(height: 12),
 
@@ -323,6 +353,107 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         ),
       ),
     );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.logout, color: Colors.red, size: 24),
+              SizedBox(width: 12),
+              Text(
+                'Cerrar Sesión',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            '¿Estás seguro de que deseas cerrar sesión en TV?',
+            style: TextStyle(fontSize: 16, color: AppColors.textGray),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(
+                  color: AppColors.textGray,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _performLogout();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Cerrar Sesión',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _performLogout() async {
+    try {
+      // Mostrar loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+
+      // Cerrar sesión
+      await AuthService.logout();
+
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // Cerrar loading
+
+        // Navegar a la pantalla de selección de plataforma
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PlatformSelectionScreen(),
+          ),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      print('❌ Error during logout: $e');
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // Cerrar loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cerrar sesión: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildStatsSection() {
@@ -429,7 +560,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   }
 
   Widget _buildProjectDetail() {
-    if (_projects.isEmpty || _selectedProjectIndex < 0 || _selectedProjectIndex >= _projects.length) {
+    if (_projects.isEmpty ||
+        _selectedProjectIndex < 0 ||
+        _selectedProjectIndex >= _projects.length) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -446,10 +579,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         child: const Center(
           child: Text(
             'Selecciona un proyecto',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textGray,
-            ),
+            style: TextStyle(fontSize: 14, color: AppColors.textGray),
           ),
         ),
       );
@@ -487,10 +617,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           const SizedBox(height: 4),
           Text(
             selectedProject.clientName,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textGray,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppColors.textGray),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -575,11 +702,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.construction,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.construction, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             const Text(
               'No hay proyectos',
@@ -615,7 +738,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
             return KeyEventResult.handled;
           } else if (event.logicalKey == LogicalKeyboardKey.select ||
               event.logicalKey == LogicalKeyboardKey.enter) {
-            if (_selectedProjectIndex >= 0 && _selectedProjectIndex < _projects.length) {
+            if (_selectedProjectIndex >= 0 &&
+                _selectedProjectIndex < _projects.length) {
               _openProjectDetail(_projects[_selectedProjectIndex]);
             }
             return KeyEventResult.handled;
@@ -669,8 +793,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                                 fit: BoxFit.cover,
                               )
                             : null,
-                        color: _buildImageProvider(project.imageUrl) == null 
-                            ? Colors.grey[300] 
+                        color: _buildImageProvider(project.imageUrl) == null
+                            ? Colors.grey[300]
                             : null,
                       ),
                       child: _buildImageProvider(project.imageUrl) == null
@@ -823,19 +947,19 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       if (imageUrl.isEmpty) {
         return null;
       }
-      
+
       print('🔍 TVDashboard - Building image provider for: $imageUrl');
-      
+
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         print('✅ TVDashboard - Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
-      
+
       // Si es un archivo local
       if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
-        String filePath = imageUrl.startsWith('file://') 
-            ? imageUrl.substring(7) 
+        String filePath = imageUrl.startsWith('file://')
+            ? imageUrl.substring(7)
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
@@ -845,22 +969,27 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           print('❌ TVDashboard - Local file does not exist: $filePath');
         }
       }
-      
+
       // Si es una ruta del servidor sin dominio, construir URL completa
       if (imageUrl.startsWith('/uploads/')) {
         final fullUrl = ImageService.buildServerImageUrl(imageUrl);
         print('✅ TVDashboard - Built server URL: $fullUrl');
         return NetworkImage(fullUrl);
       }
-      
+
       // Si parece ser un nombre de archivo, intentar construir URL del servidor
-      if (!imageUrl.contains('/') && (imageUrl.contains('.jpg') || imageUrl.contains('.png') || imageUrl.contains('.jpeg'))) {
+      if (!imageUrl.contains('/') &&
+          (imageUrl.contains('.jpg') ||
+              imageUrl.contains('.png') ||
+              imageUrl.contains('.jpeg'))) {
         final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
         print('✅ TVDashboard - Built server URL from filename: $fullUrl');
         return NetworkImage(fullUrl);
       }
-      
-      print('❌ TVDashboard - Could not determine image provider type for: $imageUrl');
+
+      print(
+        '❌ TVDashboard - Could not determine image provider type for: $imageUrl',
+      );
       return null;
     } catch (e) {
       print('Error loading image: $e');
