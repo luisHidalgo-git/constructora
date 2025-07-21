@@ -223,19 +223,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 12),
 
-                    // Forgot Password
-                    Center(
-                      child: TextButton(
-                        onPressed: () {
-                          // Handle forgot password
-                        },
-                        child: Text(
-                          'Olvidé mi contraseña',
-                          style: AppTextStyles.linkText,
-                        ),
-                      ),
-                    ),
-
                     const SizedBox(height: 20),
 
                     // Register Link
