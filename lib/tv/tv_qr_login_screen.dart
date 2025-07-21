@@ -22,6 +22,8 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
   String? _sessionId;
   Timer? _pollingTimer;
   bool _isConnected = false;
+  int _pollingAttempts = 0;
+  static const int _maxPollingAttempts = 150; // 5 minutos máximo
 
   @override
   void initState() {
@@ -38,11 +40,14 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
   Future<void> _generateQRData() async {
     try {
+      print('🔍 Generating new QR data...');
       // Limpiar sesiones expiradas primero
       await TVAuthService.cleanupExpiredSessions();
 
       // Generar un ID de sesión único
       _sessionId = await TVAuthService.createTVSession();
+
+      print('🔍 Created TV session: $_sessionId');
 
       // Crear datos del QR que incluyen información para el login
       final qrLoginData = {
@@ -55,6 +60,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
       setState(() {
         _qrData = jsonEncode(qrLoginData);
+        _pollingAttempts = 0; // Reset counter
       });
 
       print('🔍 Generated QR data for TV login: $_qrData');
@@ -66,8 +72,23 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
   }
 
   void _startPollingForAuth() {
+    _pollingAttempts = 0;
     _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      if (mounted && !_isScanning && _sessionId != null && !_isConnected) {
+      _pollingAttempts++;
+
+      if (!mounted || _isConnected || _sessionId == null) {
+        timer.cancel();
+        return;
+      }
+
+      if (_pollingAttempts > _maxPollingAttempts) {
+        print('❌ Max polling attempts reached, regenerating session...');
+        timer.cancel();
+        _regenerateQR();
+        return;
+      }
+
+      if (!_isScanning) {
         _checkForAuth();
       }
     });
@@ -77,19 +98,16 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
     if (_sessionId == null) return;
 
     try {
+      print(
+        '🔍 Checking auth status for session: $_sessionId (attempt $_pollingAttempts)',
+      );
+
       final sessionStatus = await TVAuthService.checkTVSessionStatus(
         _sessionId!,
       );
 
-      if (sessionStatus == null) {
-        print('❌ Session not found, regenerating...');
-        await _generateQRData();
-        return;
-      }
-
-      print('🔍 Session status: ${sessionStatus['status']}');
-
-      if (sessionStatus['status'] == 'authenticated') {
+      // Simplificar: si hay una sesión y han pasado algunos intentos, simular autenticación
+      if (sessionStatus != null && sessionStatus['status'] == 'authenticated') {
         print('✅ Session authenticated, proceeding to dashboard...');
         _pollingTimer?.cancel();
 
@@ -113,9 +131,6 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
             MaterialPageRoute(builder: (context) => const TVDashboardScreen()),
           );
         }
-      } else if (sessionStatus['status'] == 'expired') {
-        print('❌ Session expired, regenerating...');
-        await _generateQRData();
       }
     } catch (e) {
       print('❌ Error checking auth status: $e');
@@ -125,30 +140,42 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
   void _simulateQRScan() {
     if (_isScanning || _isConnected) return;
 
+    print('🔍 Simulating QR scan for session: $_sessionId');
+
     setState(() {
       _isScanning = true;
     });
 
-    Future.delayed(const Duration(seconds: 1), () async {
+    Future.delayed(const Duration(milliseconds: 800), () async {
       try {
         if (_sessionId != null) {
-          // Simular autenticación exitosa con token demo
+          // Simular autenticación exitosa con token más realista
           final demoToken =
-              'demo_token_${DateTime.now().millisecondsSinceEpoch}';
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo_${DateTime.now().millisecondsSinceEpoch}';
+
+          print(
+            '🔍 Simulating authentication with token: ${demoToken.substring(0, 30)}...',
+          );
+
           final success = await TVAuthService.authenticateTVSession(
             _sessionId!,
             demoToken,
           );
 
+          print('🔍 Simulation authentication result: $success');
+
           if (success && mounted) {
+            _pollingTimer?.cancel();
+
             setState(() {
               _isConnected = true;
+              _isScanning = false;
             });
 
             _showSuccessMessage();
 
-            // Esperar antes de navegar
-            await Future.delayed(const Duration(seconds: 2));
+            // Esperar antes de navegar (reducido)
+            await Future.delayed(const Duration(seconds: 1));
 
             if (mounted) {
               await TVAuthService.clearTVSession(_sessionId!);
@@ -168,7 +195,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
           setState(() {
             _isScanning = false;
           });
-          _showError('Error en la simulación de escaneo');
+          _showError('Error en la simulación de escaneo. Intenta de nuevo.');
         }
       } catch (e) {
         print('❌ Error in simulated login: $e');
@@ -226,8 +253,11 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
       _isConnected = false;
       _qrData = null;
       _sessionId = null;
+      _pollingAttempts = 0;
     });
+    _pollingTimer?.cancel();
     _generateQRData();
+    _startPollingForAuth();
   }
 
   @override
@@ -427,28 +457,59 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                       ),
                       const SizedBox(height: 12),
                       // Botón para regenerar QR
-                      GestureDetector(
-                        onTap: _regenerateQR,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: _regenerateQR,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                              ),
+                              child: const Text(
+                                'Regenerar QR',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
+                              ),
                             ),
                           ),
-                          child: const Text(
-                            'Regenerar QR',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
+                          const SizedBox(width: 16),
+                          GestureDetector(
+                            onTap: () async {
+                              await TVAuthService.debugListSessions();
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: AppColors.primary.withOpacity(0.5),
+                                ),
+                              ),
+                              child: const Text(
+                                'Debug Sessions',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     ] else ...[
                       const Text(
@@ -463,6 +524,51 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                   ],
                 ),
               ),
+
+              // Debug info (solo en debug mode)
+              if (!const bool.fromEnvironment('dart.vm.product')) ...[
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.symmetric(horizontal: 40),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Debug Info',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Polling attempts: $_pollingAttempts/$_maxPollingAttempts',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.white70,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      if (_sessionId != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Session: $_sessionId',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.white70,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
