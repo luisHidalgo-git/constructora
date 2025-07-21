@@ -17,24 +17,27 @@ class TVQRLoginScreen extends StatefulWidget {
 }
 
 class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
-  bool _isScanning = false;
   String? _qrData;
   String? _sessionId;
   Timer? _pollingTimer;
+  Timer? _regenerationTimer;
   bool _isConnected = false;
   int _pollingAttempts = 0;
   static const int _maxPollingAttempts = 150; // 5 minutos máximo
+  static const int _regenerationIntervalMinutes = 3; // Regenerar cada 3 minutos
 
   @override
   void initState() {
     super.initState();
     _generateQRData();
     _startPollingForAuth();
+    _startRegenerationTimer();
   }
 
   @override
   void dispose() {
     _pollingTimer?.cancel();
+    _regenerationTimer?.cancel();
     super.dispose();
   }
 
@@ -73,6 +76,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
   void _startPollingForAuth() {
     _pollingAttempts = 0;
+    _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       _pollingAttempts++;
 
@@ -88,10 +92,21 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
         return;
       }
 
-      if (!_isScanning) {
-        _checkForAuth();
-      }
+      _checkForAuth();
     });
+  }
+
+  void _startRegenerationTimer() {
+    _regenerationTimer?.cancel();
+    _regenerationTimer = Timer.periodic(
+      Duration(minutes: _regenerationIntervalMinutes),
+      (timer) {
+        if (!_isConnected && mounted) {
+          print('🔄 Auto-regenerating QR after $_regenerationIntervalMinutes minutes');
+          _regenerateQR();
+        }
+      },
+    );
   }
 
   Future<void> _checkForAuth() async {
@@ -113,9 +128,9 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
         print('✅ Session authenticated, proceeding to dashboard...');
         print('✅ User data received: ${sessionStatus['userData']['name']}');
         _pollingTimer?.cancel();
+        _regenerationTimer?.cancel();
 
         setState(() {
-          _isScanning = true;
           _isConnected = true;
         });
 
@@ -141,102 +156,6 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
     } catch (e) {
       print('❌ Error checking auth status: $e');
     }
-  }
-
-  void _simulateQRScan() {
-    if (_isScanning || _isConnected) return;
-
-    print('🔍 Simulating QR scan for session: $_sessionId');
-
-    setState(() {
-      _isScanning = true;
-    });
-
-    Future.delayed(const Duration(milliseconds: 800), () async {
-      try {
-        if (_sessionId != null) {
-          // Simular autenticación exitosa con datos de usuario demo más completos
-          final demoToken =
-              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo_${DateTime.now().millisecondsSinceEpoch}';
-
-          // Datos de usuario demo más completos para la simulación
-          final demoUserData = {
-            'id': 'demo-user-${DateTime.now().millisecondsSinceEpoch}',
-            'name': 'Brayan Sotorzano',
-            'email': 'brayan.sotorzano@constructora.com',
-            'role': 'supervisor',
-            'position': 'Supervisor de Obra',
-            'isActive': true,
-            'createdAt': DateTime.now().toIso8601String(),
-            'updatedAt': DateTime.now().toIso8601String(),
-          };
-          
-          print(
-            '🔍 Simulating authentication with token: ${demoToken.substring(0, 30)}...',
-          );
-          print('🔍 Demo user data: ${demoUserData['name']} - ${demoUserData['email']}');
-          print('🔍 Demo user position: ${demoUserData['position']}');
-
-          final success = await TVAuthService.authenticateTVSession(
-            _sessionId!,
-            demoToken,
-            userData: demoUserData,
-          );
-
-          print('🔍 Simulation authentication result: $success');
-
-          if (success && mounted) {
-            // Verificar que los datos se guardaron correctamente
-            await Future.delayed(const Duration(milliseconds: 500));
-            final savedUserData = await TVAuthService.getTVUserData();
-            if (savedUserData != null) {
-              print('✅ Simulation verification: User data saved correctly: ${savedUserData['name']}');
-            } else {
-              print('❌ Simulation verification: User data not saved correctly');
-            }
-            
-            _pollingTimer?.cancel();
-
-            setState(() {
-              _isConnected = true;
-              _isScanning = false;
-            });
-
-            _showSuccessMessage();
-
-            // Esperar antes de navegar para asegurar que los datos estén listos
-            await Future.delayed(const Duration(seconds: 2));
-
-            if (mounted) {
-              await TVAuthService.clearTVSession(_sessionId!);
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const TVDashboardScreen(),
-                ),
-              );
-            }
-            return;
-          }
-        }
-
-        // Si falla, mostrar error
-        if (mounted) {
-          setState(() {
-            _isScanning = false;
-          });
-          _showError('Error en la simulación de escaneo. Intenta de nuevo.');
-        }
-      } catch (e) {
-        print('❌ Error in simulated login: $e');
-        if (mounted) {
-          setState(() {
-            _isScanning = false;
-          });
-          _showError('Error en la simulación: ${e.toString()}');
-        }
-      }
-    });
   }
 
   void _showSuccessMessage() {
@@ -279,7 +198,6 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
   void _regenerateQR() {
     setState(() {
-      _isScanning = false;
       _isConnected = false;
       _qrData = null;
       _sessionId = null;
@@ -298,11 +216,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
         autofocus: true,
         onKeyEvent: (node, event) {
           if (event is KeyDownEvent) {
-            if (event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.enter) {
-              _simulateQRScan();
-              return KeyEventResult.handled;
-            } else if (event.logicalKey == LogicalKeyboardKey.goBack ||
+            if (event.logicalKey == LogicalKeyboardKey.goBack ||
                 event.logicalKey == LogicalKeyboardKey.escape) {
               Navigator.pop(context);
               return KeyEventResult.handled;
@@ -325,7 +239,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
             children: [
               // Logo
               Container(
-                margin: const EdgeInsets.only(bottom: 40),
+                margin: const EdgeInsets.only(bottom: 60),
                 child: Column(
                   children: [
                     RichText(
@@ -334,7 +248,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                           TextSpan(
                             text: 'Avanze',
                             style: TextStyle(
-                              fontSize: 64,
+                              fontSize: 72,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
                               letterSpacing: -2,
@@ -343,7 +257,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                           TextSpan(
                             text: '360',
                             style: TextStyle(
-                              fontSize: 64,
+                              fontSize: 72,
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary,
                               letterSpacing: -2,
@@ -352,12 +266,12 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 30),
                     const Text(
                       'Escanea el código QR desde tu\naplicación móvil para poder acceder al\ndashboard de avance360',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: 20,
                         color: Colors.white70,
                         height: 1.4,
                       ),
@@ -366,39 +280,39 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                 ),
               ),
 
-              // QR Code Container
+              // QR Code Container - Más grande
               Container(
-                width: 240,
-                height: 240,
+                width: 320,
+                height: 320,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+                      blurRadius: 30,
+                      offset: const Offset(0, 15),
                     ),
                   ],
                 ),
                 child: _buildQRContent(),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 60),
 
-              // Status and Session Info
+              // Status
               if (_isConnected) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+                    horizontal: 32,
+                    vertical: 16,
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF10B981).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: const Color(0xFF10B981),
-                      width: 1,
+                      width: 2,
                     ),
                   ),
                   child: const Row(
@@ -407,13 +321,13 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                       Icon(
                         Icons.check_circle,
                         color: Color(0xFF10B981),
-                        size: 20,
+                        size: 24,
                       ),
-                      SizedBox(width: 8),
+                      SizedBox(width: 12),
                       Text(
                         '¡Conexión Exitosa!',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF10B981),
                         ),
@@ -421,181 +335,12 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                     ],
                   ),
                 ),
-              ] else if (_sessionId != null) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'ID de Sesión:',
-                        style: TextStyle(fontSize: 12, color: Colors.white60),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _sessionId!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 30),
-
-              // Instructions
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Column(
-                  children: [
-                    if (!_isConnected) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          _isScanning
-                              ? 'Procesando conexión...'
-                              : 'Presiona OK/Enter para simular escaneo',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Usa el control remoto para navegar',
-                        style: TextStyle(fontSize: 14, color: Colors.white60),
-                      ),
-                      const SizedBox(height: 12),
-                      // Botón para regenerar QR
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          GestureDetector(
-                            onTap: _regenerateQR,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                ),
-                              ),
-                              child: const Text(
-                                'Regenerar QR',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          GestureDetector(
-                            onTap: () async {
-                              await TVAuthService.debugListSessions();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: AppColors.primary.withOpacity(0.5),
-                                ),
-                              ),
-                              child: const Text(
-                                'Debug Sessions',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ] else ...[
-                      const Text(
-                        'Redirigiendo al dashboard...',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF10B981),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-
-              // Debug info (solo en debug mode)
-              if (!const bool.fromEnvironment('dart.vm.product')) ...[
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.symmetric(horizontal: 40),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Debug Info',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Polling attempts: $_pollingAttempts/$_maxPollingAttempts',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.white70,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                      if (_sessionId != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          'Session: $_sessionId',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.white70,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                      ],
-                    ],
+              ] else ...[
+                const Text(
+                  'Esperando conexión desde móvil...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white70,
                   ),
                 ),
               ],
@@ -607,37 +352,17 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
   }
 
   Widget _buildQRContent() {
-    if (_isScanning) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: AppColors.primary, strokeWidth: 4),
-            SizedBox(height: 16),
-            Text(
-              'Procesando...',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textGray,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     if (_isConnected) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle, color: Color(0xFF10B981), size: 60),
-            SizedBox(height: 16),
+            Icon(Icons.check_circle, color: Color(0xFF10B981), size: 80),
+            SizedBox(height: 20),
             Text(
               '¡Conectado!',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 20,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF10B981),
               ),
@@ -649,31 +374,44 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
     if (_qrData == null) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: AppColors.primary, strokeWidth: 4),
+            SizedBox(height: 20),
+            Text(
+              'Generando código...',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textGray,
+              ),
+            ),
+          ],
+        ),
       );
     }
 
-    // QR Code real usando qr_flutter
+    // QR Code real usando qr_flutter - Más grande
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       child: Column(
         children: [
           Expanded(
             child: QrImageView(
               data: _qrData!,
               version: QrVersions.auto,
-              size: 180,
+              size: 260,
               backgroundColor: Colors.white,
               foregroundColor: Colors.black,
               errorCorrectionLevel: QrErrorCorrectLevel.M,
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           const Text(
             'QR Login Code',
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               color: Colors.black54,
               fontWeight: FontWeight.w500,
             ),

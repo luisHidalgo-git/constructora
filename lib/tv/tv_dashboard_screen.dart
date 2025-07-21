@@ -74,27 +74,37 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       // Si no se pudo obtener datos de TV, intentar datos guardados localmente
       if (tvUser == null) {
         print('⚠️ Falling back to saved user data...');
-      try {
+        try {
           tvUser = await AuthService.getSavedUser();
           if (tvUser != null) {
             print('✅ Fallback user data loaded: ${tvUser.name}');
           }
-      } catch (e) {
+        } catch (e) {
           print('❌ Error loading fallback user data: $e');
-      }
+        }
       }
 
-      final results = await Future.wait([
-        ProjectService.getProjects(),
-        StatsService.getStats(),
-        Future.value(tvUser),
-      ]);
+      // Cargar datos del proyecto y estadísticas
+      List<ProjectModel> projects = [];
+      StatsModel? stats;
+      
+      try {
+        final results = await Future.wait([
+          ProjectService.getProjects(),
+          StatsService.getStats(),
+        ]);
+        projects = results[0] as List<ProjectModel>;
+        stats = results[1] as StatsModel;
+      } catch (e) {
+        print('❌ Error loading projects and stats: $e');
+        // Continuar con datos vacíos si hay error
+      }
 
       setState(() {
-        _projects = results[0] as List<ProjectModel>;
-        _stats = results[1] as StatsModel;
+        _projects = projects;
+        _stats = stats;
         _currentUser =
-            results[2] as UserModel? ??
+            tvUser ??
             UserModel(
               id: 'demo',
               name: 'Usuario Demo',
@@ -116,6 +126,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       print('✅ TV Dashboard loaded with user: ${_currentUser?.name}');
       print('✅ User position: ${_currentUser?.position}');
       print('✅ User email: ${_currentUser?.email}');
+      print('✅ Projects loaded: ${_projects.length}');
+      print('✅ Stats loaded: ${_stats != null}');
     } catch (e) {
       print('❌ Error loading TV dashboard data: $e');
       setState(() {

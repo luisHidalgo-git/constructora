@@ -77,31 +77,32 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               ),
             ),
 
-            // QR Scanner
+            // Camera Scanner
             Expanded(
-              flex: 4,
+              flex: 3,
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24),
+                margin: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.white, width: 2),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(18),
                   child: MobileScanner(
                     controller: cameraController,
                     onDetect: (capture) async {
-                      if (!isScanned) {
-                        final List<Barcode> barcodes = capture.barcodes;
-                        for (final barcode in barcodes) {
-                          if (barcode.rawValue != null) {
-                            setState(() {
-                              isScanned = true;
-                              isProcessing = true;
-                            });
-                            await _processQRCode(barcode.rawValue!);
-                            break;
-                          }
+                      if (isScanned || isProcessing) return;
+
+                      setState(() {
+                        isScanned = true;
+                        isProcessing = true;
+                      });
+
+                      final List<Barcode> barcodes = capture.barcodes;
+                      for (final barcode in barcodes) {
+                        if (barcode.rawValue != null) {
+                          await _processQRCode(barcode.rawValue!);
+                          break;
                         }
                       }
                     },
@@ -177,32 +178,41 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       }
 
       print('🔍 User authenticated: ${currentUser.name}');
-      print('🔍 Authenticating TV session with user data...');
 
-      // Asegurar que los datos del usuario estén completos
-      final completeUserData = currentUser.toJson();
-      print('🔍 Complete user data being sent: $completeUserData');
-
-      final success = await TVAuthService.authenticateTVSession(
-        sessionId,
-        userToken,
-        userData: completeUserData,
+      // Mostrar loading mientras se autentica
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
+
+      print('🔍 Authenticating TV session with real user data...');
+      final success = await TVAuthService.authenticateTVSessionWithRealUser(
+        sessionId,
+      );
+
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // Cerrar loading
+      }
 
       if (success) {
         print(
           '✅ TV session authenticated successfully with user: ${currentUser.name}',
         );
-        
+
         // Verificar que los datos se guardaron en la TV
         await Future.delayed(const Duration(milliseconds: 500));
         final tvUserData = await TVAuthService.getTVUserData();
         if (tvUserData != null) {
-          print('✅ TV user data verification successful: ${tvUserData['name']}');
+          print(
+            '✅ TV user data verification successful: ${tvUserData['name']}',
+          );
         } else {
           print('❌ TV user data verification failed');
         }
-        
+
         _showTVConnectionSuccess(sessionId, currentUser);
       } else {
         print('❌ Failed to authenticate TV session');
@@ -210,8 +220,17 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       }
     } catch (e) {
       print('❌ Error processing QR code: $e');
+      if (mounted) {
+        Navigator.of(
+          context,
+          rootNavigator: true,
+        ).pop(); // Cerrar loading si está abierto
+      }
       _showError('Error procesando código QR: ${e.toString()}');
-    } finally {
+    }
+
+    // Siempre resetear el estado de procesamiento
+    if (mounted) {
       setState(() {
         isProcessing = false;
       });
@@ -303,37 +322,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFF10B981).withOpacity(0.2),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      color: Color(0xFF10B981),
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Sesión: $sessionId',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF10B981),
-                          fontFamily: 'monospace',
-                        ),
                       ),
                     ),
                   ],
@@ -444,20 +432,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 'Escanear Otro',
                 style: TextStyle(
                   color: AppColors.textGray,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(context).pop();
-                await TVAuthService.debugListSessions();
-                _resetScanner();
-              },
-              child: const Text(
-                'Debug',
-                style: TextStyle(
-                  color: AppColors.primary,
                   fontWeight: FontWeight.w500,
                 ),
               ),

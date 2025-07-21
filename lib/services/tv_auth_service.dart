@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
 
 class TVAuthService {
   static const String _tvSessionsKey = 'tv_auth_sessions';
@@ -59,26 +60,60 @@ class TVAuthService {
       };
 
       await _saveTVSession(sessionId, sessionData);
-      
+
       // Guardar datos de usuario para la TV
       if (userData != null) {
         await _saveTVUserData(userData);
         print('✅ User data saved for TV: ${userData['name']}');
-        
+
         // Verificar que los datos se guardaron correctamente
         final savedData = await getTVUserData();
         if (savedData != null) {
-          print('✅ Verification: User data correctly saved: ${savedData['name']}');
+          print(
+            '✅ Verification: User data correctly saved: ${savedData['name']}',
+          );
         } else {
           print('❌ Verification failed: User data not saved correctly');
           return false;
         }
       }
-      
+
       print('✅ TV Session authenticated successfully: $sessionId');
       return true;
     } catch (e) {
       print('❌ Error authenticating TV session: $e');
+      return false;
+    }
+  }
+
+  // Autenticar sesión con datos reales del usuario autenticado
+  static Future<bool> authenticateTVSessionWithRealUser(
+    String sessionId,
+  ) async {
+    try {
+      print('🔍 Authenticating TV session with real user data...');
+
+      // Obtener token y datos del usuario autenticado
+      final userToken = await AuthService.getToken();
+      final currentUser = await AuthService.getSavedUser();
+
+      if (userToken == null || currentUser == null) {
+        print('❌ No authenticated user found');
+        return false;
+      }
+
+      print('🔍 Authenticating with user: ${currentUser.name}');
+
+      // Usar los datos reales del usuario
+      final userData = currentUser.toJson();
+
+      return await authenticateTVSession(
+        sessionId,
+        userToken,
+        userData: userData,
+      );
+    } catch (e) {
+      print('❌ Error authenticating TV session with real user: $e');
       return false;
     }
   }
@@ -375,34 +410,6 @@ class TVAuthService {
       );
     } catch (e) {
       print('❌ Error cleaning up expired sessions: $e');
-    }
-  }
-
-  // Método para debug - listar todas las sesiones
-  static Future<void> debugListSessions() async {
-    try {
-      final sessions = await _getAllTVSessions();
-      final now = DateTime.now().millisecondsSinceEpoch;
-
-      print('🔍 === DEBUG: All TV Sessions ===');
-      print('🔍 Total sessions: ${sessions.length}');
-
-      for (final entry in sessions.entries) {
-        final sessionData = entry.value as Map<String, dynamic>;
-        final createdAt = sessionData['createdAt'] as int;
-        final ageMinutes = (now - createdAt) / (1000 * 60);
-        final status = sessionData['status'];
-        final userData = sessionData['userData'];
-
-        print('🔍 Session ${entry.key}:');
-        print('   Status: $status');
-        print('   Age: ${ageMinutes.toStringAsFixed(1)} minutes');
-        print('   Created: ${DateTime.fromMillisecondsSinceEpoch(createdAt)}');
-        print('   User: ${userData?['name'] ?? 'No user data'}');
-      }
-      print('🔍 === End Debug ===');
-    } catch (e) {
-      print('❌ Error in debug list sessions: $e');
     }
   }
 }
