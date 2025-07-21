@@ -106,9 +106,12 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
         _sessionId!,
       );
 
-      // Simplificar: si hay una sesión y han pasado algunos intentos, simular autenticación
-      if (sessionStatus != null && sessionStatus['status'] == 'authenticated') {
+      // Verificar si la sesión está autenticada con datos de usuario reales
+      if (sessionStatus != null && 
+          sessionStatus['status'] == 'authenticated' &&
+          sessionStatus['userData'] != null) {
         print('✅ Session authenticated, proceeding to dashboard...');
+        print('✅ User data received: ${sessionStatus['userData']['name']}');
         _pollingTimer?.cancel();
 
         setState(() {
@@ -131,6 +134,9 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
             MaterialPageRoute(builder: (context) => const TVDashboardScreen()),
           );
         }
+      } else if (sessionStatus != null && sessionStatus['status'] == 'authenticated') {
+        // Si está autenticada pero sin datos de usuario, esperar más
+        print('⚠️ Session authenticated but no user data yet, waiting...');
       }
     } catch (e) {
       print('❌ Error checking auth status: $e');
@@ -149,25 +155,27 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
     Future.delayed(const Duration(milliseconds: 800), () async {
       try {
         if (_sessionId != null) {
-          // Simular autenticación exitosa con datos de usuario demo
+          // Simular autenticación exitosa con datos de usuario demo más completos
           final demoToken =
               'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo_${DateTime.now().millisecondsSinceEpoch}';
 
-          // Datos de usuario demo para la simulación
+          // Datos de usuario demo más completos para la simulación
           final demoUserData = {
             'id': 'demo-user-${DateTime.now().millisecondsSinceEpoch}',
-            'name': 'Carlos Mendoza',
-            'email': 'carlos.mendoza@constructora.com',
+            'name': 'Brayan Sotorzano',
+            'email': 'brayan.sotorzano@constructora.com',
             'role': 'supervisor',
             'position': 'Supervisor de Obra',
             'isActive': true,
             'createdAt': DateTime.now().toIso8601String(),
             'updatedAt': DateTime.now().toIso8601String(),
           };
+          
           print(
             '🔍 Simulating authentication with token: ${demoToken.substring(0, 30)}...',
           );
-          print('🔍 Demo user data: ${demoUserData['name']}');
+          print('🔍 Demo user data: ${demoUserData['name']} - ${demoUserData['email']}');
+          print('🔍 Demo user position: ${demoUserData['position']}');
 
           final success = await TVAuthService.authenticateTVSession(
             _sessionId!,
@@ -178,6 +186,15 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
           print('🔍 Simulation authentication result: $success');
 
           if (success && mounted) {
+            // Verificar que los datos se guardaron correctamente
+            await Future.delayed(const Duration(milliseconds: 500));
+            final savedUserData = await TVAuthService.getTVUserData();
+            if (savedUserData != null) {
+              print('✅ Simulation verification: User data saved correctly: ${savedUserData['name']}');
+            } else {
+              print('❌ Simulation verification: User data not saved correctly');
+            }
+            
             _pollingTimer?.cancel();
 
             setState(() {
@@ -187,8 +204,8 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
             _showSuccessMessage();
 
-            // Esperar antes de navegar (reducido)
-            await Future.delayed(const Duration(seconds: 1));
+            // Esperar antes de navegar para asegurar que los datos estén listos
+            await Future.delayed(const Duration(seconds: 2));
 
             if (mounted) {
               await TVAuthService.clearTVSession(_sessionId!);

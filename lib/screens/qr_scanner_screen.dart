@@ -179,16 +179,30 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       print('🔍 User authenticated: ${currentUser.name}');
       print('🔍 Authenticating TV session with user data...');
 
+      // Asegurar que los datos del usuario estén completos
+      final completeUserData = currentUser.toJson();
+      print('🔍 Complete user data being sent: $completeUserData');
+
       final success = await TVAuthService.authenticateTVSession(
         sessionId,
         userToken,
-        userData: currentUser.toJson(),
+        userData: completeUserData,
       );
 
       if (success) {
         print(
           '✅ TV session authenticated successfully with user: ${currentUser.name}',
         );
+        
+        // Verificar que los datos se guardaron en la TV
+        await Future.delayed(const Duration(milliseconds: 500));
+        final tvUserData = await TVAuthService.getTVUserData();
+        if (tvUserData != null) {
+          print('✅ TV user data verification successful: ${tvUserData['name']}');
+        } else {
+          print('❌ TV user data verification failed');
+        }
+        
         _showTVConnectionSuccess(sessionId, currentUser);
       } else {
         print('❌ Failed to authenticate TV session');

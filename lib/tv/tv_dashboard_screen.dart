@@ -42,22 +42,52 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     });
 
     try {
-      // Primero intentar obtener datos de usuario de la TV
+      // Primero intentar obtener datos de usuario de la TV con reintentos
       UserModel? tvUser;
-      try {
-        final tvUserData = await TVAuthService.getTVUserData();
-        if (tvUserData != null) {
-          tvUser = UserModel.fromJson(tvUserData);
-          print('✅ TV User data loaded: ${tvUser.name}');
+      int retryCount = 0;
+      const maxRetries = 5;
+      
+      while (tvUser == null && retryCount < maxRetries) {
+        try {
+          print('🔍 Attempt ${retryCount + 1}/$maxRetries to load TV user data...');
+          final tvUserData = await TVAuthService.getTVUserData();
+          if (tvUserData != null) {
+            tvUser = UserModel.fromJson(tvUserData);
+            print('✅ TV User data loaded successfully: ${tvUser.name}');
+            break;
+          } else {
+            print('❌ No TV user data found, retrying...');
+            retryCount++;
+            if (retryCount < maxRetries) {
+              await Future.delayed(Duration(milliseconds: 500 * retryCount));
+            }
+          }
+        } catch (e) {
+          print('❌ Error loading TV user data (attempt ${retryCount + 1}): $e');
+          retryCount++;
+          if (retryCount < maxRetries) {
+            await Future.delayed(Duration(milliseconds: 500 * retryCount));
+          }
         }
+      }
+      
+      // Si no se pudo obtener datos de TV, intentar datos guardados localmente
+      if (tvUser == null) {
+        print('⚠️ Falling back to saved user data...');
+      try {
+          tvUser = await AuthService.getSavedUser();
+          if (tvUser != null) {
+            print('✅ Fallback user data loaded: ${tvUser.name}');
+          }
       } catch (e) {
-        print('❌ Error loading TV user data: $e');
+          print('❌ Error loading fallback user data: $e');
+      }
       }
 
       final results = await Future.wait([
         ProjectService.getProjects(),
         StatsService.getStats(),
-        Future.value(tvUser ?? await AuthService.getSavedUser()),
+        Future.value(tvUser),
       ]);
 
       setState(() {
@@ -84,6 +114,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       });
       
       print('✅ TV Dashboard loaded with user: ${_currentUser?.name}');
+      print('✅ User position: ${_currentUser?.position}');
+      print('✅ User email: ${_currentUser?.email}');
     } catch (e) {
       print('❌ Error loading TV dashboard data: $e');
       setState(() {

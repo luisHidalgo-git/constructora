@@ -41,6 +41,9 @@ class TVAuthService {
     try {
       print('🔍 Attempting to authenticate TV session: $sessionId');
       print('🔍 User data provided: ${userData != null}');
+      if (userData != null) {
+        print('🔍 User details: ${userData['name']} - ${userData['email']}');
+      }
 
       final now = DateTime.now().millisecondsSinceEpoch;
       final sessionData = {
@@ -61,6 +64,15 @@ class TVAuthService {
       if (userData != null) {
         await _saveTVUserData(userData);
         print('✅ User data saved for TV: ${userData['name']}');
+        
+        // Verificar que los datos se guardaron correctamente
+        final savedData = await getTVUserData();
+        if (savedData != null) {
+          print('✅ Verification: User data correctly saved: ${savedData['name']}');
+        } else {
+          print('❌ Verification failed: User data not saved correctly');
+          return false;
+        }
       }
       
       print('✅ TV Session authenticated successfully: $sessionId');
@@ -95,6 +107,14 @@ class TVAuthService {
         );
         await _expireTVSession(sessionId);
         return {'status': 'expired', 'sessionId': sessionId};
+      }
+
+      // Verificar si hay datos de usuario en la sesión
+      final userData = sessionData['userData'];
+      if (sessionData['status'] == 'authenticated' && userData != null) {
+        print('✅ Session authenticated with user data: ${userData['name']}');
+      } else if (sessionData['status'] == 'authenticated') {
+        print('⚠️ Session authenticated but no user data');
       }
 
       print(
