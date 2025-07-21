@@ -188,7 +188,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         ),
       );
 
-      print('🔍 Authenticating TV session with real user data...');
+      print('🔍 Authenticating TV session with real user data via backend...');
       final success = await TVAuthService.authenticateTVSessionWithRealUser(
         sessionId,
       );
@@ -199,24 +199,16 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
       if (success) {
         print(
-          '✅ TV session authenticated successfully with user: ${currentUser.name}',
+          '✅ TV session authenticated successfully via backend with user: ${currentUser.name}',
         );
 
-        // Verificar que los datos se guardaron en la TV
-        await Future.delayed(const Duration(milliseconds: 500));
-        final tvUserData = await TVAuthService.getTVUserData();
-        if (tvUserData != null) {
-          print(
-            '✅ TV user data verification successful: ${tvUserData['name']}',
-          );
-        } else {
-          print('❌ TV user data verification failed');
-        }
+        // Dar tiempo para que el backend procese la autenticación
+        await Future.delayed(const Duration(milliseconds: 1000));
 
         _showTVConnectionSuccess(sessionId, currentUser);
       } else {
-        print('❌ Failed to authenticate TV session');
-        _showError('No se pudo autenticar la sesión de TV. Intenta de nuevo.');
+        print('❌ Failed to authenticate TV session via backend');
+        _showError('No se pudo autenticar la sesión de TV via backend. Intenta de nuevo.');
       }
     } catch (e) {
       print('❌ Error processing QR code: $e');
@@ -283,8 +275,32 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Hola ${user.name}! Tu sesión móvil se ha conectado exitosamente con la TV. El dashboard se está cargando en la pantalla con tu información de usuario.',
+                'Hola ${user.name}! Tu sesión móvil se ha conectado exitosamente con la TV via backend. El dashboard se está cargando en la pantalla con tu información de usuario.',
                 style: const TextStyle(fontSize: 14, color: AppColors.textGray),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Color(0xFF10B981), size: 14),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'La TV debería redirigir automáticamente al dashboard en unos segundos.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF10B981),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               Container(
@@ -319,6 +335,14 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                             style: const TextStyle(
                               fontSize: 10,
                               color: AppColors.textGray,
+                            ),
+                          ),
+                          const Text(
+                            'Autenticado via backend',
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: Color(0xFF10B981),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],

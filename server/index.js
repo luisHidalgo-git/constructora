@@ -55,6 +55,7 @@ app.use(`${API_PATH}/projects`, require('./routes/projects'));
 app.use(`${API_PATH}/activities`, require('./routes/activities'));
 app.use(`${API_PATH}/stats`, require('./routes/stats'));
 app.use(`${API_PATH}/upload`, require('./routes/upload'));
+app.use(`${API_PATH}/tv-auth`, require('./routes/tv-auth'));
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {

@@ -39,11 +39,19 @@ class ApiConfig {
   static String get activities => '$baseUrl/activities';
   static String get stats => '$baseUrl/stats';
   static String get upload => '$baseUrl/upload';
+  static String get tvAuth => '$baseUrl/tv-auth';
 
   static String projectById(String id) => '$projects/$id';
   static String activitiesByProject(String projectId) =>
       '$activities/project/$projectId';
   static String activityById(String id) => '$activities/$id';
+  
+  // TV Auth endpoints
+  static String get createTVSession => '$tvAuth/create-session';
+  static String get authenticateTVSession => '$tvAuth/authenticate-session';
+  static String tvSessionStatus(String sessionId) => '$tvAuth/check-session/$sessionId';
+  static String clearTVSession(String sessionId) => '$tvAuth/clear-session/$sessionId';
+  static String get cleanupExpiredSessions => '$tvAuth/cleanup-expired';
 
   // Método para verificar la conectividad
   static Future<bool> checkConnectivity() async {
