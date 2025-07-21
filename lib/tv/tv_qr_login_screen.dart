@@ -60,7 +60,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
           _qrData = qrData;
           _pollingAttempts = 0; // Reset counter
         });
-        
+
         print('🔍 Generated QR data from backend: $_qrData');
         print('🔍 Session ID: $_sessionId');
       } else {
@@ -116,7 +116,9 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
       Duration(minutes: _regenerationIntervalMinutes),
       (timer) {
         if (!_isConnected && mounted) {
-          print('🔄 Auto-regenerating QR after $_regenerationIntervalMinutes minutes');
+          print(
+            '🔄 Auto-regenerating QR after $_regenerationIntervalMinutes minutes',
+          );
           _regenerateQR();
         }
       },
@@ -127,7 +129,9 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
     if (_sessionId == null) return;
 
     try {
-      print('🔍 TV: Checking auth status for session: $_sessionId (attempt $_pollingAttempts)');
+      print(
+        '🔍 TV: Checking auth status for session: $_sessionId (attempt $_pollingAttempts)',
+      );
 
       final sessionStatus = await TVAuthService.checkTVSessionStatus(
         _sessionId!,
@@ -144,19 +148,21 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
       }
 
       print('🔍 TV: Session status: ${sessionStatus['status']}');
-      
+
       if (sessionStatus['status'] == 'expired') {
         print('❌ TV: Session expired, regenerating...');
         _pollingTimer?.cancel();
         _regenerateQR();
         return;
       }
-      
+
       if (sessionStatus['status'] == 'authenticated') {
         final userData = sessionStatus['userData'];
-        
+
         if (userData != null && userData['name'] != null) {
-          print('✅ TV: Session authenticated with user data: ${userData['name']}');
+          print(
+            '✅ TV: Session authenticated with user data: ${userData['name']}',
+          );
           await _handleSuccessfulAuth(userData);
         } else {
           print('⚠️ TV: Session authenticated but waiting for user data...');
@@ -183,20 +189,22 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
   Future<void> _handleSuccessfulAuth(Map<String, dynamic> userData) async {
     if (_isAuthenticating || _isConnected) return;
-    
+
     setState(() {
       _isAuthenticating = true;
     });
-    
+
     _pollingTimer?.cancel();
     _regenerationTimer?.cancel();
 
     try {
       print('✅ TV: Processing successful authentication...');
-      
+
       // Guardar datos de usuario para la TV
-      await TVAuthService.saveTVUserDataFromSession(userData);
-      
+      await TVAuthService.clearTVUserData(); // Limpiar datos anteriores
+      // Los datos de usuario ya se guardan automáticamente en el servicio de autenticación
+      // cuando se autentica la sesión desde el móvil
+
       setState(() {
         _isConnected = true;
       });
@@ -271,7 +279,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
   void _regenerateQR() {
     if (_isAuthenticating) return;
-    
+
     setState(() {
       _isConnected = false;
       _isAuthenticating = false;
@@ -436,10 +444,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                   children: [
                     const Text(
                       'Esperando conexión desde móvil...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                      ),
+                      style: TextStyle(fontSize: 16, color: Colors.white70),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -450,283 +455,6 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                       ),
                     ),
                   ],
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQRContent() {
-      } else {
-        print('❌ Backend error checking session status: ${response.statusCode}');
-        // Fallback al método local
-        return await _checkLocalTVSessionStatus(sessionId);
-      }
-    } catch (e) {
-      print('❌ Error checking TV session status via backend: $e');
-      // Fallback al método local
-      return await _checkLocalTVSessionStatus(sessionId);
-    }
-  }
-
-  // Método de fallback para verificar estado local
-  static Future<Map<String, dynamic>?> _checkLocalTVSessionStatus(
-    String sessionId,
-  ) async {
-    try {
-      print('🔍 Checking TV session status locally (fallback): $sessionId');
-
-      final sessionData = await _getTVSession(sessionId);
-      if (sessionData == null) {
-        print('❌ Session not found locally: $sessionId');
-        return null;
-      }
-
-      // Verificar expiración
-      final createdAt = sessionData['createdAt'] as int;
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final ageMinutes = (now - createdAt) / (1000 * 60);
-
-      if (ageMinutes > _sessionTimeoutMinutes) {
-        print('❌ Session expired locally: ${ageMinutes.toStringAsFixed(1)} minutes old');
-        await _expireTVSession(sessionId);
-        return {'status': 'expired', 'sessionId': sessionId};
-      }
-
-      // Verificar si hay datos de usuario en la sesión
-      final userData = sessionData['userData'];
-      if (sessionData['status'] == 'authenticated' && userData != null) {
-        print('✅ Session authenticated locally with user data: ${userData['name']}');
-      } else if (sessionData['status'] == 'authenticated') {
-        print('⚠️ Session authenticated locally but no user data');
-      }
-
-      print(
-        '✅ Session status locally: ${sessionData['status']} (${ageMinutes.toStringAsFixed(1)} min old)',
-      );
-      return sessionData;
-    } catch (e) {
-      print('❌ Error checking TV session status locally: $e');
-      return null;
-    }
-  }
-
-  // Obtener datos de usuario para la TV
-  static Future<Map<String, dynamic>?> getTVUserData() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final userDataJson = prefs.getString(_tvUserDataKey);
-      if (userDataJson != null) {
-        final userData = jsonDecode(userDataJson);
-        print('✅ Retrieved TV user data: ${userData['name']}');
-        return userData;
-      }
-      print('❌ No TV user data found');
-      return null;
-    } catch (e) {
-      print('❌ Error getting TV user data: $e');
-      return null;
-    }
-  }
-
-  // Guardar datos de usuario desde la sesión autenticada
-  static Future<void> saveTVUserDataFromSession(Map<String, dynamic> userData) async {
-    try {
-      await _saveTVUserData(userData);
-      print('✅ TV user data saved from session: ${userData['name']}');
-    } catch (e) {
-      print('❌ Error saving TV user data from session: $e');
-      throw e;
-    }
-  }
-
-  void _showSuccessMessage() {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 12),
-            Text('¡Conexión exitosa via backend! Redirigiendo al dashboard...'),
-          ],
-        ),
-        backgroundColor: Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _showError(String message) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  }
-
-  void _regenerateQR() {
-    setState(() {
-      _isConnected = false;
-      _qrData = null;
-      _sessionId = null;
-      _pollingAttempts = 0;
-    });
-    _pollingTimer?.cancel();
-    _generateQRData();
-    _startPollingForAuth();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E),
-      body: Focus(
-        autofocus: true,
-        onKeyEvent: (node, event) {
-          if (event is KeyDownEvent) {
-            if (event.logicalKey == LogicalKeyboardKey.goBack ||
-                event.logicalKey == LogicalKeyboardKey.escape) {
-              Navigator.pop(context);
-              return KeyEventResult.handled;
-            }
-          }
-          return KeyEventResult.ignored;
-        },
-        child: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460)],
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo
-              Container(
-                margin: const EdgeInsets.only(bottom: 60),
-                child: Column(
-                  children: [
-                    RichText(
-                      text: const TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'Avanze',
-                            style: TextStyle(
-                              fontSize: 72,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: -2,
-                            ),
-                          ),
-                          TextSpan(
-                            text: '360',
-                            style: TextStyle(
-                              fontSize: 72,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                              letterSpacing: -2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    const Text(
-                      'Escanea el código QR desde tu\naplicación móvil para poder acceder al\ndashboard de avance360',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: Colors.white70,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // QR Code Container - Más grande
-              Container(
-                width: 320,
-                height: 320,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 30,
-                      offset: const Offset(0, 15),
-                    ),
-                  ],
-                ),
-                child: _buildQRContent(),
-              ),
-
-              const SizedBox(height: 60),
-
-              // Status
-              if (_isConnected) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFF10B981),
-                      width: 2,
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        color: Color(0xFF10B981),
-                        size: 24,
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        '¡Conexión Exitosa!',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF10B981),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ] else ...[
-                const Text(
-                  'Esperando conexión desde móvil...',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                  ),
                 ),
               ],
             ],
@@ -766,10 +494,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
             SizedBox(height: 20),
             Text(
               'Generando código...',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.textGray,
-              ),
+              style: TextStyle(fontSize: 16, color: AppColors.textGray),
             ),
           ],
         ),
