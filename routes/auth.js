@@ -123,8 +123,11 @@ router.post('/forgot-password', [
   body('email', 'Por favor incluye un email válido').isEmail()
 ], async (req, res) => {
   try {
+    console.log('🔍 Forgot password request received for:', req.body.email);
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -132,13 +135,17 @@ router.post('/forgot-password', [
 
     // Check if user exists
     const user = await User.findOne({ email });
+    console.log('🔍 User found:', user ? 'Yes' : 'No');
+
     if (!user) {
+      console.log('❌ User not found for email:', email);
       return res.status(404).json({
         message: 'No existe una cuenta asociada a este correo electrónico'
       });
     }
 
     // If user exists, return success
+    console.log('✅ User verified, allowing password reset');
     res.json({
       message: 'Correo verificado correctamente. Procede a cambiar tu contraseña.',
       email: email

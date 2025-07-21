@@ -56,6 +56,14 @@ app.use(`${API_PATH}/activities`, require('./routes/activities'));
 app.use(`${API_PATH}/stats`, require('./routes/stats'));
 app.use(`${API_PATH}/upload`, require('./routes/upload'));
 
+// Debug: Log all registered routes
+console.log('📋 Registered routes:');
+console.log(`   • ${API_PATH}/auth/login`);
+console.log(`   • ${API_PATH}/auth/register`);
+console.log(`   • ${API_PATH}/auth/forgot-password`);
+console.log(`   • ${API_PATH}/auth/reset-password`);
+console.log(`   • ${API_PATH}/auth/me`);
+
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
   console.error(err.stack);
