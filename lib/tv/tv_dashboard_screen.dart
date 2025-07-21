@@ -42,45 +42,49 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     });
 
     try {
-      // Primero intentar obtener datos de usuario de la TV con reintentos
+      print('🔍 TV Dashboard: Starting data load...');
+      
+      // Intentar obtener datos de usuario de la TV con reintentos mejorados
       UserModel? tvUser;
       int retryCount = 0;
-      const maxRetries = 5;
+      const maxRetries = 8;
       
       while (tvUser == null && retryCount < maxRetries) {
         try {
-          print('🔍 Attempt ${retryCount + 1}/$maxRetries to load TV user data...');
+          print('🔍 TV Dashboard: Attempt ${retryCount + 1}/$maxRetries to load TV user data...');
           final tvUserData = await TVAuthService.getTVUserData();
           if (tvUserData != null) {
             tvUser = UserModel.fromJson(tvUserData);
-            print('✅ TV User data loaded successfully: ${tvUser.name}');
+            print('✅ TV Dashboard: User data loaded successfully: ${tvUser.name}');
+            print('✅ TV Dashboard: User email: ${tvUser.email}');
+            print('✅ TV Dashboard: User position: ${tvUser.position}');
             break;
           } else {
-            print('❌ No TV user data found, retrying...');
+            print('❌ TV Dashboard: No TV user data found, retrying...');
             retryCount++;
             if (retryCount < maxRetries) {
-              await Future.delayed(Duration(milliseconds: 500 * retryCount));
+              await Future.delayed(Duration(milliseconds: 800 * retryCount));
             }
           }
         } catch (e) {
-          print('❌ Error loading TV user data (attempt ${retryCount + 1}): $e');
+          print('❌ TV Dashboard: Error loading TV user data (attempt ${retryCount + 1}): $e');
           retryCount++;
           if (retryCount < maxRetries) {
-            await Future.delayed(Duration(milliseconds: 500 * retryCount));
+            await Future.delayed(Duration(milliseconds: 800 * retryCount));
           }
         }
       }
       
       // Si no se pudo obtener datos de TV, intentar datos guardados localmente
       if (tvUser == null) {
-        print('⚠️ Falling back to saved user data...');
+        print('⚠️ TV Dashboard: Falling back to saved user data...');
         try {
           tvUser = await AuthService.getSavedUser();
           if (tvUser != null) {
-            print('✅ Fallback user data loaded: ${tvUser.name}');
+            print('✅ TV Dashboard: Fallback user data loaded: ${tvUser.name}');
           }
         } catch (e) {
-          print('❌ Error loading fallback user data: $e');
+          print('❌ TV Dashboard: Error loading fallback user data: $e');
         }
       }
 
@@ -96,7 +100,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         projects = results[0] as List<ProjectModel>;
         stats = results[1] as StatsModel;
       } catch (e) {
-        print('❌ Error loading projects and stats: $e');
+        print('❌ TV Dashboard: Error loading projects and stats: $e');
         // Continuar con datos vacíos si hay error
       }
 
@@ -123,13 +127,13 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         }
       });
       
-      print('✅ TV Dashboard loaded with user: ${_currentUser?.name}');
-      print('✅ User position: ${_currentUser?.position}');
-      print('✅ User email: ${_currentUser?.email}');
-      print('✅ Projects loaded: ${_projects.length}');
-      print('✅ Stats loaded: ${_stats != null}');
+      print('✅ TV Dashboard: Dashboard loaded with user: ${_currentUser?.name}');
+      print('✅ TV Dashboard: User position: ${_currentUser?.position}');
+      print('✅ TV Dashboard: User email: ${_currentUser?.email}');
+      print('✅ TV Dashboard: Projects loaded: ${_projects.length}');
+      print('✅ TV Dashboard: Stats loaded: ${_stats != null}');
     } catch (e) {
-      print('❌ Error loading TV dashboard data: $e');
+      print('❌ TV Dashboard: Error loading TV dashboard data: $e');
       setState(() {
         _error = e.toString();
         _isLoading = false;

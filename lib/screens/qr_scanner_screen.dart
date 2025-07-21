@@ -190,7 +190,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
       print('🔍 Mobile: Authenticating TV session with real user data via backend...');
       print('🔍 Mobile: Session ID: $sessionId');
-      print('🔍 Mobile: User: ${currentUser.name}');
+      print('🔍 Mobile: User: ${currentUser.name} - ${currentUser.email}');
       
       final success = await TVAuthService.authenticateTVSessionWithRealUser(
         sessionId,
@@ -207,6 +207,15 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
         // Dar más tiempo para que el backend procese la autenticación
         await Future.delayed(const Duration(milliseconds: 2000));
+        
+        // Verificar que los datos se guardaron correctamente en el backend
+        print('🔍 Mobile: Verifying session status after authentication...');
+        final verificationStatus = await TVAuthService.checkTVSessionStatus(sessionId);
+        if (verificationStatus != null && verificationStatus['status'] == 'authenticated') {
+          print('✅ Mobile: Session verification successful');
+        } else {
+          print('⚠️ Mobile: Session verification inconclusive, but proceeding...');
+        }
 
         _showTVConnectionSuccess(sessionId, currentUser);
       } else {
@@ -278,7 +287,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Hola ${user.name}! Tu sesión móvil se ha conectado exitosamente con la TV via backend. El dashboard se está cargando en la pantalla con tu información de usuario.',
+                'Hola ${user.name}! Tu sesión móvil se ha conectado exitosamente con la TV. El dashboard debería cargarse automáticamente en la pantalla en unos segundos.',
                 style: const TextStyle(fontSize: 14, color: AppColors.textGray),
               ),
               const SizedBox(height: 8),
@@ -294,7 +303,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'La TV debería redirigir automáticamente al dashboard en unos segundos.',
+                        'Si la TV no redirige automáticamente, verifica que esté en la pantalla de QR.',
                         style: TextStyle(
                           fontSize: 11,
                           color: Color(0xFF10B981),

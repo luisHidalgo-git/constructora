@@ -127,7 +127,7 @@ class TVAuthService {
         // Guardar datos de usuario para la TV localmente
         if (userData != null) {
           await _saveTVUserData(userData);
-          print('✅ Mobile: User data saved for TV: ${userData['name']}');
+          print('✅ Mobile: User data saved for TV locally: ${userData['name']}');
 
           // Verificar que los datos se guardaron correctamente
           final savedData = await getTVUserData();
@@ -199,7 +199,6 @@ class TVAuthService {
   ) async {
     try {
       print('🔍 Mobile: Authenticating TV session with real user data...');
-      print('🔍 Mobile: Session ID: $sessionId');
 
       // Obtener token y datos del usuario autenticado
       final userToken = await AuthService.getToken();
@@ -212,11 +211,12 @@ class TVAuthService {
 
       print('🔍 Mobile: Authenticating with user: ${currentUser.name}');
       print('🔍 Mobile: User email: ${currentUser.email}');
-      print('🔍 Mobile: User role: ${currentUser.role}');
+      print('🔍 Mobile: User position: ${currentUser.position}');
 
       // Usar los datos reales del usuario
       final userData = currentUser.toJson();
-      print('🔍 Mobile: User data to send: ${jsonEncode(userData)}');
+      
+      print('🔍 Mobile: User data to send: ${userData.keys.toList()}');
 
       return await authenticateTVSession(
         sessionId,
@@ -323,15 +323,7 @@ class TVAuthService {
   static Future<Map<String, dynamic>?> getTVUserData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
-      // Intentar obtener de la clave nueva primero
-      String? userDataJson = prefs.getString('tv_user_data');
-      
-      // Si no existe, intentar con la clave anterior
-      if (userDataJson == null) {
-        userDataJson = prefs.getString(_tvUserDataKey);
-      }
-      
+      final userDataJson = prefs.getString(_tvUserDataKey);
       if (userDataJson != null) {
         final userData = jsonDecode(userDataJson);
         print('✅ Retrieved TV user data: ${userData['name']}');
@@ -392,7 +384,6 @@ class TVAuthService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_tvUserDataKey);
-      await prefs.remove('tv_user_data'); // Limpiar también la nueva clave
       print('🔍 TV user data cleared');
     } catch (e) {
       print('❌ Error clearing TV user data: $e');

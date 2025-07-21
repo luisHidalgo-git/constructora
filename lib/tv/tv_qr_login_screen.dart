@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:async';
 import '../utils/app_colors.dart';
@@ -25,8 +24,8 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
   bool _isConnected = false;
   bool _isAuthenticating = false;
   int _pollingAttempts = 0;
-  static const int _maxPollingAttempts = 150; // 5 minutos máximo
-  static const int _regenerationIntervalMinutes = 3; // Regenerar cada 3 minutos
+  static const int _maxPollingAttempts = 200; // Aumentar intentos
+  static const int _regenerationIntervalMinutes = 4; // Regenerar cada 4 minutos
 
   @override
   void initState() {
@@ -45,14 +44,14 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
   Future<void> _generateQRData() async {
     try {
-      print('🔍 Generating new QR data...');
+      print('🔍 TV: Generating new QR data...');
       // Limpiar sesiones expiradas primero
       await TVAuthService.cleanupExpiredSessions();
 
       // Crear sesión en el backend
       _sessionId = await TVAuthService.createTVSession();
 
-      print('🔍 Created TV session: $_sessionId');
+      print('🔍 TV: Created TV session: $_sessionId');
 
       // Obtener datos del QR del backend
       final qrData = await TVAuthService.getTVQRData();
@@ -61,9 +60,9 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
           _qrData = qrData;
           _pollingAttempts = 0; // Reset counter
         });
-        
-        print('🔍 Generated QR data from backend: $_qrData');
-        print('🔍 Session ID: $_sessionId');
+
+        print('🔍 TV: Generated QR data from backend: $_qrData');
+        print('🔍 TV: Session ID: $_sessionId');
       } else {
         // Fallback: crear QR data localmente
         final qrLoginData = {
@@ -79,11 +78,11 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
           _pollingAttempts = 0; // Reset counter
         });
 
-        print('🔍 Generated QR data locally (fallback): $_qrData');
-        print('🔍 Session ID: $_sessionId');
+        print('🔍 TV: Generated QR data locally (fallback): $_qrData');
+        print('🔍 TV: Session ID: $_sessionId');
       }
     } catch (e) {
-      print('❌ Error generating QR data: $e');
+      print('❌ TV: Error generating QR data: $e');
       _showError('Error generando código QR: ${e.toString()}');
     }
   }
@@ -92,7 +91,8 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
     _pollingAttempts = 0;
     _isAuthenticating = false;
     _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
+    _pollingTimer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
+      // Reducir intervalo
       _pollingAttempts++;
 
       if (!mounted || _isConnected || _sessionId == null || _isAuthenticating) {
@@ -101,7 +101,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
       }
 
       if (_pollingAttempts > _maxPollingAttempts) {
-        print('❌ Max polling attempts reached, regenerating session...');
+        print('❌ TV: Max polling attempts reached, regenerating session...');
         timer.cancel();
         _regenerateQR();
         return;
@@ -117,7 +117,9 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
       Duration(minutes: _regenerationIntervalMinutes),
       (timer) {
         if (!_isConnected && mounted) {
-          print('🔄 Auto-regenerating QR after $_regenerationIntervalMinutes minutes');
+          print(
+            '🔄 TV: Auto-regenerating QR after $_regenerationIntervalMinutes minutes',
+          );
           _regenerateQR();
         }
       },
@@ -125,10 +127,12 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
   }
 
   Future<void> _checkForAuth() async {
-    if (_sessionId == null) return;
+    if (_sessionId == null || _isAuthenticating || _isConnected) return;
 
     try {
-      print('🔍 TV: Checking auth status for session: $_sessionId (attempt $_pollingAttempts)');
+      print(
+        '🔍 TV: Checking auth status for session: $_sessionId (attempt $_pollingAttempts)',
+      );
 
       final sessionStatus = await TVAuthService.checkTVSessionStatus(
         _sessionId!,
@@ -136,7 +140,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
       if (sessionStatus == null) {
         print('❌ TV: Session not found in backend, may have expired');
-        if (_pollingAttempts > 30) {
+        if (_pollingAttempts > 50) {
           print('🔄 TV: Session not found, regenerating...');
           _pollingTimer?.cancel();
           _regenerateQR();
@@ -145,24 +149,32 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
       }
 
       print('🔍 TV: Session status: ${sessionStatus['status']}');
-      
+
       if (sessionStatus['status'] == 'expired') {
         print('❌ TV: Session expired, regenerating...');
         _pollingTimer?.cancel();
         _regenerateQR();
         return;
       }
-      
+
       if (sessionStatus['status'] == 'authenticated') {
         final userData = sessionStatus['userData'];
-        
-        if (userData != null && userData['name'] != null) {
-          print('✅ TV: Session authenticated with user data: ${userData['name']}');
+        final hasUserData = sessionStatus['hasUserData'] ?? false;
+
+        print('🔍 TV: Session authenticated, hasUserData: $hasUserData');
+        print('🔍 TV: UserData: $userData');
+
+        if (userData != null && userData['name'] != null && hasUserData) {
+          print(
+            '✅ TV: Session authenticated with complete user data: ${userData['name']}',
+          );
           await _handleSuccessfulAuth(userData);
         } else {
-          print('⚠️ TV: Session authenticated but waiting for user data...');
+          print(
+            '⚠️ TV: Session authenticated but waiting for complete user data...',
+          );
           // Continuar polling por un poco más para obtener datos de usuario
-          if (_pollingAttempts > 60) {
+          if (_pollingAttempts > 100) {
             print('❌ TV: Timeout waiting for user data, regenerating...');
             _pollingTimer?.cancel();
             _regenerateQR();
@@ -174,7 +186,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
       }
     } catch (e) {
       print('❌ TV: Error checking auth status: $e');
-      if (_pollingAttempts > 60) {
+      if (_pollingAttempts > 80) {
         print('🔄 TV: Too many errors, regenerating session...');
         _pollingTimer?.cancel();
         _regenerateQR();
@@ -184,25 +196,32 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
   Future<void> _handleSuccessfulAuth(Map<String, dynamic> userData) async {
     if (_isAuthenticating || _isConnected) return;
-    
+
     setState(() {
       _isAuthenticating = true;
     });
-    
+
     _pollingTimer?.cancel();
     _regenerationTimer?.cancel();
 
     try {
       print('✅ TV: Processing successful authentication...');
-      
-      // Guardar datos de usuario para la TV localmente
-      await TVAuthService.clearTVUserData(); // Limpiar datos anteriores
-      
-      // Guardar los datos de usuario que vienen de la sesión autenticada
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('tv_user_data', jsonEncode(userData));
-      print('✅ TV: User data saved locally: ${userData['name']}');
-      
+      print(
+        '✅ TV: User data received: ${userData['name']} - ${userData['email']}',
+      );
+
+      // Guardar datos de usuario para la TV usando el método correcto
+      await TVAuthService.saveTVUserData(userData);
+
+      // Verificar que los datos se guardaron correctamente
+      final savedData = await TVAuthService.getTVUserData();
+      if (savedData != null) {
+        print('✅ TV: User data verification successful: ${savedData['name']}');
+      } else {
+        print('❌ TV: User data verification failed');
+        throw Exception('Failed to save user data');
+      }
+
       setState(() {
         _isConnected = true;
       });
@@ -219,6 +238,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
           await TVAuthService.clearTVSession(_sessionId!);
         }
 
+        print('✅ TV: Navigating to dashboard...');
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const TVDashboardScreen()),
@@ -277,7 +297,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
 
   void _regenerateQR() {
     if (_isAuthenticating) return;
-    
+
     setState(() {
       _isConnected = false;
       _isAuthenticating = false;
@@ -442,10 +462,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
                   children: [
                     const Text(
                       'Esperando conexión desde móvil...',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                      ),
+                      style: TextStyle(fontSize: 16, color: Colors.white70),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -495,10 +512,7 @@ class _TVQRLoginScreenState extends State<TVQRLoginScreen> {
             SizedBox(height: 20),
             Text(
               'Generando código...',
-              style: TextStyle(
-                fontSize: 16,
-                color: AppColors.textGray,
-              ),
+              style: TextStyle(fontSize: 16, color: AppColors.textGray),
             ),
           ],
         ),
