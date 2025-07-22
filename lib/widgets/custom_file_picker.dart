@@ -11,7 +11,7 @@ class CustomFilePicker extends StatefulWidget {
   final String? initialImagePath;
 
   const CustomFilePicker({
-    super.key, 
+    super.key,
     this.onImageSelected,
     this.initialImagePath,
   });
@@ -24,7 +24,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
   String? _selectedImagePath;
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -49,7 +49,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -271,49 +271,51 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           _isUploading = true;
         });
 
-        // Subir imagen al servidor con manejo de errores mejorado
+        // Subir imagen al servidor automáticamente
         try {
           print('🔍 Starting camera image upload...');
-          
+
           // Esperar un poco antes de subir para asegurar que el archivo esté listo
           await Future.delayed(const Duration(milliseconds: 500));
-          
-          final serverImageUrl = await ImageService.uploadImage(image.path);
-          
+
+          final serverImageUrl = await ImageService.uploadImageAutomatically(
+            image.path,
+          );
+
           print('✅ Image uploaded to server: $serverImageUrl');
-          
+
           setState(() {
             _selectedImagePath = serverImageUrl; // Usar URL del servidor
             _isUploading = false;
           });
-          
+
           if (widget.onImageSelected != null) {
             widget.onImageSelected!(serverImageUrl);
           }
-          
-          _showMessage('✅ Foto subida exitosamente');
+
+          _showMessage('✅ Foto subida al servidor exitosamente');
+
+          // Limpiar imagen local después de subir exitosamente
+          await ImageService.cleanupLocalImage(image.path);
         } catch (e) {
           print('❌ Error uploading camera image: $e');
           setState(() {
-            _selectedImagePath = image.path; // Mantener imagen local como fallback
+            _selectedImagePath =
+                'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800'; // Usar imagen por defecto
             _isUploading = false;
           });
-          
-          // Notificar con la imagen local como fallback
+
+          // Notificar con imagen por defecto
           if (widget.onImageSelected != null) {
-            widget.onImageSelected!(image.path);
+            widget.onImageSelected!(
+              'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+            );
           }
-          
-          String errorMessage = 'Error al subir foto';
-          if (e.toString().contains('ClientException') || e.toString().contains('SocketException')) {
-            errorMessage = 'Sin conexión a internet. La imagen se guardó localmente y se subirá cuando haya conexión.';
-          } else if (e.toString().contains('TimeoutException')) {
-            errorMessage = 'Conexión lenta. La imagen se guardó localmente y se subirá cuando mejore la conexión.';
-          } else {
-            errorMessage = 'Error temporal del servidor. La imagen se guardó localmente.';
-          }
-          
-          _showMessage(errorMessage, isError: false);
+
+          _showMessage(
+            'Error al subir la foto al servidor. Se usará imagen por defecto.',
+            isError: true,
+          );
         }
       }
     } catch (e) {
@@ -353,49 +355,51 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           _isUploading = true;
         });
 
-        // Subir imagen al servidor con manejo de errores mejorado
+        // Subir imagen al servidor automáticamente
         try {
           print('🔍 Starting gallery image upload...');
-          
+
           // Esperar un poco antes de subir para asegurar que el archivo esté listo
           await Future.delayed(const Duration(milliseconds: 500));
-          
-          final serverImageUrl = await ImageService.uploadImage(image.path);
-          
+
+          final serverImageUrl = await ImageService.uploadImageAutomatically(
+            image.path,
+          );
+
           print('✅ Gallery image uploaded to server: $serverImageUrl');
-          
+
           setState(() {
             _selectedImagePath = serverImageUrl; // Usar URL del servidor
             _isUploading = false;
           });
-          
+
           if (widget.onImageSelected != null) {
             widget.onImageSelected!(serverImageUrl);
           }
-          
-          _showMessage('✅ Imagen subida exitosamente');
+
+          _showMessage('✅ Imagen subida al servidor exitosamente');
+
+          // Limpiar imagen local después de subir exitosamente
+          await ImageService.cleanupLocalImage(image.path);
         } catch (e) {
           print('❌ Error uploading gallery image: $e');
           setState(() {
-            _selectedImagePath = image.path; // Mantener imagen local como fallback
+            _selectedImagePath =
+                'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800'; // Usar imagen por defecto
             _isUploading = false;
           });
-          
-          // Notificar con la imagen local como fallback
+
+          // Notificar con imagen por defecto
           if (widget.onImageSelected != null) {
-            widget.onImageSelected!(image.path);
+            widget.onImageSelected!(
+              'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+            );
           }
-          
-          String errorMessage = 'Error al subir imagen';
-          if (e.toString().contains('ClientException') || e.toString().contains('SocketException')) {
-            errorMessage = 'Sin conexión a internet. La imagen se guardó localmente y se subirá cuando haya conexión.';
-          } else if (e.toString().contains('TimeoutException')) {
-            errorMessage = 'Conexión lenta. La imagen se guardó localmente y se subirá cuando mejore la conexión.';
-          } else {
-            errorMessage = 'Error temporal del servidor. La imagen se guardó localmente.';
-          }
-          
-          _showMessage(errorMessage, isError: false);
+
+          _showMessage(
+            'Error al subir la imagen al servidor. Se usará imagen por defecto.',
+            isError: true,
+          );
         }
       }
     } catch (e) {
@@ -490,8 +494,8 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
                             fit: BoxFit.cover,
                           )
                         : null,
-                    color: _buildImageProvider(_selectedImagePath!) == null 
-                        ? Colors.grey[300] 
+                    color: _buildImageProvider(_selectedImagePath!) == null
+                        ? Colors.grey[300]
                         : null,
                   ),
                   child: _buildImageProvider(_selectedImagePath!) == null
@@ -525,9 +529,9 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
               _isUploading
                   ? 'Subiendo imagen...'
                   : _selectedImagePath != null
-                  ? 'Imagen Subida al Servidor'
+                  ? 'Imagen Guardada en el Servidor'
                   : 'Agregar Foto del Proyecto',
-              style: (_isUploading
+              style: _isUploading
                   ? AppTextStyles.fieldLabel.copyWith(
                       fontSize: 14,
                       color: Colors.orange,
@@ -537,7 +541,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
                       fontSize: 14,
                       color: AppColors.primary,
                     )
-                  : AppTextStyles.hintText.copyWith(fontSize: 14)),
+                  : AppTextStyles.hintText.copyWith(fontSize: 14),
               textAlign: TextAlign.center,
             ),
 
@@ -566,19 +570,19 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
       if (imageUrl.isEmpty) {
         return null;
       }
-      
+
       print('🔍 Building image provider for: $imageUrl');
-      
+
       // Si es una URL de internet (del servidor)
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         print('✅ Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
-      
+
       // Si es un archivo local
       if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
-        String filePath = imageUrl.startsWith('file://') 
-            ? imageUrl.substring(7) 
+        String filePath = imageUrl.startsWith('file://')
+            ? imageUrl.substring(7)
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
@@ -588,14 +592,14 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           print('❌ Local file does not exist: $filePath');
         }
       }
-      
+
       // Si es una ruta del servidor sin dominio, construir URL completa
       if (imageUrl.startsWith('/uploads/')) {
         final fullUrl = ImageService.buildServerImageUrl(imageUrl);
         print('✅ Built server URL: $fullUrl');
         return NetworkImage(fullUrl);
       }
-      
+
       print('❌ Could not determine image provider type for: $imageUrl');
       return null;
     } catch (e) {

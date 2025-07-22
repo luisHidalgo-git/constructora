@@ -195,35 +195,9 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     });
 
     try {
-      // Procesar la imagen seleccionada
-      String finalImageUrl;
-
-      if (_selectedImagePath != null && _selectedImagePath!.isNotEmpty) {
-        // Si hay una imagen seleccionada, usarla
-        finalImageUrl = _selectedImagePath!;
-
-        // Si es una imagen local y no se ha subido al servidor, intentar subirla ahora
-        if (ImageService.isLocalImage(finalImageUrl)) {
-          try {
-            print(
-              '🔍 Attempting to upload local image before saving project...',
-            );
-            final serverUrl = await ImageService.uploadImage(finalImageUrl);
-            finalImageUrl = serverUrl;
-            print('✅ Successfully uploaded image to server: $serverUrl');
-          } catch (e) {
-            print('❌ Failed to upload image, keeping local path: $e');
-            // Mantener la imagen local si falla la subida
-          }
-        }
-      } else {
-        // Si no hay imagen seleccionada, usar la imagen existente o por defecto
-        finalImageUrl =
-            widget.project?.imageUrl ??
-            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
-      }
-
-      print('🔍 Final image URL for project: $finalImageUrl');
+      // La imagen se procesará automáticamente en el ProjectService
+      String imageUrl = _selectedImagePath ?? widget.project?.imageUrl ?? '';
+      print('🔍 Image URL for project: $imageUrl');
 
       final projectData = ProjectModel(
         id: widget.project?.id ?? '',
@@ -237,7 +211,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
         progress: _projectProgress,
         status: _projectStatus,
         keyIndicators: _keyIndicators,
-        imageUrl: finalImageUrl,
+        imageUrl: imageUrl,
       );
 
       ProjectModel result;

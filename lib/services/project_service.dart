@@ -4,6 +4,7 @@ import 'dart:io';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
 import '../models/project_model.dart';
+import '../services/image_service.dart';
 
 class ProjectService {
   // Obtener headers con autorización
@@ -61,11 +62,19 @@ class ProjectService {
   static Future<ProjectModel> createProject(ProjectModel project) async {
     try {
       final headers = await _getHeaders();
+      
+      // Procesar imagen automáticamente antes de crear el proyecto
+      String processedImageUrl = await ImageService.processImageForProject(project.imageUrl);
+      print('🔍 Creating project with processed image URL: $processedImageUrl');
+      
+      // Crear proyecto con imagen procesada
+      final projectData = project.copyWith(imageUrl: processedImageUrl).toCreateJson();
+      
       final response = await http
           .post(
             Uri.parse(ApiConfig.projects),
             headers: headers,
-            body: jsonEncode(project.toCreateJson()),
+            body: jsonEncode(projectData),
           )
           .timeout(Duration(milliseconds: ApiConfig.timeout));
 
@@ -88,11 +97,19 @@ class ProjectService {
   ) async {
     try {
       final headers = await _getHeaders();
+      
+      // Procesar imagen automáticamente antes de actualizar el proyecto
+      String processedImageUrl = await ImageService.processImageForProject(project.imageUrl);
+      print('🔍 Updating project with processed image URL: $processedImageUrl');
+      
+      // Actualizar proyecto con imagen procesada
+      final projectData = project.copyWith(imageUrl: processedImageUrl).toUpdateJson();
+      
       final response = await http
           .put(
             Uri.parse(ApiConfig.projectById(id)),
             headers: headers,
-            body: jsonEncode(project.toUpdateJson()),
+            body: jsonEncode(projectData),
           )
           .timeout(Duration(milliseconds: ApiConfig.timeout));
 
