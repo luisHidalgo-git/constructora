@@ -38,13 +38,9 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
       duration: const Duration(seconds: 2),
       vsync: this,
     );
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.1,
-    ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
-    ));
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
     _pulseController.repeat(reverse: true);
   }
 
@@ -67,7 +63,7 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
 
     try {
       final result = await TVAuthService.generateQRCode();
-      
+
       if (result['success']) {
         setState(() {
           _currentQRCode = result['qrCode'];
@@ -82,7 +78,7 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
           _isLoading = false;
           _status = 'Error: ${result['message']}';
         });
-        
+
         // Reintentar en 5 segundos
         Timer(const Duration(seconds: 5), _generateNewQR);
       }
@@ -91,7 +87,7 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
         _isLoading = false;
         _status = 'Error de conexión. Reintentando...';
       });
-      
+
       // Reintentar en 5 segundos
       Timer(const Duration(seconds: 5), _generateNewQR);
     }
@@ -120,41 +116,39 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
 
     try {
       final result = await TVAuthService.checkQRStatus(_currentQRCode!);
-      
+
       if (result['success']) {
         final status = result['status'];
-        
+
         switch (status) {
           case 'authenticated':
             print('✅ User authenticated successfully!');
             _stopTimers();
-            
+
             // Guardar el token en el almacenamiento local de la TV
             if (result['token'] != null) {
               await _saveTokenForTV(result['token']);
             }
-            
+
             // Navegar a dashboard con datos del usuario
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(
-                builder: (context) => TVDashboardScreen(
-                  user: result['user'],
-                ),
+                builder: (context) => TVDashboardScreen(user: result['user']),
               ),
               (route) => false,
             );
             break;
-            
+
           case 'expired':
             print('⏰ QR code expired, generating new one...');
             _generateNewQR();
             break;
-            
+
           case 'waiting':
             // Continuar esperando
             break;
-            
+
           default:
             print('❓ Unknown status: $status');
         }
@@ -171,10 +165,10 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
 
   String _getTimeRemaining() {
     if (_expiresAt == null) return '';
-    
+
     final remaining = _expiresAt!.difference(DateTime.now());
     if (remaining.isNegative) return 'Expirado';
-    
+
     final minutes = remaining.inMinutes;
     final seconds = remaining.inSeconds % 60;
     return '${minutes}:${seconds.toString().padLeft(2, '0')}';
@@ -201,11 +195,7 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1A1A1A),
-              Color(0xFF2D2D2D),
-              Color(0xFF1A1A1A),
-            ],
+            colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
           ),
         ),
         child: SafeArea(
@@ -335,94 +325,6 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
                   color: Colors.white70,
                 ),
                 textAlign: TextAlign.center,
-              ),
-
-              const SizedBox(height: 20),
-
-              // Time Remaining
-              if (_expiresAt != null && !_isLoading)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    'Tiempo restante: ${_getTimeRemaining()}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-
-              const SizedBox(height: 40),
-
-              // Manual Refresh Button
-              if (!_isLoading)
-                ElevatedButton.icon(
-                  onPressed: _generateNewQR,
-                  icon: const Icon(Icons.refresh, size: 20),
-                  label: const Text('Generar nuevo código'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                ),
-
-              const Spacer(),
-
-              // Instructions
-              Container(
-                margin: const EdgeInsets.all(40),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Colors.white70,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Instrucciones',
-                          style: AppTextStyles.fieldLabel.copyWith(
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 15),
-                    Text(
-                      '1. Abre la aplicación Avanze360 en tu teléfono\n'
-                      '2. Inicia sesión con tu cuenta\n'
-                      '3. Toca el ícono de QR en la parte inferior\n'
-                      '4. Escanea este código QR\n'
-                      '5. ¡Listo! Accederás al dashboard en TV',
-                      style: AppTextStyles.subtitle.copyWith(
-                        fontSize: 14,
-                        color: Colors.white60,
-                        height: 1.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
