@@ -11,40 +11,64 @@ const router = express.Router();
 // @access  Private
 router.post('/image', auth, upload.single('image'), (req, res) => {
   try {
+    console.log('🔍 Upload request received');
+    console.log('🔍 Request file:', req.file);
+
     if (!req.file) {
+      console.log('❌ No file received in request');
       return res.status(400).json({ message: 'No se ha subido ningún archivo' });
     }
 
-    console.log('📁 Image uploaded automatically:', {
-      filename: req.file.filename,
+    const filePath = req.file.path;
+    const filename = req.file.filename;
+
+    console.log('📁 Archivo guardado en:', filePath);
+    console.log('📁 Archivo existe:', fs.existsSync(filePath));
+
+    // Verificar que el archivo realmente se guardó
+    if (!fs.existsSync(filePath)) {
+      console.log('❌ El archivo no se guardó en el sistema de archivos');
+      return res.status(500).json({ message: 'Error: El archivo no se guardó correctamente' });
+    }
+
+    const fileStats = fs.statSync(filePath);
+    console.log('📁 Tamaño del archivo en disco:', fileStats.size, 'bytes');
+
+    console.log('📁 Imagen subida exitosamente:', {
+      filename: filename,
       originalName: req.file.originalname,
       size: req.file.size,
       mimetype: req.file.mimetype,
-      path: req.file.path,
+      path: filePath,
       user: req.user.email
     });
 
     // Construir URL completa de la imagen
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    const protocol = req.get('x-forwarded-proto') || req.protocol;
+    const host = req.get('host');
+    
+    // Para Railway, usar HTTPS siempre
+    const imageUrl = `https://${host}/uploads/${filename}`;
 
-    console.log('🔗 Generated image URL:', imageUrl);
-    console.log('✅ Image successfully stored on server filesystem');
+    console.log('🔗 URL de imagen generada:', imageUrl);
+    console.log('✅ Imagen guardada exitosamente en el servidor');
     
     res.json({
       message: 'Imagen subida automáticamente al servidor',
       imageUrl: imageUrl,
-      filename: req.file.filename,
+      filename: filename,
       originalName: req.file.originalname,
       size: req.file.size,
       mimetype: req.file.mimetype,
       uploadedAt: new Date().toISOString(),
-      uploadedBy: req.user.email
+      uploadedBy: req.user.email,
+      success: true
     });
 
   } catch (error) {
-    console.error('❌ Error uploading image automatically:', error);
+    console.error('❌ Error uploading image:', error);
     res.status(500).json({ 
-      message: 'Error del servidor al subir la imagen automáticamente',
+      message: 'Error del servidor al subir la imagen',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Error interno'
     });
   }
@@ -59,6 +83,7 @@ router.delete('/image/:filename', auth, (req, res) => {
     const filePath = path.join(__dirname, '../uploads', filename);
 
     console.log('🗑️ Attempting to delete image:', filename);
+    console.log('🗑️ File path:', filePath);
 
     // Verificar si el archivo existe
     if (fs.existsSync(filePath)) {
@@ -71,7 +96,7 @@ router.delete('/image/:filename', auth, (req, res) => {
         deletedBy: req.user.email
       });
     } else {
-      console.log('❌ Image not found:', filename);
+      console.log('❌ Image not found for deletion:', filename);
       res.status(404).json({ message: 'Imagen no encontrada en el servidor' });
     }
 
@@ -91,22 +116,32 @@ router.get('/images', auth, (req, res) => {
   try {
     const uploadsDir = path.join(__dirname, '../uploads');
     
+    console.log('🔍 Listing images in:', uploadsDir);
+    
     if (!fs.existsSync(uploadsDir)) {
+      console.log('❌ Uploads directory does not exist');
       return res.json({ images: [] });
     }
 
     const files = fs.readdirSync(uploadsDir);
+    console.log('🔍 Files found:', files.length);
+
     const imageFiles = files.filter(file => {
       const ext = path.extname(file).toLowerCase();
       return ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext);
     });
+
+    console.log('🔍 Image files found:', imageFiles.length);
+
+    const protocol = req.get('x-forwarded-proto') || req.protocol;
+    const host = req.get('host');
 
     const images = imageFiles.map(filename => {
       const filePath = path.join(uploadsDir, filename);
       const stats = fs.statSync(filePath);
       return {
         filename,
-        url: `${req.protocol}://${req.get('host')}/uploads/${filename}`,
+        url: `${protocol}://${host}/uploads/${filename}`,
         size: stats.size,
         uploadedAt: stats.birthtime,
         modifiedAt: stats.mtime
@@ -116,6 +151,7 @@ router.get('/images', auth, (req, res) => {
     res.json({
       message: 'Lista de imágenes en el servidor',
       count: images.length,
+      uploadsDir: uploadsDir,
       images: images.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
     });
 
