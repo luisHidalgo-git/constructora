@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
 import 'screens/home_screen.dart';
+import 'screens/tv_qr_screen.dart';
+import 'utils/platform_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,8 +34,23 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'SF Pro Display',
       ),
-      home: const AuthWrapper(),
+      home: _getInitialScreen(),
     );
+  }
+
+  Widget _getInitialScreen() {
+    // Para testing: usar TVQRScreen si está en modo TV
+    // En producción, esto se detectaría automáticamente
+    if (kIsWeb) {
+      // En web, mostrar TV por defecto para testing
+      return const TVQRScreen();
+    }
+    
+    // Para testing en móvil, puedes descomentar la siguiente línea:
+    // return const TVQRScreen();
+    
+    // Si es móvil, usar el flujo normal
+    return const AuthWrapper();
   }
 }
 

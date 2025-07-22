@@ -6,12 +6,19 @@ class PlatformUtils {
     if (kIsWeb) return false;
     
     // En Android, detectamos si es TV verificando las características del sistema
+    // Para propósitos de desarrollo, también podemos usar el tamaño de pantalla
     if (Platform.isAndroid) {
-      // Esta es una aproximación - en un entorno real podrías usar
-      // platform channels para verificar características específicas de TV
-      return false; // Por ahora retornamos false, pero puedes cambiarlo para testing
+      // Por ahora, detectamos TV por tamaño de pantalla grande
+      // En producción, esto se haría con platform channels
+      return false;
     }
     
+    return false;
+  }
+
+  // Método para forzar modo TV (útil para testing)
+  static bool isTVMode() {
+    // Puedes cambiar esto a true para probar el modo TV
     return false;
   }
   

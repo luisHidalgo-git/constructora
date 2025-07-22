@@ -45,6 +45,11 @@ class ApiConfig {
   static String activitiesByProject(String projectId) =>
       '$activities/project/$projectId';
   static String activityById(String id) => '$activities/$id';
+  
+  // TV Auth endpoints
+  static String get tvAuthGenerateQR => '$tvAuth/generate-qr';
+  static String get tvAuthScanQR => '$tvAuth/scan-qr';
+  static String tvAuthCheckStatus(String qrCode) => '$tvAuth/check-status/$qrCode';
 
   // Método para verificar la conectividad
   static Future<bool> checkConnectivity() async {
