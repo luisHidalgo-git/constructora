@@ -259,9 +259,9 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
         preferredCameraDevice: CameraDevice.rear,
       );
 
@@ -271,12 +271,9 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           _isUploading = true;
         });
 
-        // Subir imagen al servidor automáticamente
+        // OBLIGATORIO: Subir imagen al servidor para soporte multi-dispositivo
         try {
           print('🔍 Starting camera image upload...');
-
-          // Esperar un poco antes de subir para asegurar que el archivo esté listo
-          await Future.delayed(const Duration(milliseconds: 500));
 
           final serverImageUrl = await ImageService.uploadImageAutomatically(
             image.path,
@@ -293,27 +290,21 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             widget.onImageSelected!(serverImageUrl);
           }
 
-          _showMessage('✅ Foto subida al servidor exitosamente');
+          _showMessage('✅ Foto guardada en el servidor - Disponible en todos tus dispositivos');
 
           // Limpiar imagen local después de subir exitosamente
-          await ImageService.cleanupLocalImage(image.path);
+          ImageService.cleanupLocalImage(image.path);
         } catch (e) {
           print('❌ Error uploading camera image: $e');
+          
           setState(() {
-            _selectedImagePath =
-                'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800'; // Usar imagen por defecto
+            _selectedImagePath = null; // No permitir imagen local
             _isUploading = false;
           });
 
-          // Notificar con imagen por defecto
-          if (widget.onImageSelected != null) {
-            widget.onImageSelected!(
-              'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-            );
-          }
 
           _showMessage(
-            'Error al subir la foto al servidor. Se usará imagen por defecto.',
+            'ERROR: No se pudo subir la foto al servidor. Para usar la app en múltiples dispositivos, la imagen debe estar en el servidor. Intenta de nuevo.',
             isError: true,
           );
         }
@@ -344,9 +335,9 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
       );
 
       if (image != null) {
@@ -355,12 +346,9 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
           _isUploading = true;
         });
 
-        // Subir imagen al servidor automáticamente
+        // OBLIGATORIO: Subir imagen al servidor para soporte multi-dispositivo
         try {
           print('🔍 Starting gallery image upload...');
-
-          // Esperar un poco antes de subir para asegurar que el archivo esté listo
-          await Future.delayed(const Duration(milliseconds: 500));
 
           final serverImageUrl = await ImageService.uploadImageAutomatically(
             image.path,
@@ -377,27 +365,21 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             widget.onImageSelected!(serverImageUrl);
           }
 
-          _showMessage('✅ Imagen subida al servidor exitosamente');
+          _showMessage('✅ Imagen guardada en el servidor - Disponible en todos tus dispositivos');
 
           // Limpiar imagen local después de subir exitosamente
-          await ImageService.cleanupLocalImage(image.path);
+          ImageService.cleanupLocalImage(image.path);
         } catch (e) {
           print('❌ Error uploading gallery image: $e');
+          
           setState(() {
-            _selectedImagePath =
-                'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800'; // Usar imagen por defecto
+            _selectedImagePath = null; // No permitir imagen local
             _isUploading = false;
           });
 
-          // Notificar con imagen por defecto
-          if (widget.onImageSelected != null) {
-            widget.onImageSelected!(
-              'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-            );
-          }
 
           _showMessage(
-            'Error al subir la imagen al servidor. Se usará imagen por defecto.',
+            'ERROR: No se pudo subir la imagen al servidor. Para usar la app en múltiples dispositivos, la imagen debe estar en el servidor. Intenta de nuevo.',
             isError: true,
           );
         }
@@ -529,7 +511,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
               _isUploading
                   ? 'Subiendo imagen...'
                   : _selectedImagePath != null
-                  ? 'Imagen Guardada en el Servidor'
+                  ? 'Imagen Seleccionada'
                   : 'Agregar Foto del Proyecto',
               style: _isUploading
                   ? AppTextStyles.fieldLabel.copyWith(
@@ -537,7 +519,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
                       color: Colors.orange,
                     )
                   : _selectedImagePath != null
-                  ? AppTextStyles.fieldLabel.copyWith(
+                      ? AppTextStyles.fieldLabel.copyWith(
                       fontSize: 14,
                       color: AppColors.primary,
                     )
@@ -551,7 +533,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
               _isUploading
                   ? 'Por favor espera...'
                   : _selectedImagePath != null
-                  ? 'Toca para cambiar la imagen'
+                      ? 'Toca para cambiar la imagen'
                   : 'Toca para seleccionar una imagen',
               style: AppTextStyles.subtitle.copyWith(
                 fontSize: 12,

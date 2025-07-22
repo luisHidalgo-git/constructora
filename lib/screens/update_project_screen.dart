@@ -190,12 +190,20 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       return;
     }
 
+    // Validar que si hay imagen seleccionada, esté en el servidor
+    if (_selectedImagePath != null && ImageService.isLocalImage(_selectedImagePath!)) {
+      _showMessage(
+        'ERROR: La imagen debe estar guardada en el servidor. Por favor, selecciona la imagen nuevamente y espera a que se suba completamente.',
+        isError: true,
+      );
+      return;
+    }
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // La imagen se procesará automáticamente en el ProjectService
+      // La imagen DEBE estar en el servidor para soporte multi-dispositivo
       String imageUrl = _selectedImagePath ?? widget.project?.imageUrl ?? '';
       print('🔍 Image URL for project: $imageUrl');
 
@@ -235,7 +243,15 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       Navigator.pop(context, result);
     } catch (e) {
       print('❌ Error saving project: $e');
-      _showMessage('Error: ${e.toString()}', isError: true);
+      String errorMessage = e.toString();
+      if (errorMessage.contains('imagen debe estar en el servidor')) {
+        _showMessage(
+          'ERROR CRÍTICO: Para usar la app en múltiples dispositivos, todas las imágenes deben guardarse en el servidor. Por favor, selecciona la imagen nuevamente.',
+          isError: true,
+        );
+      } else {
+        _showMessage('Error: ${e.toString()}', isError: true);
+      }
     } finally {
       setState(() {
         _isLoading = false;

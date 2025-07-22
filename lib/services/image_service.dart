@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter/foundation.dart';
 import '../config/api_config.dart';
@@ -31,7 +32,7 @@ class ImageService {
 
   // Subir imagen al servidor automáticamente con reintentos mejorados
   static Future<String> uploadImageAutomatically(String imagePath) async {
-    int maxRetries = 8;
+    int maxRetries = 5;
     int currentRetry = 0;
     
     while (currentRetry < maxRetries) {
@@ -48,9 +49,9 @@ class ImageService {
         final fileSize = file.lengthSync();
         print('✅ Image file exists, size: $fileSize bytes');
         
-        // Verificar tamaño del archivo (máximo 10MB)
-        if (fileSize > 10 * 1024 * 1024) {
-          throw Exception('La imagen es demasiado grande. Máximo 10MB permitido.');
+        // Verificar tamaño del archivo (máximo 5MB para mejor rendimiento)
+        if (fileSize > 5 * 1024 * 1024) {
+          throw Exception('La imagen es demasiado grande. Máximo 5MB permitido.');
         }
         
         final headers = await _getMultipartHeaders();
@@ -59,31 +60,44 @@ class ImageService {
         print('🔍 Uploading image to: $uri');
         print('🔍 Headers: ${headers.keys.toList()}');
         
-        // Crear request multipart
+        // Crear request multipart con configuración mejorada
         var request = http.MultipartRequest('POST', uri);
         request.headers.addAll(headers);
         
-        // Configurar timeout optimizado
-        request.persistentConnection = false;
-        
-        // Agregar archivo con nombre único y extensión correcta
+        // Generar nombre único para el archivo
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final extension = imagePath.split('.').last.toLowerCase();
-        final filename = 'project_${timestamp}.$extension';
+        final extension = path.extension(imagePath).toLowerCase();
+        final filename = 'project_${timestamp}${extension.isEmpty ? '.jpg' : extension}';
         
         print('🔍 Uploading with filename: $filename');
+        
+        // Determinar el tipo MIME correcto
+        MediaType? mediaType;
+        switch (extension) {
+          case '.jpg':
+          case '.jpeg':
+            mediaType = MediaType('image', 'jpeg');
+            break;
+          case '.png':
+            mediaType = MediaType('image', 'png');
+            break;
+          default:
+            mediaType = MediaType('image', 'jpeg');
+        }
+        
         var multipartFile = await http.MultipartFile.fromPath(
           'image', 
           imagePath,
           filename: filename,
+          contentType: mediaType,
         );
         request.files.add(multipartFile);
         
         print('🔍 Sending multipart request to server...');
         
-        // Enviar request con timeout extendido
+        // Enviar request con timeout optimizado
         var streamedResponse = await request.send().timeout(
-          Duration(seconds: currentRetry < 3 ? 180 : 300), // Timeout progresivo
+          Duration(seconds: 120 + (currentRetry * 30)), // Timeout progresivo
         );
         var response = await http.Response.fromStream(streamedResponse);
         
@@ -93,33 +107,22 @@ class ImageService {
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           final imageUrl = data['imageUrl'] as String;
-          print('✅ Image uploaded automatically to server!');
+          print('✅ Image uploaded successfully to server!');
           print('✅ Server response: $data');
           print('✅ Image URL: $imageUrl');
           
-          // Verificar que la URL es válida y accesible
+          // Verificar que la URL es válida
           if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) {
-            // Verificar que la imagen es accesible
-            try {
-              final testResponse = await http.get(Uri.parse(imageUrl)).timeout(
-                const Duration(seconds: 15),
-              );
-              print(testResponse.statusCode == 200 
-                ? '✅ Image URL is accessible' 
-                : '⚠️ Image URL not immediately accessible but accepting');
-              return imageUrl;
-            } catch (e) {
-              print('⚠️ Error verifying image URL: $e');
-              // Devolver la URL aunque haya error de verificación
-              return imageUrl;
+            // Verificar que la imagen realmente existe en el servidor
+            final imageExists = await checkImageExists(imageUrl);
+            if (imageExists) {
+              print('✅ Image verified on server: $imageUrl');
+            return imageUrl;
+            } else {
+              throw Exception('La imagen no se pudo verificar en el servidor');
             }
           } else {
-            if (kReleaseMode) {
-              print('⚠️ Returning URL despite verification error (release mode)');
-              return imageUrl;
-            } else {
-              throw Exception('URL de imagen inválida recibida del servidor');
-            }
+            throw Exception('URL de imagen inválida recibida del servidor');
           }
         } else {
           print('❌ Upload failed with status: ${response.statusCode}');
@@ -128,8 +131,8 @@ class ImageService {
           // Si es un error del servidor, intentar de nuevo
           if (response.statusCode >= 500 && currentRetry < maxRetries - 1) {
             currentRetry++;
-            print('🔄 Retrying upload due to server error...');
-            await Future.delayed(Duration(seconds: currentRetry * 5));
+            print('🔄 Retrying upload due to server error... (${currentRetry}/${maxRetries})');
+            await Future.delayed(Duration(seconds: currentRetry * 3));
             continue;
           }
           
@@ -145,7 +148,7 @@ class ImageService {
         print('❌ Upload exception (attempt ${currentRetry + 1}): $e');
         
         // Si es un error de conectividad y no es el último intento, reintentar
-        if ((e.toString().contains('ClientException') || 
+        if ((e.toString().contains('Exception') || 
              e.toString().contains('SocketException') ||
              e.toString().contains('TimeoutException') ||
              e.toString().contains('Connection') ||
@@ -153,8 +156,8 @@ class ImageService {
              e.toString().contains('HandshakeException')) && 
             currentRetry < maxRetries - 1) {
           currentRetry++;
-          print('🔄 Retrying upload due to connectivity error...');
-          await Future.delayed(Duration(seconds: currentRetry * 8));
+          print('🔄 Retrying upload due to connectivity error... (${currentRetry}/${maxRetries})');
+          await Future.delayed(Duration(seconds: currentRetry * 5));
           continue;
         }
         
@@ -167,7 +170,7 @@ class ImageService {
       }
     }
     
-    throw Exception('No se pudo subir la imagen después de $maxRetries intentos');
+    throw Exception('CRÍTICO: No se pudo subir la imagen al servidor después de $maxRetries intentos. La imagen debe estar en el servidor para funcionar en múltiples dispositivos.');
   }
 
   // Método legacy para compatibilidad
@@ -178,16 +181,37 @@ class ImageService {
   // Procesar imagen automáticamente (decidir si subir o usar existente)
   static Future<String> processImageForProject(String? imagePath) async {
     if (imagePath == null || imagePath.isEmpty) {
+      print('⚠️ No image path provided, using default image');
       return 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
     }
     
-    return await _handleImageUpload(imagePath);
+    if (isServerImage(imagePath)) {
+      print('✅ Image is already on server: $imagePath');
+      // Verificar que la imagen del servidor realmente existe
+      final exists = await checkImageExists(imagePath);
+      if (exists) {
+      return imagePath;
+      } else {
+        print('❌ Server image does not exist, using default');
+        return 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
+      }
+    }
+    
+    // Si es imagen local, DEBE subirse al servidor
+    if (isLocalImage(imagePath)) {
+      print('🔍 Local image detected, MUST upload to server for multi-device support...');
+      return await uploadImageAutomatically(imagePath);
+    }
+    
+    // Si no es ni local ni del servidor, usar imagen por defecto
+    print('⚠️ Unknown image type, using default image');
+    return 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
   }
 
   // Eliminar imagen del servidor
   static Future<bool> deleteImage(String imageUrl) async {
     try {
-      // Extraer filename de la URL
+      // Extraer filename de la URL del servidor
       final uri = Uri.parse(imageUrl);
       final filename = uri.pathSegments.last;
       
@@ -210,38 +234,6 @@ class ImageService {
     }
   }
 
-  // Manejar subida de imagen automáticamente
-  static Future<String> _handleImageUpload(String imagePath) async {
-    try {
-      // Si ya es una URL del servidor, devolverla tal como está
-      if (isServerImage(imagePath)) {
-        print('✅ Image is already on server: $imagePath');
-        return imagePath;
-      }
-      
-      // Si es una imagen local, subirla automáticamente
-      if (isLocalImage(imagePath)) {
-        print('🔍 Local image detected, uploading automatically...');
-        try {
-          final serverUrl = await uploadImageAutomatically(imagePath);
-          print('✅ Successfully uploaded local image to server: $serverUrl');
-          return serverUrl;
-        } catch (e) {
-          print('❌ Failed to upload local image: $e');
-          // En caso de error, usar imagen por defecto
-          return 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
-        }
-      }
-      
-      // Si no es ni local ni del servidor, usar imagen por defecto
-      print('⚠️ Unknown image type, using default image');
-      return 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
-      
-    } catch (e) {
-      print('❌ Error processing image: $e');
-      return 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
-    }
-  }
 
   // Verificar si una URL es una imagen del servidor
   static bool isServerImage(String imageUrl) {
@@ -279,7 +271,7 @@ class ImageService {
       if (!isServerImage(imageUrl)) return false;
       
       final response = await http.head(Uri.parse(imageUrl)).timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 10),
       );
       
       print('🔍 Image exists check for $imageUrl: ${response.statusCode}');
