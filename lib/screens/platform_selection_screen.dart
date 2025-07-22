@@ -144,8 +144,6 @@ class PlatformSelectionScreen extends StatelessWidget {
                       ),
 
                       const SizedBox(width: 30),
-
-                      // TV Option
                     ],
                   ),
 
