@@ -69,21 +69,21 @@ class ProjectService {
         processedImageUrl = await ImageService.processImageForProject(
           project.imageUrl,
         );
-        print('✅ Image processed and verified on server: $processedImageUrl');
+        print('✅ Imagen procesada y verificada en servidor: $processedImageUrl');
       } catch (e) {
-        print('❌ CRITICAL: Error processing image: $e');
+        print('❌ Error procesando imagen: $e');
         // Si hay una imagen local que no se pudo subir, fallar la creación
         if (project.imageUrl != null &&
             ImageService.isLocalImage(project.imageUrl!)) {
           throw Exception(
-            'No se puede crear el proyecto: La imagen debe estar en el servidor para funcionar en múltiples dispositivos. Error: ${e.toString()}',
+            'No se puede crear el proyecto: Error subiendo imagen. ${e.toString()}',
           );
         }
         // Solo usar imagen por defecto si no había imagen seleccionada
         processedImageUrl =
             'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
       }
-      print('🔍 Creating project with processed image URL: $processedImageUrl');
+      print('🔍 Creando proyecto con URL de imagen procesada: $processedImageUrl');
 
       // Crear proyecto con imagen procesada
       final projectData = project
@@ -124,14 +124,14 @@ class ProjectService {
         processedImageUrl = await ImageService.processImageForProject(
           project.imageUrl,
         );
-        print('✅ Image processed and verified on server: $processedImageUrl');
+        print('✅ Imagen procesada y verificada en servidor: $processedImageUrl');
       } catch (e) {
-        print('❌ CRITICAL: Error processing image: $e');
+        print('❌ Error procesando imagen: $e');
         // Si hay una imagen local que no se pudo subir, fallar la actualización
         if (project.imageUrl != null &&
             ImageService.isLocalImage(project.imageUrl!)) {
           throw Exception(
-            'No se puede actualizar el proyecto: La imagen debe estar en el servidor para funcionar en múltiples dispositivos. Error: ${e.toString()}',
+            'No se puede actualizar el proyecto: Error subiendo imagen. ${e.toString()}',
           );
         }
         // Mantener la imagen original si ya estaba en el servidor
@@ -139,7 +139,7 @@ class ProjectService {
             project.imageUrl ??
             'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
       }
-      print('🔍 Updating project with processed image URL: $processedImageUrl');
+      print('🔍 Actualizando proyecto con URL de imagen procesada: $processedImageUrl');
 
       // Actualizar proyecto con imagen procesada
       final projectData = project

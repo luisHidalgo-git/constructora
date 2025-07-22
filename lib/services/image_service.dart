@@ -32,13 +32,13 @@ class ImageService {
 
   // Subir imagen al servidor automáticamente con reintentos mejorados
   static Future<String> uploadImageAutomatically(String imagePath) async {
-    int maxRetries = 5;
+    int maxRetries = 3;
     int currentRetry = 0;
     
     while (currentRetry < maxRetries) {
       try {
-        print('🔍 Starting image upload attempt ${currentRetry + 1}/$maxRetries...');
-        print('🔍 Image path: $imagePath');
+        print('🔍 ImageService - Iniciando subida de imagen intento ${currentRetry + 1}/$maxRetries...');
+        print('🔍 Ruta de imagen: $imagePath');
         
         // Verificar que el archivo local existe
         final file = File(imagePath);
@@ -47,18 +47,17 @@ class ImageService {
         }
         
         final fileSize = file.lengthSync();
-        print('✅ Image file exists, size: $fileSize bytes');
+        print('✅ ImageService - Archivo de imagen existe, tamaño: $fileSize bytes');
         
-        // Verificar tamaño del archivo (máximo 5MB para mejor rendimiento)
-        if (fileSize > 5 * 1024 * 1024) {
-          throw Exception('La imagen es demasiado grande. Máximo 5MB permitido.');
+        // Verificar tamaño del archivo (máximo 10MB)
+        if (fileSize > 10 * 1024 * 1024) {
+          throw Exception('La imagen es demasiado grande. Máximo 10MB permitido.');
         }
         
         final headers = await _getMultipartHeaders();
         final uri = Uri.parse('${ApiConfig.upload}/image');
         
-        print('🔍 Uploading image to: $uri');
-        print('🔍 Headers: ${headers.keys.toList()}');
+        print('🔍 ImageService - Subiendo imagen a: $uri');
         
         // Crear request multipart con configuración mejorada
         var request = http.MultipartRequest('POST', uri);
@@ -69,7 +68,7 @@ class ImageService {
         final extension = path.extension(imagePath).toLowerCase();
         final filename = 'project_${timestamp}${extension.isEmpty ? '.jpg' : extension}';
         
-        print('🔍 Uploading with filename: $filename');
+        print('🔍 ImageService - Subiendo con nombre: $filename');
         
         // Determinar el tipo MIME correcto
         MediaType? mediaType;
@@ -93,46 +92,39 @@ class ImageService {
         );
         request.files.add(multipartFile);
         
-        print('🔍 Sending multipart request to server...');
+        print('🔍 ImageService - Enviando request multipart al servidor...');
         
         // Enviar request con timeout optimizado
         var streamedResponse = await request.send().timeout(
-          Duration(seconds: 120 + (currentRetry * 30)), // Timeout progresivo
+          Duration(seconds: 60), // Timeout fijo de 60 segundos
         );
         var response = await http.Response.fromStream(streamedResponse);
         
-        print('🔍 Upload response status: ${response.statusCode}');
-        print('🔍 Upload response body: ${response.body}');
+        print('🔍 ImageService - Estado de respuesta: ${response.statusCode}');
+        print('🔍 ImageService - Cuerpo de respuesta: ${response.body}');
         
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           final imageUrl = data['imageUrl'] as String;
-          print('✅ Image uploaded successfully to server!');
-          print('✅ Server response: $data');
-          print('✅ Image URL: $imageUrl');
+          print('✅ ImageService - ¡Imagen subida exitosamente al servidor!');
+          print('✅ ImageService - URL de imagen: $imageUrl');
           
           // Verificar que la URL es válida
           if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) {
-            // Verificar que la imagen realmente existe en el servidor
-            final imageExists = await checkImageExists(imageUrl);
-            if (imageExists) {
-              print('✅ Image verified on server: $imageUrl');
+            print('✅ ImageService - Imagen verificada en servidor: $imageUrl');
             return imageUrl;
-            } else {
-              throw Exception('La imagen no se pudo verificar en el servidor');
-            }
           } else {
             throw Exception('URL de imagen inválida recibida del servidor');
           }
         } else {
-          print('❌ Upload failed with status: ${response.statusCode}');
-          print('❌ Response body: ${response.body}');
+          print('❌ ImageService - Subida falló con estado: ${response.statusCode}');
+          print('❌ ImageService - Cuerpo de respuesta: ${response.body}');
           
           // Si es un error del servidor, intentar de nuevo
           if (response.statusCode >= 500 && currentRetry < maxRetries - 1) {
             currentRetry++;
-            print('🔄 Retrying upload due to server error... (${currentRetry}/${maxRetries})');
-            await Future.delayed(Duration(seconds: currentRetry * 3));
+            print('🔄 ImageService - Reintentando subida por error del servidor... (${currentRetry}/${maxRetries})');
+            await Future.delayed(Duration(seconds: 2));
             continue;
           }
           
@@ -145,7 +137,7 @@ class ImageService {
         }
         
       } catch (e) {
-        print('❌ Upload exception (attempt ${currentRetry + 1}): $e');
+        print('❌ ImageService - Excepción en subida (intento ${currentRetry + 1}): $e');
         
         // Si es un error de conectividad y no es el último intento, reintentar
         if ((e.toString().contains('Exception') || 
@@ -156,8 +148,8 @@ class ImageService {
              e.toString().contains('HandshakeException')) && 
             currentRetry < maxRetries - 1) {
           currentRetry++;
-          print('🔄 Retrying upload due to connectivity error... (${currentRetry}/${maxRetries})');
-          await Future.delayed(Duration(seconds: currentRetry * 5));
+          print('🔄 ImageService - Reintentando subida por error de conectividad... (${currentRetry}/${maxRetries})');
+          await Future.delayed(Duration(seconds: 3));
           continue;
         }
         
@@ -170,7 +162,7 @@ class ImageService {
       }
     }
     
-    throw Exception('CRÍTICO: No se pudo subir la imagen al servidor después de $maxRetries intentos. La imagen debe estar en el servidor para funcionar en múltiples dispositivos.');
+    throw Exception('No se pudo subir la imagen al servidor después de $maxRetries intentos.');
   }
 
   // Método legacy para compatibilidad
@@ -270,14 +262,24 @@ class ImageService {
     try {
       if (!isServerImage(imageUrl)) return false;
       
-      final response = await http.head(Uri.parse(imageUrl)).timeout(
-        const Duration(seconds: 10),
+      print('🔍 ImageService - Checking if image exists: $imageUrl');
+      
+      final response = await http.get(Uri.parse(imageUrl)).timeout(
+        const Duration(seconds: 15),
       );
       
-      print('🔍 Image exists check for $imageUrl: ${response.statusCode}');
-      return response.statusCode == 200;
+      print('🔍 ImageService - Image exists check for $imageUrl: ${response.statusCode}');
+      print('🔍 ImageService - Response headers: ${response.headers}');
+      
+      if (response.statusCode == 200) {
+        print('✅ ImageService - Image exists and is accessible');
+        return true;
+      } else {
+        print('❌ ImageService - Image not accessible, status: ${response.statusCode}');
+        return false;
+      }
     } catch (e) {
-      print('Error checking image existence: $e');
+      print('❌ ImageService - Error checking image existence: $e');
       return false;
     }
   }

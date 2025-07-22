@@ -290,7 +290,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             widget.onImageSelected!(serverImageUrl);
           }
 
-          _showMessage('✅ Foto guardada en el servidor - Disponible en todos tus dispositivos');
+          _showMessage('✅ Imagen guardada automáticamente en el servidor');
 
           // Limpiar imagen local después de subir exitosamente
           ImageService.cleanupLocalImage(image.path);
@@ -304,7 +304,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
 
           _showMessage(
-            'ERROR: No se pudo subir la foto al servidor. Para usar la app en múltiples dispositivos, la imagen debe estar en el servidor. Intenta de nuevo.',
+            'Error: No se pudo subir la imagen al servidor. Intenta de nuevo.',
             isError: true,
           );
         }
@@ -365,7 +365,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             widget.onImageSelected!(serverImageUrl);
           }
 
-          _showMessage('✅ Imagen guardada en el servidor - Disponible en todos tus dispositivos');
+          _showMessage('✅ Imagen guardada automáticamente en el servidor');
 
           // Limpiar imagen local después de subir exitosamente
           ImageService.cleanupLocalImage(image.path);
@@ -379,7 +379,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
 
           _showMessage(
-            'ERROR: No se pudo subir la imagen al servidor. Para usar la app en múltiples dispositivos, la imagen debe estar en el servidor. Intenta de nuevo.',
+            'Error: No se pudo subir la imagen al servidor. Intenta de nuevo.',
             isError: true,
           );
         }
@@ -553,11 +553,11 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         return null;
       }
 
-      print('🔍 Building image provider for: $imageUrl');
+      print('🔍 CustomFilePicker - Building image provider for: $imageUrl');
 
       // Si es una URL de internet (del servidor)
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        print('✅ Using NetworkImage for: $imageUrl');
+        print('✅ CustomFilePicker - Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
 
@@ -568,24 +568,24 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
-          print('✅ Using FileImage for: $filePath');
+          print('✅ CustomFilePicker - Using FileImage for: $filePath');
           return FileImage(file);
         } else {
-          print('❌ Local file does not exist: $filePath');
+          print('❌ CustomFilePicker - Local file does not exist: $filePath');
         }
       }
 
       // Si es una ruta del servidor sin dominio, construir URL completa
       if (imageUrl.startsWith('/uploads/')) {
         final fullUrl = ImageService.buildServerImageUrl(imageUrl);
-        print('✅ Built server URL: $fullUrl');
+        print('✅ CustomFilePicker - Built server URL: $fullUrl');
         return NetworkImage(fullUrl);
       }
 
-      print('❌ Could not determine image provider type for: $imageUrl');
+      print('❌ CustomFilePicker - Could not determine image provider type for: $imageUrl');
       return null;
     } catch (e) {
-      print('Error loading image: $e');
+      print('❌ CustomFilePicker - Error loading image: $e');
       return null;
     }
   }

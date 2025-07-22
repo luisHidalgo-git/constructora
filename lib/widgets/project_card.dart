@@ -225,7 +225,7 @@ class ProjectCard extends StatelessWidget {
       // Usar imagen por defecto si no se puede determinar el tipo
       return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
     } catch (e) {
-      print('Error loading image: $e');
+      print('❌ ProjectCard - Error loading image: $e');
       // Usar imagen por defecto en caso de error
       return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
     }

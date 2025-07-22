@@ -54,9 +54,9 @@ class ApiConfig {
   // Método para verificar la conectividad
   static Future<bool> checkConnectivity() async {
     try {
-      print('🔍 Checking connectivity to: $baseUrl');
+      print('🔍 ApiConfig - Checking connectivity to: $baseUrl');
       final healthUrl = serverBaseUrl + '/health';
-      print('🔍 Health check URL: $healthUrl');
+      print('🔍 ApiConfig - Health check URL: $healthUrl');
       
       final response = await http.get(
         Uri.parse(healthUrl),
@@ -69,11 +69,32 @@ class ApiConfig {
         },
       ).timeout(Duration(seconds: 25));
       
-      print('🔍 Health check status: ${response.statusCode}');
-      print('🔍 Health check response: ${response.body}');
+      print('🔍 ApiConfig - Health check status: ${response.statusCode}');
+      print('🔍 ApiConfig - Health check response: ${response.body}');
       return response.statusCode == 200;
     } catch (e) {
-      print('❌ Connectivity check failed: $e');
+      print('❌ ApiConfig - Connectivity check failed: $e');
+      return false;
+    }
+  }
+
+  // Método para verificar si una imagen del servidor existe
+  static Future<bool> checkImageUrl(String imageUrl) async {
+    try {
+      print('🔍 ApiConfig - Checking image URL: $imageUrl');
+      
+      final response = await http.get(
+        Uri.parse(imageUrl),
+        headers: {
+          'User-Agent': 'ConstructoraApp/1.0',
+          'Accept': 'image/*',
+        },
+      ).timeout(Duration(seconds: 10));
+      
+      print('🔍 ApiConfig - Image check status: ${response.statusCode}');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ ApiConfig - Error checking image URL: $e');
       return false;
     }
   }

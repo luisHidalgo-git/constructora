@@ -38,7 +38,54 @@ app.use((req, res, next) => {
 });
 
 // Servir archivos estáticos (imágenes subidas)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadsPath = path.join(__dirname, 'uploads');
+console.log('📁 Configurando archivos estáticos para uploads en:', uploadsPath);
+
+// Crear directorio uploads si no existe
+const fs = require('fs');
+try {
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath, { recursive: true });
+    console.log('📁 Directorio uploads creado automáticamente en:', uploadsPath);
+  } else {
+    console.log('📁 Directorio uploads ya existe en:', uploadsPath);
+  }
+} catch (error) {
+  console.error('❌ Error creando directorio uploads:', error);
+  // Continuar sin el directorio, se creará automáticamente al subir archivos
+}
+
+app.use('/uploads', express.static(uploadsPath, {
+  maxAge: '1y', // Cache por 1 año
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    console.log('📁 Sirviendo archivo estático:', path);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+  }
+}));
+
+// Ruta adicional para servir imágenes directamente
+app.get('/uploads/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(uploadsPath, filename);
+  
+  console.log('📁 Solicitando imagen:', filename);
+  console.log('📁 Ruta completa:', filePath);
+  
+  if (fs.existsSync(filePath)) {
+    console.log('✅ Imagen encontrada, enviando:', filename);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+    res.sendFile(filePath);
+  } else {
+    console.log('❌ Imagen no encontrada:', filename);
+    res.status(404).json({ message: 'Imagen no encontrada' });
+  }
+});
 
 // Conexión a MongoDB con configuración para Railway
 const connectDB = async () => {
