@@ -1,33 +1,93 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const url = require('url');
 const path = require('path');
 require('dotenv').config();
 
 const app = express();
 
-// Extraer puerto de la URL base de la API
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000/api';
-const parsedUrl = new URL(API_BASE_URL);
-const PORT = parsedUrl.port || 3000;
-const API_PATH = parsedUrl.pathname || '/api';
+// Configuración de puerto para Railway
+const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+console.log('🔧 Starting server configuration...');
+console.log('🔧 PORT:', PORT);
+console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
+console.log('🔧 MONGODB_URI exists:', !!process.env.MONGODB_URI);
+
+// Middleware CORS más permisivo para Railway
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'User-Agent', 'Cache-Control', 'Connection'],
+  credentials: false
+}));
+
+// Middleware para parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Middleware para logging de requests
+app.use((req, res, next) => {
+  console.log(`📝 ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  if (req.body && Object.keys(req.body).length > 0) {
+    const logBody = { ...req.body };
+    if (logBody.password) logBody.password = '[HIDDEN]';
+    console.log('📝 Request body:', logBody);
+  }
+  next();
+});
 
 // Servir archivos estáticos (imágenes subidas)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-// Conexión a MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log(`✅ Conectado a MongoDB`);
-  })
-  .catch((error) => {
-    console.error('❌ Error conectando a MongoDB:', error);
-  });
+
+// Conexión a MongoDB con configuración para Railway
+const connectDB = async () => {
+  try {
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error('MONGODB_URI no está definida en las variables de entorno');
+    }
+
+    console.log('🔍 Connecting to MongoDB...');
+    
+    await mongoose.connect(mongoUri, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      retryWrites: true,
+      w: 'majority'
+    });
+
+    console.log('✅ Conectado a MongoDB exitosamente');
+  } catch (error) {
+    console.error('❌ Error conectando a MongoDB:', error.message);
+    console.error('❌ Stack:', error.stack);
+    
+    // En Railway, intentar reconectar después de un delay
+    setTimeout(() => {
+      console.log('🔄 Intentando reconectar a MongoDB...');
+      connectDB();
+    }, 5000);
+  }
+};
+
+// Conectar a la base de datos
+connectDB();
+
+// Manejar eventos de conexión de MongoDB
+mongoose.connection.on('connected', () => {
+  console.log('✅ MongoDB conectado');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ Error de MongoDB:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️ MongoDB desconectado');
+});
 
 // Rutas básicas
 app.get('/', (req, res) => {
@@ -35,50 +95,98 @@ app.get('/', (req, res) => {
     message: 'API Constructora - Avanze 360',
     version: '1.0.0',
     status: 'running',
-    api_base_url: API_BASE_URL
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT
   });
 });
 
-// Health check
+// Health check mejorado
 app.get('/health', (req, res) => {
+  const dbStatus = mongoose.connection.readyState;
+  const dbStatusText = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  }[dbStatus] || 'unknown';
+
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    api_base_url: API_BASE_URL
+    database: dbStatusText,
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime()
   });
 });
 
-// Importar rutas (se agregarán después)
-app.use(`${API_PATH}/auth`, require('./routes/auth'));
-app.use(`${API_PATH}/projects`, require('./routes/projects'));
-app.use(`${API_PATH}/activities`, require('./routes/activities'));
-app.use(`${API_PATH}/stats`, require('./routes/stats'));
-app.use(`${API_PATH}/upload`, require('./routes/upload'));
+// Importar y usar rutas
+try {
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/projects', require('./routes/projects'));
+  app.use('/api/activities', require('./routes/activities'));
+  app.use('/api/stats', require('./routes/stats'));
+  app.use('/api/upload', require('./routes/upload'));
+  console.log('✅ Rutas cargadas exitosamente');
+} catch (error) {
+  console.error('❌ Error cargando rutas:', error);
+}
 
 // Middleware de manejo de errores
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('❌ Error en middleware:', err.stack);
   res.status(500).json({
-    message: 'Algo salió mal!',
-    error: 'Error interno del servidor'
+    message: 'Error interno del servidor',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Error interno',
+    timestamp: new Date().toISOString()
   });
 });
 
 // Ruta 404
 app.use('*', (req, res) => {
+  console.log(`❌ Ruta no encontrada: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
-    message: 'Ruta no encontrada'
+    message: 'Ruta no encontrada',
+    path: req.originalUrl,
+    method: req.method,
+    timestamp: new Date().toISOString()
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Servidor corriendo en puerto ${API_BASE_URL}`);
-  console.log(`📱 API disponible en: ${API_BASE_URL}`);
-  console.log(`🔗 Health check: ${API_BASE_URL}/health`);
-  console.log(`📊 Rutas disponibles:`);
-  console.log(`   • ${API_BASE_URL}/auth`);
-  console.log(`   • ${API_BASE_URL}/projects`);
-  console.log(`   • ${API_BASE_URL}/activities`);
-  console.log(`   • ${API_BASE_URL}/stats`);
+// Manejar señales de terminación para Railway
+process.on('SIGTERM', () => {
+  console.log('🔄 SIGTERM recibido, cerrando servidor...');
+  mongoose.connection.close(() => {
+    console.log('✅ Conexión a MongoDB cerrada');
+    process.exit(0);
+  });
 });
+
+process.on('SIGINT', () => {
+  console.log('🔄 SIGINT recibido, cerrando servidor...');
+  mongoose.connection.close(() => {
+    console.log('✅ Conexión a MongoDB cerrada');
+    process.exit(0);
+  });
+});
+
+// Iniciar servidor
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log('🚀 Servidor iniciado exitosamente');
+  console.log(`📱 API disponible en puerto: ${PORT}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  console.log(`📊 Rutas disponibles:`);
+  console.log(`   • /api/auth`);
+  console.log(`   • /api/projects`);
+  console.log(`   • /api/activities`);
+  console.log(`   • /api/stats`);
+  console.log(`   • /api/upload`);
+});
+
+// Manejar errores del servidor
+server.on('error', (error) => {
+  console.error('❌ Error del servidor:', error);
+});
+
+module.exports = app;

@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart';
 class ApiConfig {
   static String get baseUrl {
     try {
-      // Siempre usar el servidor desplegado para mayor estabilidad
-      String url = dotenv.env['API_BASE_URL'] ?? 'https://backend-constructora-klfi.onrender.com/api';
+      // Usar Railway como servidor principal
+      String url = dotenv.env['API_BASE_URL'] ?? 'https://constructora-production-beec.up.railway.app/api';
       
       // Debug de la URL
       print('🔗 API Base URL: $url');
@@ -15,8 +15,8 @@ class ApiConfig {
       return url;
     } catch (e) {
       print('❌ Error loading API_BASE_URL: $e');
-      // Fallback al servidor desplegado
-      return 'https://backend-constructora-klfi.onrender.com/api';
+      // Fallback al servidor de Railway
+      return 'https://constructora-production-beec.up.railway.app/api';
     }
   }
 

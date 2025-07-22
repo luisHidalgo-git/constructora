@@ -78,6 +78,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return false;
     }
 
+    if (_nameController.text.trim().length < 2) {
+      _showMessage('El nombre debe tener al menos 2 caracteres', isError: true);
+      return false;
+    }
+
     if (_emailController.text.trim().isEmpty) {
       _showMessage('Por favor ingresa tu email', isError: true);
       return false;
@@ -96,6 +101,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return false;
     }
 
+    if (_passwordController.text.length > 128) {
+      _showMessage(
+        'La contraseña no puede exceder 128 caracteres',
+        isError: true,
+      );
+      return false;
+    }
+
     if (_passwordController.text != _confirmPasswordController.text) {
       _showMessage('Las contraseñas no coinciden', isError: true);
       return false;
@@ -105,7 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool _isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+    return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
   }
 
   void _showMessage(String message, {bool isError = false}) {

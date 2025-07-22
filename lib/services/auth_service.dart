@@ -131,6 +131,29 @@ class AuthService {
     String position = 'Supervisor',
   }) async {
     try {
+      // Validaciones del lado del cliente
+      if (name.trim().isEmpty) {
+        return {'success': false, 'message': 'El nombre es requerido'};
+      }
+
+      if (email.trim().isEmpty) {
+        return {'success': false, 'message': 'El email es requerido'};
+      }
+
+      if (!_isValidEmail(email.trim())) {
+        return {
+          'success': false,
+          'message': 'Por favor ingresa un email válido',
+        };
+      }
+
+      if (password.length < 6) {
+        return {
+          'success': false,
+          'message': 'La contraseña debe tener al menos 6 caracteres',
+        };
+      }
+
       final requestBody = {
         'name': name,
         'email': email,
@@ -142,22 +165,55 @@ class AuthService {
       // Debug de la llamada
       _debugApiCall(ApiConfig.authRegister, requestBody);
 
+      // Headers mejorados
+      final headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'ConstructoraApp/1.0',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      };
+
       final response = await http
           .post(
             Uri.parse(ApiConfig.authRegister),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'User-Agent': 'ConstructoraApp/1.0',
-            },
+            headers: headers,
             body: jsonEncode(requestBody),
           )
-          .timeout(Duration(milliseconds: ApiConfig.timeout));
+          .timeout(
+            Duration(milliseconds: ApiConfig.timeout * 3),
+          ); // Timeout más largo para Railway
 
       print('🔍 Register Response Status: ${response.statusCode}');
       print('🔍 Register Response Body: ${response.body}');
 
-      final data = jsonDecode(response.body);
+      // Manejar específicamente el error 502 de Railway
+      if (response.statusCode == 502) {
+        print('❌ Railway server error 502 - Application failed to respond');
+        return {
+          'success': false,
+          'message':
+              'El servidor está iniciándose. Por favor intenta de nuevo en unos segundos.',
+        };
+      }
+
+      // Verificar si la respuesta es válida
+      if (response.body.isEmpty) {
+        print('❌ Empty response body in register');
+        return {'success': false, 'message': 'Respuesta vacía del servidor'};
+      }
+
+      Map<String, dynamic> data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (e) {
+        print('❌ JSON decode error in register: $e');
+        print('❌ Raw response: ${response.body}');
+        return {
+          'success': false,
+          'message': 'Error en el formato de respuesta del servidor',
+        };
+      }
 
       if (response.statusCode == 201) {
         await _saveToken(data['token']);
@@ -170,18 +226,45 @@ class AuthService {
           'token': data['token'],
         };
       } else {
+        print('❌ Registration failed with status: ${response.statusCode}');
+        print('❌ Error response: ${response.body}');
         return {
           'success': false,
           'message': data['message'] ?? 'Error en el registro',
         };
       }
-    } catch (e) {
-      print('❌ Register Exception: $e');
+    } on SocketException catch (e) {
+      print('❌ Socket Exception in register: $e');
       return {
         'success': false,
-        'message': 'Error de conexión: ${e.toString()}',
+        'message':
+            'Error de conexión: No se puede conectar al servidor. Verifica tu conexión a internet.',
       };
+    } on TimeoutException catch (e) {
+      print('❌ Timeout Exception in register: $e');
+      return {
+        'success': false,
+        'message':
+            'Tiempo de espera agotado. El servidor puede estar sobrecargado.',
+      };
+    } on HttpException catch (e) {
+      print('❌ HTTP Exception in register: $e');
+      return {'success': false, 'message': 'Error HTTP: ${e.message}'};
+    } on FormatException catch (e) {
+      print('❌ Format Exception in register: $e');
+      return {
+        'success': false,
+        'message': 'Error en el formato de respuesta del servidor',
+      };
+    } catch (e) {
+      print('❌ Register Exception: $e');
+      return {'success': false, 'message': 'Error inesperado: ${e.toString()}'};
     }
+  }
+
+  // Método auxiliar para validar email
+  static bool _isValidEmail(String email) {
+    return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
   }
 
   // Obtener perfil actual
@@ -281,6 +364,7 @@ class AuthService {
       return null;
     }
   }
+
   // Logout
   static Future<void> logout() async {
     print('🔍 Logging out user...');
