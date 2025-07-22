@@ -168,31 +168,16 @@ router.put('/:id', [
 // @access  Private
 router.delete('/:id', auth, async (req, res) => {
   try {
-    console.log('🔍 Delete request for project ID:', req.params.id);
-    console.log('🔍 User requesting deletion:', req.user.email);
-    
     let project = await Project.findById(req.params.id);
 
     if (!project) {
-      console.log('❌ Project not found:', req.params.id);
       return res.status(404).json({ message: 'Proyecto no encontrado' });
     }
 
     // Check if user owns this project
     if (project.supervisor.toString() !== req.user.id && req.user.role !== 'admin') {
-      console.log('❌ User does not own project:', {
-        projectSupervisor: project.supervisor.toString(),
-        userId: req.user.id,
-        userRole: req.user.role
-      });
       return res.status(403).json({ message: 'No tienes permisos para eliminar este proyecto' });
     }
-
-    console.log('🔍 Project found, proceeding with deletion:', {
-      projectName: project.name,
-      projectId: project._id,
-      imageUrl: project.imageUrl
-    });
 
     // Eliminar imagen del servidor si existe
     if (project.imageUrl && project.imageUrl.includes('/uploads/')) {
@@ -201,42 +186,23 @@ router.delete('/:id', auth, async (req, res) => {
         const filePath = path.join(__dirname, '../uploads', filename);
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
-          console.log(`✅ Imagen eliminada del servidor: ${filename}`);
-        } else {
-          console.log(`⚠️ Imagen no encontrada en servidor: ${filename}`);
+          console.log(`Imagen eliminada: ${filename}`);
         }
       } catch (error) {
-        console.error('❌ Error eliminando imagen del servidor:', error);
-        // No fallar la eliminación del proyecto por esto
+        console.error('Error eliminando imagen:', error);
       }
     }
-    
-    // Soft delete - marcar como inactivo
     project.isActive = false;
     await project.save();
-    
-    console.log('✅ Project soft deleted successfully:', project.name);
 
-    res.status(200).json({ 
-      message: 'Proyecto eliminado exitosamente',
-      projectId: project._id,
-      projectName: project.name,
-      deletedAt: new Date().toISOString()
-    });
+    res.json({ message: 'Proyecto eliminado exitosamente' });
 
   } catch (error) {
-    console.error('❌ Error in delete project route:', error.message);
-    console.error('❌ Stack trace:', error.stack);
-    
+    console.error(error.message);
     if (error.kind === 'ObjectId') {
-      console.log('❌ Invalid ObjectId provided:', req.params.id);
       return res.status(404).json({ message: 'Proyecto no encontrado' });
     }
-    
-    res.status(500).json({ 
-      message: 'Error interno del servidor al eliminar proyecto',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Error interno'
-    });
+    res.status(500).json({ message: 'Error del servidor' });
   }
 });
 
