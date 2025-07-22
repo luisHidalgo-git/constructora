@@ -62,26 +62,34 @@ class ProjectService {
   static Future<ProjectModel> createProject(ProjectModel project) async {
     try {
       final headers = await _getHeaders();
-      
+
       // CRÍTICO: Procesar imagen y garantizar que esté en el servidor
       String processedImageUrl;
       try {
-        processedImageUrl = await ImageService.processImageForProject(project.imageUrl);
+        processedImageUrl = await ImageService.processImageForProject(
+          project.imageUrl,
+        );
         print('✅ Image processed and verified on server: $processedImageUrl');
       } catch (e) {
         print('❌ CRITICAL: Error processing image: $e');
         // Si hay una imagen local que no se pudo subir, fallar la creación
-        if (project.imageUrl != null && ImageService.isLocalImage(project.imageUrl!)) {
-          throw Exception('No se puede crear el proyecto: La imagen debe estar en el servidor para funcionar en múltiples dispositivos. Error: ${e.toString()}');
+        if (project.imageUrl != null &&
+            ImageService.isLocalImage(project.imageUrl!)) {
+          throw Exception(
+            'No se puede crear el proyecto: La imagen debe estar en el servidor para funcionar en múltiples dispositivos. Error: ${e.toString()}',
+          );
         }
         // Solo usar imagen por defecto si no había imagen seleccionada
-        processedImageUrl = 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
+        processedImageUrl =
+            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
       }
       print('🔍 Creating project with processed image URL: $processedImageUrl');
-      
+
       // Crear proyecto con imagen procesada
-      final projectData = project.copyWith(imageUrl: processedImageUrl).toCreateJson();
-      
+      final projectData = project
+          .copyWith(imageUrl: processedImageUrl)
+          .toCreateJson();
+
       final response = await http
           .post(
             Uri.parse(ApiConfig.projects),
@@ -109,26 +117,35 @@ class ProjectService {
   ) async {
     try {
       final headers = await _getHeaders();
-      
+
       // CRÍTICO: Procesar imagen y garantizar que esté en el servidor
       String processedImageUrl;
       try {
-        processedImageUrl = await ImageService.processImageForProject(project.imageUrl);
+        processedImageUrl = await ImageService.processImageForProject(
+          project.imageUrl,
+        );
         print('✅ Image processed and verified on server: $processedImageUrl');
       } catch (e) {
         print('❌ CRITICAL: Error processing image: $e');
         // Si hay una imagen local que no se pudo subir, fallar la actualización
-        if (project.imageUrl != null && ImageService.isLocalImage(project.imageUrl!)) {
-          throw Exception('No se puede actualizar el proyecto: La imagen debe estar en el servidor para funcionar en múltiples dispositivos. Error: ${e.toString()}');
+        if (project.imageUrl != null &&
+            ImageService.isLocalImage(project.imageUrl!)) {
+          throw Exception(
+            'No se puede actualizar el proyecto: La imagen debe estar en el servidor para funcionar en múltiples dispositivos. Error: ${e.toString()}',
+          );
         }
         // Mantener la imagen original si ya estaba en el servidor
-        processedImageUrl = project.imageUrl ?? 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
+        processedImageUrl =
+            project.imageUrl ??
+            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
       }
       print('🔍 Updating project with processed image URL: $processedImageUrl');
-      
+
       // Actualizar proyecto con imagen procesada
-      final projectData = project.copyWith(imageUrl: processedImageUrl).toUpdateJson();
-      
+      final projectData = project
+          .copyWith(imageUrl: processedImageUrl)
+          .toUpdateJson();
+
       final response = await http
           .put(
             Uri.parse(ApiConfig.projectById(id)),
@@ -157,7 +174,11 @@ class ProjectService {
           .delete(Uri.parse(ApiConfig.projectById(id)), headers: headers)
           .timeout(Duration(milliseconds: ApiConfig.timeout));
 
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        throw Exception('Error al eliminar proyecto: ${response.statusCode}');
+      }
     } catch (e) {
       throw Exception('Error de conexión: ${e.toString()}');
     }

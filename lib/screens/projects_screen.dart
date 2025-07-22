@@ -86,9 +86,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Project Image
                 Container(
                   height: 200,
@@ -115,9 +115,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                         )
                       : null,
                 ),
-                
+
                 const SizedBox(height: 20),
-                
+
                 // Project Details
                 Expanded(
                   child: SingleChildScrollView(
@@ -138,11 +138,13 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                         const SizedBox(height: 12),
                         _buildDetailRow('Estado', project.status),
                         const SizedBox(height: 16),
-                        
+
                         // Progress
                         Text(
                           'Progreso',
-                          style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                          style: AppTextStyles.fieldLabel.copyWith(
+                            fontSize: 14,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -168,13 +170,15 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Key Indicators
                         Text(
                           'Indicadores Clave',
-                          style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                          style: AppTextStyles.fieldLabel.copyWith(
+                            fontSize: 14,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         ...project.keyIndicators.entries.map((entry) {
@@ -218,17 +222,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTextStyles.fieldLabel.copyWith(fontSize: 12),
-        ),
+        Text(label, style: AppTextStyles.fieldLabel.copyWith(fontSize: 12)),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 14,
-            color: AppColors.textDark,
-          ),
+          style: const TextStyle(fontSize: 14, color: AppColors.textDark),
         ),
       ],
     );
@@ -239,38 +237,45 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       if (imageUrl.isEmpty) {
         return null;
       }
-      
+
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         return NetworkImage(imageUrl);
       }
-      
+
       // Si es un archivo local
       if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
-        String filePath = imageUrl.startsWith('file://') 
-            ? imageUrl.substring(7) 
+        String filePath = imageUrl.startsWith('file://')
+            ? imageUrl.substring(7)
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
           return FileImage(file);
         }
       }
-      
+
       // Si es una ruta del servidor sin dominio, construir URL completa
       if (imageUrl.startsWith('/uploads/')) {
         final fullUrl = ImageService.buildServerImageUrl(imageUrl);
         return NetworkImage(fullUrl);
       }
-      
+
       // Si parece ser un nombre de archivo, intentar construir URL del servidor
-      if (!imageUrl.contains('/') && (imageUrl.contains('.jpg') || imageUrl.contains('.png') || imageUrl.contains('.jpeg'))) {
+      if (!imageUrl.contains('/') &&
+          (imageUrl.contains('.jpg') ||
+              imageUrl.contains('.png') ||
+              imageUrl.contains('.jpeg'))) {
         final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
         return NetworkImage(fullUrl);
       }
-      
-      return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
+
+      return const NetworkImage(
+        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
     } catch (e) {
-      return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
+      return const NetworkImage(
+        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
     }
   }
 
@@ -325,7 +330,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 24),
-              
+
               // Actualizar
               ListTile(
                 leading: Container(
@@ -350,17 +355,15 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 ),
                 subtitle: const Text(
                   'Editar información del proyecto',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textGray,
-                  ),
+                  style: TextStyle(fontSize: 12, color: AppColors.textGray),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => UpdateProjectScreen(project: project),
+                      builder: (context) =>
+                          UpdateProjectScreen(project: project),
                     ),
                   ).then((result) {
                     if (result != null) {
@@ -369,9 +372,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   });
                 },
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Eliminar
               ListTile(
                 leading: Container(
@@ -380,11 +383,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     color: Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.delete,
-                    color: Colors.red,
-                    size: 20,
-                  ),
+                  child: const Icon(Icons.delete, color: Colors.red, size: 20),
                 ),
                 title: const Text(
                   'Eliminar',
@@ -396,17 +395,14 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 ),
                 subtitle: const Text(
                   'Borrar proyecto permanentemente',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textGray,
-                  ),
+                  style: TextStyle(fontSize: 12, color: AppColors.textGray),
                 ),
                 onTap: () {
                   Navigator.pop(context);
                   _confirmDeleteProject(project);
                 },
               ),
-              
+
               const SizedBox(height: 16),
             ],
           ),
@@ -532,31 +528,23 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
       // Eliminar del servidor
       final success = await ProjectService.deleteProject(project.id);
-      
-      if (mounted) {
+
+      if (mounted && success) {
         Navigator.pop(context); // Cerrar loading
-        
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Proyecto "${project.name}" eliminado exitosamente'),
-              backgroundColor: const Color(0xFF10B981),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Proyecto "${project.name}" eliminado exitosamente'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
-          );
-          
-          // Actualizar la lista
-          _refreshProjects();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error al eliminar el proyecto'),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
+          ),
+        );
+
+        // Actualizar la lista
+        _refreshProjects();
       }
     } catch (e) {
       if (mounted) {
@@ -571,6 +559,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -587,7 +576,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     onTap: () {
                       Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(builder: (context) => const HomeScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const HomeScreen(),
+                        ),
                         (route) => false,
                       );
                     },
@@ -665,11 +656,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               'Error al cargar proyectos',
@@ -699,11 +686,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.construction,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.construction, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               'No hay proyectos',
@@ -727,21 +710,25 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
         children: [
-          ..._projects.map((project) => Padding(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: ProjectDetailCard(
-              project: project,
-              title: project.name,
-              location: project.location,
-              date: project.startDate,
-              progress: project.progress,
-              status: project.status,
-              budget: project.budget,
-              imageUrl: project.imageUrl,
-              onTap: () => _showProjectDetails(project),
-              onLongPress: () => _showProjectOptions(project),
-            ),
-          )).toList(),
+          ..._projects
+              .map(
+                (project) => Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: ProjectDetailCard(
+                    project: project,
+                    title: project.name,
+                    location: project.location,
+                    date: project.startDate,
+                    progress: project.progress,
+                    status: project.status,
+                    budget: project.budget,
+                    imageUrl: project.imageUrl,
+                    onTap: () => _showProjectDetails(project),
+                    onLongPress: () => _showProjectOptions(project),
+                  ),
+                ),
+              )
+              .toList(),
         ],
       ),
     );
