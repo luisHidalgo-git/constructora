@@ -15,7 +15,7 @@ router.post('/generate-qr', async (req, res) => {
 
     // Generar código único
     const qrCode = uuidv4();
-    
+
     // Crear registro en base de datos (expira en 2 minutos)
     const tvAuth = new TVAuth({
       qrCode,
@@ -34,7 +34,7 @@ router.post('/generate-qr', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error generating QR code:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Error generating QR code',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
@@ -59,7 +59,7 @@ router.post('/scan-qr', auth, async (req, res) => {
     }
 
     // Buscar el código QR en la base de datos
-    const tvAuth = await TVAuth.findOne({ 
+    const tvAuth = await TVAuth.findOne({
       qrCode,
       isUsed: false,
       expiresAt: { $gt: new Date() }
@@ -67,8 +67,8 @@ router.post('/scan-qr', auth, async (req, res) => {
 
     if (!tvAuth) {
       console.log('❌ QR code not found or expired:', qrCode);
-      return res.status(404).json({ 
-        message: 'QR code not found or expired' 
+      return res.status(404).json({
+        message: 'QR code not found or expired'
       });
     }
 
@@ -76,13 +76,15 @@ router.post('/scan-qr', auth, async (req, res) => {
     tvAuth.isUsed = true;
     tvAuth.user = req.user.id;
     tvAuth.usedAt = new Date();
+
+    // Obtener el token del header de autorización
+    const token = req.header('Authorization')?.replace('Bearer ', '');
     tvAuth.token = token; // Guardar el token en la base de datos
+
     await tvAuth.save();
 
     console.log('✅ QR code scanned successfully by user:', req.user.email);
 
-    // Obtener el token del header de autorización
-    const token = req.header('Authorization')?.replace('Bearer ', '');
 
     res.json({
       message: 'QR code scanned successfully',
@@ -99,7 +101,7 @@ router.post('/scan-qr', auth, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error scanning QR code:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Error scanning QR code',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
@@ -118,7 +120,7 @@ router.get('/check-status/:qrCode', async (req, res) => {
     const tvAuth = await TVAuth.findOne({ qrCode }).populate('user', 'name email role position');
 
     if (!tvAuth) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'QR code not found',
         status: 'not_found'
       });
@@ -159,7 +161,7 @@ router.get('/check-status/:qrCode', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error checking QR status:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Error checking QR status',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
@@ -186,7 +188,7 @@ router.delete('/cleanup', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error during cleanup:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Error during cleanup',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
