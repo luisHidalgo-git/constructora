@@ -128,6 +128,7 @@ try {
   app.use('/api/activities', require('./routes/activities'));
   app.use('/api/stats', require('./routes/stats'));
   app.use('/api/upload', require('./routes/upload'));
+  app.use('/api/tv-auth', require('./routes/tv-auth'));
   console.log('✅ Rutas cargadas exitosamente');
 } catch (error) {
   console.error('❌ Error cargando rutas:', error);
