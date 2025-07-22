@@ -77,7 +77,14 @@ const projectSchema = new mongoose.Schema({
   },
   imageUrl: {
     type: String,
-    default: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800'
+    default: 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+    validate: {
+      validator: function(v) {
+        // Permitir URLs válidas o cadenas vacías
+        return !v || /^https?:\/\/.+/.test(v);
+      },
+      message: 'La URL de la imagen debe ser válida'
+    }
   },
   supervisor: {
     type: mongoose.Schema.Types.ObjectId,
