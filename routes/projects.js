@@ -12,9 +12,9 @@ const router = express.Router();
 // @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const projects = await Project.find({ 
+    const projects = await Project.find({
       supervisor: req.user.id,
-      isActive: true 
+      isActive: true
     }).populate('supervisor', 'name email').sort({ createdAt: -1 });
 
     res.json(projects);
@@ -168,16 +168,22 @@ router.put('/:id', [
 // @access  Private
 router.delete('/:id', auth, async (req, res) => {
   try {
+    console.log('🔍 DELETE request for project ID:', req.params.id);
+
     let project = await Project.findById(req.params.id);
 
     if (!project) {
+      console.log('❌ Project not found:', req.params.id);
       return res.status(404).json({ message: 'Proyecto no encontrado' });
     }
 
     // Check if user owns this project
     if (project.supervisor.toString() !== req.user.id && req.user.role !== 'admin') {
+      console.log('❌ User does not own project:', req.user.id, 'vs', project.supervisor.toString());
       return res.status(403).json({ message: 'No tienes permisos para eliminar este proyecto' });
     }
+
+    console.log('🔍 Project found, proceeding with deletion...');
 
     // Eliminar imagen del servidor si existe
     if (project.imageUrl && project.imageUrl.includes('/uploads/')) {
@@ -186,19 +192,24 @@ router.delete('/:id', auth, async (req, res) => {
         const filePath = path.join(__dirname, '../uploads', filename);
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
-          console.log(`Imagen eliminada: ${filename}`);
+          console.log(`✅ Image deleted: ${filename}`);
         }
       } catch (error) {
-        console.error('Error eliminando imagen:', error);
+        console.error('❌ Error deleting image:', error);
       }
     }
+
+    // Soft delete - marcar como inactivo
     project.isActive = false;
     await project.save();
+
+    console.log('✅ Project soft deleted successfully:', project.name);
 
     res.json({ message: 'Proyecto eliminado exitosamente' });
 
   } catch (error) {
-    console.error(error.message);
+    console.error('❌ Error in delete route:', error.message);
+    console.error('❌ Stack trace:', error.stack);
     if (error.kind === 'ObjectId') {
       return res.status(404).json({ message: 'Proyecto no encontrado' });
     }
