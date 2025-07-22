@@ -32,8 +32,10 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
   Future<void> _loadProjectTimeline() async {
     try {
       // Intentar cargar actividades reales del proyecto
-      final activities = await ActivityService.getActivitiesByProject(widget.project.id);
-      
+      final activities = await ActivityService.getActivitiesByProject(
+        widget.project.id,
+      );
+
       if (activities.isNotEmpty) {
         // Usar actividades reales del servidor
         _projectTimeline = activities.map((activity) {
@@ -41,8 +43,11 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             'title': activity.title,
             'date': activity.date,
             'isCompleted': activity.status == 'completed',
-            'progress': activity.status == 'completed' ? 1.0 : 
-                       activity.status == 'in_progress' ? 0.5 : 0.0,
+            'progress': activity.status == 'completed'
+                ? 1.0
+                : activity.status == 'in_progress'
+                ? 0.5
+                : 0.0,
             'type': activity.type,
             'description': activity.description ?? '',
           };
@@ -51,7 +56,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         // Si no hay actividades reales, generar timeline basado en el progreso del proyecto
         _generateTimelineFromProgress();
       }
-      
+
       setState(() {
         _isLoadingActivities = false;
       });
@@ -67,11 +72,11 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
   void _generateTimelineFromProgress() {
     _projectTimeline.clear();
-    
+
     // Generar timeline basado en el progreso real del proyecto
     final totalPhases = 8;
     final completedPhases = (totalPhases * widget.project.progress).round();
-    
+
     final phaseNames = [
       'Planificación inicial',
       'Preparación del terreno',
@@ -82,18 +87,23 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       'Acabados interiores',
       'Finalización y entrega',
     ];
-    
+
     final startDate = DateTime.now().subtract(const Duration(days: 60));
-    
+
     for (int i = 0; i < totalPhases; i++) {
       final isCompleted = i < completedPhases;
       final phaseDate = startDate.add(Duration(days: i * 7));
-      
+
       _projectTimeline.add({
         'title': phaseNames[i],
-        'date': '${phaseDate.day.toString().padLeft(2, '0')}/${phaseDate.month.toString().padLeft(2, '0')}/${phaseDate.year}',
+        'date':
+            '${phaseDate.day.toString().padLeft(2, '0')}/${phaseDate.month.toString().padLeft(2, '0')}/${phaseDate.year}',
         'isCompleted': isCompleted,
-        'progress': isCompleted ? 1.0 : (i == completedPhases ? (widget.project.progress * totalPhases) - completedPhases : 0.0),
+        'progress': isCompleted
+            ? 1.0
+            : (i == completedPhases
+                  ? (widget.project.progress * totalPhases) - completedPhases
+                  : 0.0),
         'type': 'construction',
         'description': 'Fase de construcción',
       });
@@ -111,11 +121,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1A1A1A),
-              Color(0xFF2D2D2D),
-              Color(0xFF1A1A1A),
-            ],
+            colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
           ),
         ),
         child: SafeArea(
@@ -125,27 +131,21 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               children: [
                 // Header exacto al mockup
                 _buildMockupHeader(),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Layout principal según mockup
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Panel izquierdo - Detalles del proyecto (como en mockup)
-                      Expanded(
-                        flex: 2,
-                        child: _buildMockupProjectDetails(),
-                      ),
-                      
+                      Expanded(flex: 2, child: _buildMockupProjectDetails()),
+
                       const SizedBox(width: 24),
-                      
+
                       // Panel derecho - Cronograma (como en mockup)
-                      Expanded(
-                        flex: 1,
-                        child: _buildMockupProjectTimeline(),
-                      ),
+                      Expanded(flex: 1, child: _buildMockupProjectTimeline()),
                     ],
                   ),
                 ),
@@ -163,9 +163,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Row(
         children: [
@@ -196,17 +194,17 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               Container(
                 height: 20,
                 width: 1,
                 color: Colors.white.withOpacity(0.3),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               const Text(
                 'Detalle del Proyecto',
                 style: TextStyle(
@@ -217,9 +215,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               ),
             ],
           ),
-          
+
           const Spacer(),
-          
+
           // Usuario y botón volver
           Row(
             children: [
@@ -234,10 +232,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               const SizedBox(height: 4),
               Text(
                 widget.user['position'] ?? 'Supervisor de obra',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.white60,
-                ),
+                style: const TextStyle(fontSize: 12, color: Colors.white60),
               ),
               const SizedBox(width: 16),
               Container(
@@ -267,7 +262,8 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => TVDashboardScreen(user: widget.user),
+                      builder: (context) =>
+                          TVDashboardScreen(user: widget.user),
                     ),
                   );
                 },
@@ -298,9 +294,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,9 +345,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Grid de información como en mockup
           Row(
             children: [
@@ -374,9 +368,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               Expanded(
@@ -396,18 +390,16 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Progreso General como en mockup
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: const Color(0xFF1F1F1F),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.1),
-              ),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,9 +446,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               ],
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Indicadores Clave como en mockup
           const Text(
             'Indicadores Clave',
@@ -466,9 +458,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               color: Colors.white,
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           Expanded(
             child: Row(
               children: [
@@ -501,9 +493,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-        ),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,9 +528,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-        ),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -574,9 +562,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -590,22 +576,22 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               color: Colors.white,
             ),
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Timeline con datos reales
           Expanded(
             child: _isLoadingActivities
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF6366F1)),
-                )
-              : ListView.builder(
-                  itemCount: _projectTimeline.length,
-                  itemBuilder: (context, index) {
-                    final activity = _projectTimeline[index];
-                    return _buildMockupTimelineItem(activity, index);
-                  },
-                ),
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+                  )
+                : ListView.builder(
+                    itemCount: _projectTimeline.length,
+                    itemBuilder: (context, index) {
+                      final activity = _projectTimeline[index];
+                      return _buildMockupTimelineItem(activity, index);
+                    },
+                  ),
           ),
         ],
       ),
@@ -615,21 +601,21 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
   Widget _buildMockupTimelineItem(Map<String, dynamic> activity, int index) {
     final isCompleted = activity['isCompleted'];
     final progress = activity['progress'];
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isCompleted 
-          ? const Color(0xFF10B981).withOpacity(0.1)
-          : progress > 0
+        color: isCompleted
+            ? const Color(0xFF10B981).withOpacity(0.1)
+            : progress > 0
             ? const Color(0xFF6366F1).withOpacity(0.1)
             : const Color(0xFF1F1F1F),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isCompleted 
-            ? const Color(0xFF10B981).withOpacity(0.3)
-            : progress > 0
+          color: isCompleted
+              ? const Color(0xFF10B981).withOpacity(0.3)
+              : progress > 0
               ? const Color(0xFF6366F1).withOpacity(0.3)
               : Colors.white.withOpacity(0.1),
         ),
@@ -641,24 +627,20 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: isCompleted 
-                ? const Color(0xFF10B981)
-                : progress > 0 
+              color: isCompleted
+                  ? const Color(0xFF10B981)
+                  : progress > 0
                   ? const Color(0xFF6366F1)
                   : Colors.white.withOpacity(0.3),
               shape: BoxShape.circle,
             ),
-            child: isCompleted 
-              ? const Icon(
-                  Icons.check,
-                  color: Colors.white,
-                  size: 8,
-                )
-              : null,
+            child: isCompleted
+                ? const Icon(Icons.check, color: Colors.white, size: 8)
+                : null,
           ),
-          
+
           const SizedBox(width: 12),
-          
+
           // Contenido de la actividad
           Expanded(
             child: Column(
