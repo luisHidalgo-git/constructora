@@ -10,6 +10,7 @@ import '../models/stats_model.dart';
 import 'tv_qr_screen.dart';
 import 'tv_project_detail_screen.dart';
 import '../services/auth_service.dart';
+import '../services/sync_service.dart';
 
 class TVDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -25,21 +26,105 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   StatsModel? _stats;
   bool _isLoading = true;
   Timer? _refreshTimer;
+  StreamSubscription<Map<String, dynamic>>? _syncSubscription;
   List<Map<String, dynamic>> _recentUpdates = [];
+  String? _selectedProjectId;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _initSync();
     // Actualizar datos cada 30 segundos
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       _loadData();
     });
   }
 
+  Future<void> _initSync() async {
+    try {
+      final userId = widget.user['id'];
+      await SyncService.startSync(userId);
+      
+      // Escuchar eventos de sincronización
+      _syncSubscription = SyncService.getNavigationStream(userId).listen((event) {
+        _handleSyncEvent(event);
+      });
+      
+      print('✅ TV Dashboard sync initialized for user: $userId');
+    } catch (e) {
+      print('❌ Error initializing TV sync: $e');
+    }
+  }
+
+  void _handleSyncEvent(Map<String, dynamic> event) {
+    final eventType = event['eventType'];
+    final data = event['data'] ?? {};
+    
+    print('📱 TV received sync event: $eventType');
+    
+    switch (eventType) {
+      case 'navigate_to_projects':
+        // Ya estamos en dashboard, no hacer nada
+        break;
+        
+      case 'navigate_to_project_detail':
+        final projectId = data['projectId'];
+        if (projectId != null) {
+          _navigateToProjectDetail(projectId);
+        }
+        break;
+        
+      case 'project_updated':
+      case 'project_created':
+        // Recargar datos para mostrar cambios en tiempo real
+        _loadData();
+        break;
+        
+      case 'logout':
+        _handleLogoutEvent();
+        break;
+    }
+  }
+
+  void _navigateToProjectDetail(String projectId) {
+    // Buscar el proyecto en la lista actual
+    final project = _projects.firstWhere(
+      (p) => p.id == projectId,
+      orElse: () => _projects.isNotEmpty ? _projects.first : null,
+    );
+    
+    if (project != null) {
+      setState(() {
+        _selectedProjectId = projectId;
+      });
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TVProjectDetailScreen(
+            project: project,
+            user: widget.user,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _handleLogoutEvent() {
+    // Cerrar sesión automáticamente cuando el teléfono cierre sesión
+    _clearTVSession();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const TVQRScreen()),
+    );
+  }
+
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _syncSubscription?.cancel();
+    SyncService.stopSync();
     super.dispose();
   }
 
@@ -173,6 +258,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
               onPressed: () {
                 Navigator.of(context).pop();
                 _clearTVSession();
+                SyncService.stopSync();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const TVQRScreen()),

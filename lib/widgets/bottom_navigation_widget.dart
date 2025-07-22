@@ -6,6 +6,7 @@ import '../screens/update_project_screen.dart';
 import '../screens/login_screen.dart';
 import '../services/auth_service.dart';
 import '../screens/qr_scanner_screen.dart'; // --- Importar pantalla de escaneo QR ---
+import '../services/sync_service.dart';
 
 class BottomNavigationWidget extends StatelessWidget {
   final int currentIndex;
@@ -86,6 +87,8 @@ class BottomNavigationWidget extends StatelessWidget {
             ElevatedButton(
               onPressed: () async {
                 Navigator.of(context).pop();
+                // Enviar evento de logout antes de cerrar sesión
+                await SyncService.logout();
                 await AuthService.logout();
                 Navigator.pushAndRemoveUntil(
                   context,

@@ -9,6 +9,8 @@ import '../models/project_model.dart';
 import '../screens/update_project_screen.dart';
 import 'dart:io';
 import '../services/image_service.dart';
+import '../services/sync_service.dart';
+import '../services/auth_service.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key});
@@ -26,6 +28,20 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   void initState() {
     super.initState();
     _loadProjects();
+    // Iniciar sincronización y enviar evento de navegación a proyectos
+    _initSync();
+  }
+
+  Future<void> _initSync() async {
+    try {
+      final user = await AuthService.getSavedUser();
+      if (user != null) {
+        await SyncService.startSync(user.id);
+        await SyncService.navigateToProjects();
+      }
+    } catch (e) {
+      print('Error initializing sync: $e');
+    }
   }
 
   Future<void> _loadProjects() async {
@@ -54,6 +70,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   void _showProjectDetails(ProjectModel project) {
+    // Enviar evento de navegación a detalle de proyecto
+    SyncService.navigateToProjectDetail(project.id);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {

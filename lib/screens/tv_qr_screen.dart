@@ -38,9 +38,13 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
       duration: const Duration(seconds: 2),
       vsync: this,
     );
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
+    _pulseAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    ));
     _pulseController.repeat(reverse: true);
   }
 
@@ -63,7 +67,7 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
 
     try {
       final result = await TVAuthService.generateQRCode();
-
+      
       if (result['success']) {
         setState(() {
           _currentQRCode = result['qrCode'];
@@ -78,7 +82,7 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
           _isLoading = false;
           _status = 'Error: ${result['message']}';
         });
-
+        
         // Reintentar en 5 segundos
         Timer(const Duration(seconds: 5), _generateNewQR);
       }
@@ -87,7 +91,7 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
         _isLoading = false;
         _status = 'Error de conexión. Reintentando...';
       });
-
+      
       // Reintentar en 5 segundos
       Timer(const Duration(seconds: 5), _generateNewQR);
     }
@@ -116,39 +120,41 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
 
     try {
       final result = await TVAuthService.checkQRStatus(_currentQRCode!);
-
+      
       if (result['success']) {
         final status = result['status'];
-
+        
         switch (status) {
           case 'authenticated':
             print('✅ User authenticated successfully!');
             _stopTimers();
-
+            
             // Guardar el token en el almacenamiento local de la TV
             if (result['token'] != null) {
               await _saveTokenForTV(result['token']);
             }
-
+            
             // Navegar a dashboard con datos del usuario
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(
-                builder: (context) => TVDashboardScreen(user: result['user']),
+                builder: (context) => TVDashboardScreen(
+                  user: result['user'],
+                ),
               ),
               (route) => false,
             );
             break;
-
+            
           case 'expired':
             print('⏰ QR code expired, generating new one...');
             _generateNewQR();
             break;
-
+            
           case 'waiting':
             // Continuar esperando
             break;
-
+            
           default:
             print('❓ Unknown status: $status');
         }
@@ -165,10 +171,10 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
 
   String _getTimeRemaining() {
     if (_expiresAt == null) return '';
-
+    
     final remaining = _expiresAt!.difference(DateTime.now());
     if (remaining.isNegative) return 'Expirado';
-
+    
     final minutes = remaining.inMinutes;
     final seconds = remaining.inSeconds % 60;
     return '${minutes}:${seconds.toString().padLeft(2, '0')}';
@@ -195,7 +201,11 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
+            colors: [
+              Color(0xFF1A1A1A),
+              Color(0xFF2D2D2D),
+              Color(0xFF1A1A1A),
+            ],
           ),
         ),
         child: SafeArea(

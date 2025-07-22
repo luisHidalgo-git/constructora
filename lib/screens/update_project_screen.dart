@@ -14,6 +14,7 @@ import '../utils/app_text_styles.dart';
 import '../models/project_model.dart';
 import '../services/project_service.dart';
 import '../services/image_service.dart';
+import '../services/sync_service.dart';
 
 class UpdateProjectScreen extends StatefulWidget {
   final ProjectModel? project;
@@ -229,10 +230,14 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
           widget.project!.id,
           projectData,
         );
+        // Enviar evento de proyecto actualizado
+        await SyncService.projectUpdated(result.toUpdateJson());
         _showMessage('Proyecto actualizado exitosamente');
       } else {
         // Crear nuevo proyecto
         result = await ProjectService.createProject(projectData);
+        // Enviar evento de proyecto creado
+        await SyncService.projectCreated(result.toUpdateJson());
         _showMessage('Proyecto creado exitosamente');
         // Marcar como guardado
         setState(() {

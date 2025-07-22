@@ -50,6 +50,9 @@ class ApiConfig {
   static String get tvAuthGenerateQR => '$tvAuth/generate-qr';
   static String get tvAuthScanQR => '$tvAuth/scan-qr';
   static String tvAuthCheckStatus(String qrCode) => '$tvAuth/check-status/$qrCode';
+  
+  // Sync endpoints
+  static String get sync => '$baseUrl/sync';
 
   // Método para verificar la conectividad
   static Future<bool> checkConnectivity() async {

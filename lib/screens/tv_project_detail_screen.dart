@@ -4,6 +4,9 @@ import '../models/project_model.dart';
 import '../services/activity_service.dart';
 import '../models/activity_model.dart';
 import 'tv_dashboard_screen.dart';
+import '../services/sync_service.dart';
+import 'dart:async';
+import 'tv_qr_screen.dart';
 
 class TVProjectDetailScreen extends StatefulWidget {
   final ProjectModel project;
@@ -22,11 +25,83 @@ class TVProjectDetailScreen extends StatefulWidget {
 class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
   List<Map<String, dynamic>> _projectTimeline = [];
   bool _isLoadingActivities = true;
+  StreamSubscription<Map<String, dynamic>>? _syncSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadProjectTimeline();
+    _initSync();
+  }
+
+  Future<void> _initSync() async {
+    try {
+      final userId = widget.user['id'];
+
+      // Escuchar eventos de sincronización
+      _syncSubscription = SyncService.getNavigationStream(userId).listen((
+        event,
+      ) {
+        _handleSyncEvent(event);
+      });
+
+      print('✅ TV Project Detail sync initialized');
+    } catch (e) {
+      print('❌ Error initializing TV project detail sync: $e');
+    }
+  }
+
+  void _handleSyncEvent(Map<String, dynamic> event) {
+    final eventType = event['eventType'];
+    final data = event['data'] ?? {};
+
+    print('📱 TV Project Detail received sync event: $eventType');
+
+    switch (eventType) {
+      case 'navigate_to_projects':
+        // Volver al dashboard
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TVDashboardScreen(user: widget.user),
+          ),
+        );
+        break;
+
+      case 'navigate_to_project_detail':
+        final projectId = data['projectId'];
+        if (projectId != null && projectId != widget.project.id) {
+          // Navegar a otro proyecto (recargar esta pantalla con nuevo proyecto)
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TVDashboardScreen(user: widget.user),
+            ),
+          );
+        }
+        break;
+
+      case 'project_updated':
+        // Recargar timeline si es el proyecto actual
+        final updatedProject = data['project'];
+        if (updatedProject != null &&
+            updatedProject['id'] == widget.project.id) {
+          _loadProjectTimeline();
+        }
+        break;
+
+      case 'logout':
+        _handleLogoutEvent();
+        break;
+    }
+  }
+
+  void _handleLogoutEvent() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const TVQRScreen()),
+      (route) => false,
+    );
   }
 
   Future<void> _loadProjectTimeline() async {
@@ -108,6 +183,12 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         'description': 'Fase de construcción',
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _syncSubscription?.cancel();
+    super.dispose();
   }
 
   @override
