@@ -6,6 +6,7 @@ import '../utils/app_text_styles.dart';
 import '../services/tv_auth_service.dart';
 import '../utils/platform_utils.dart';
 import 'tv_user_dashboard_screen.dart';
+import 'tv_dashboard_screen.dart';
 
 class TVQRScreen extends StatefulWidget {
   const TVQRScreen({super.key});
@@ -117,13 +118,14 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
             _stopTimers();
             
             // Navegar a dashboard con datos del usuario
-            Navigator.pushReplacement(
+            Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(
-                builder: (context) => TVUserDashboardScreen(
+                builder: (context) => TVDashboardScreen(
                   user: result['user'],
                 ),
               ),
+              (route) => false,
             );
             break;
             

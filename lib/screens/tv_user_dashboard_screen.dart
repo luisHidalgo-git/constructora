@@ -3,6 +3,7 @@ import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../services/auth_service.dart';
 import 'tv_qr_screen.dart';
+import 'tv_dashboard_screen.dart';
 
 class TVUserDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -476,11 +477,12 @@ class _TVUserDashboardScreenState extends State<TVUserDashboardScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.pushReplacement(
+                Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const TVQRScreen(),
+                    builder: (context) => TVDashboardScreen(user: widget.user),
                   ),
+                  (route) => false,
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -491,7 +493,7 @@ class _TVUserDashboardScreenState extends State<TVUserDashboardScreen> {
                 ),
               ),
               child: const Text(
-                'Cerrar Sesión',
+                'Ir al Dashboard',
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
