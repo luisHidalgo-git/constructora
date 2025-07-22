@@ -16,6 +16,10 @@ const tvAuthSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   },
+  token: {
+    type: String,
+    default: null
+  },
   expiresAt: {
     type: Date,
     required: true,

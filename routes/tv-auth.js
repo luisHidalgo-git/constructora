@@ -76,13 +76,18 @@ router.post('/scan-qr', auth, async (req, res) => {
     tvAuth.isUsed = true;
     tvAuth.user = req.user.id;
     tvAuth.usedAt = new Date();
+    tvAuth.token = token; // Guardar el token en la base de datos
     await tvAuth.save();
 
     console.log('✅ QR code scanned successfully by user:', req.user.email);
 
+    // Obtener el token del header de autorización
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+
     res.json({
       message: 'QR code scanned successfully',
       success: true,
+      token: token, // Enviar el token a la TV
       user: {
         id: req.user.id,
         name: req.user.name,
@@ -133,6 +138,7 @@ router.get('/check-status/:qrCode', async (req, res) => {
       return res.json({
         status: 'authenticated',
         message: 'User authenticated successfully',
+        token: tvAuth.token, // Incluir el token en la respuesta
         user: {
           id: tvAuth.user.id,
           name: tvAuth.user.name,
