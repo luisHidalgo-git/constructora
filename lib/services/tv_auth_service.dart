@@ -81,6 +81,7 @@ class TVAuthService {
           'success': true,
           'message': data['message'],
           'user': data['user'],
+          'token': data['token'],
         };
       } else {
         Map<String, dynamic> error;
@@ -128,6 +129,7 @@ class TVAuthService {
           'status': data['status'],
           'message': data['message'],
           'user': data['user'],
+          'token': data['token'],
           'expiresAt': data['expiresAt'] != null 
               ? DateTime.parse(data['expiresAt']) 
               : null,

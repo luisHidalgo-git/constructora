@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../services/tv_auth_service.dart';
@@ -45,6 +46,17 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
       curve: Curves.easeInOut,
     ));
     _pulseController.repeat(reverse: true);
+  }
+
+  // Método para guardar el token en el almacenamiento local de la TV
+  Future<void> _saveTokenForTV(String token) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', token);
+      print('✅ Token saved for TV: ${token.substring(0, 20)}...');
+    } catch (e) {
+      print('❌ Error saving token for TV: $e');
+    }
   }
 
   Future<void> _generateNewQR() async {
@@ -116,6 +128,11 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
           case 'authenticated':
             print('✅ User authenticated successfully!');
             _stopTimers();
+            
+            // Guardar el token en el almacenamiento local de la TV
+            if (result['token'] != null) {
+              await _saveTokenForTV(result['token']);
+            }
             
             // Navegar a dashboard con datos del usuario
             Navigator.pushAndRemoveUntil(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../services/project_service.dart';
@@ -8,6 +9,7 @@ import '../models/project_model.dart';
 import '../models/stats_model.dart';
 import 'tv_qr_screen.dart';
 import 'tv_project_detail_screen.dart';
+import '../services/auth_service.dart';
 
 class TVDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -45,6 +47,22 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
   Future<void> _loadData() async {
     try {
+      print('🔍 TV Dashboard - Loading data...');
+      
+      // Verificar que tenemos token para hacer las llamadas a la API
+      final token = await AuthService.getToken();
+      if (token == null) {
+        print('❌ TV Dashboard - No token available, cannot load data');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+      
+      print('✅ TV Dashboard - Token available, loading projects and stats...');
+      
       final results = await Future.wait([
         ProjectService.getProjects(),
         StatsService.getStats(),
@@ -56,6 +74,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           _stats = results[1] as StatsModel;
           _isLoading = false;
         });
+        print('✅ TV Dashboard - Data loaded successfully: ${_projects.length} projects');
       }
     } catch (e) {
       print('Error loading TV dashboard data: $e');
@@ -105,6 +124,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
+                _clearTVSession();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -128,6 +148,16 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         );
       },
     );
+  }
+
+  // Limpiar sesión de TV
+  Future<void> _clearTVSession() async {
+    try {
+      await AuthService.logout();
+      print('✅ TV session cleared');
+    } catch (e) {
+      print('❌ Error clearing TV session: $e');
+    }
   }
 
   @override
