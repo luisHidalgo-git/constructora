@@ -3,7 +3,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:convert';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
-import '../services/tv_auth_service.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 
@@ -150,78 +149,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     try {
       print('🔍 Processing QR code: $qrData');
 
-      if (!TVAuthService.isValidTVQRCode(qrData)) {
-        print('❌ QR code is not valid for TV login');
-        _showGenericQRResult(qrData);
-        return;
-      }
-
-      final sessionId = TVAuthService.extractSessionIdFromQR(qrData);
-      if (sessionId == null) {
-        print('❌ Could not extract session ID from QR');
-        _showError('No se pudo extraer el ID de sesión del código QR');
-        return;
-      }
-
-      print('🔍 Extracted session ID: $sessionId');
-
-      // Obtener datos del usuario autenticado
-      final userToken = await AuthService.getToken();
-      final currentUser = await AuthService.getSavedUser();
-
-      if (userToken == null || currentUser == null) {
-        print('❌ No user token or user data available');
-        _showError(
-          'Debes estar autenticado para conectar con la TV. Inicia sesión primero.',
-        );
-        return;
-      }
-
-      print('🔍 User authenticated: ${currentUser.name}');
-
-      // Mostrar loading mientras se autentica
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-      );
-
-      print('🔍 Mobile: Authenticating TV session with real user data via backend...');
-      print('🔍 Mobile: Session ID: $sessionId');
-      print('🔍 Mobile: User: ${currentUser.name} - ${currentUser.email}');
-      
-      final success = await TVAuthService.authenticateTVSessionWithRealUser(
-        sessionId,
-      );
-
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop(); // Cerrar loading
-      }
-
-      if (success) {
-        print(
-          '✅ Mobile: TV session authenticated successfully via backend with user: ${currentUser.name}',
-        );
-
-        // Dar más tiempo para que el backend procese la autenticación
-        await Future.delayed(const Duration(milliseconds: 2000));
-        
-        // Verificar que los datos se guardaron correctamente en el backend
-        print('🔍 Mobile: Verifying session status after authentication...');
-        final verificationStatus = await TVAuthService.checkTVSessionStatus(sessionId);
-        if (verificationStatus != null && verificationStatus['status'] == 'authenticated') {
-          print('✅ Mobile: Session verification successful');
-        } else {
-          print('⚠️ Mobile: Session verification inconclusive, but proceeding...');
-        }
-
-        _showTVConnectionSuccess(sessionId, currentUser);
-      } else {
-        print('❌ Mobile: Failed to authenticate TV session via backend');
-        _showError('No se pudo autenticar la sesión de TV via backend. Intenta de nuevo.');
-      }
+      // Mostrar resultado genérico del QR
+      _showGenericQRResult(qrData);
     } catch (e) {
       print('❌ Mobile: Error processing QR code: $e');
       if (mounted) {
@@ -230,7 +159,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           rootNavigator: true,
         ).pop(); // Cerrar loading si está abierto
       }
-      _showError('Error procesando código QR: ${e.toString()}');
+      _showGenericQRResult(qrData);
     }
 
     // Siempre resetear el estado de procesamiento
@@ -239,154 +168,6 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         isProcessing = false;
       });
     }
-  }
-
-  void _showTVConnectionSuccess(String sessionId, UserModel user) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.tv, color: Color(0xFF10B981), size: 24),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Conectado a TV',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '¡Conexión exitosa!',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF10B981),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Hola ${user.name}! Tu sesión móvil se ha conectado exitosamente con la TV. El dashboard debería cargarse automáticamente en la pantalla en unos segundos.',
-                style: const TextStyle(fontSize: 14, color: AppColors.textGray),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Color(0xFF10B981), size: 14),
-                    SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Si la TV no redirige automáticamente, verifica que esté en la pantalla de QR.',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF10B981),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.person,
-                      color: AppColors.primary,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user.name,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          Text(
-                            '${user.position} - ${user.email}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppColors.textGray,
-                            ),
-                          ),
-                          const Text(
-                            'Autenticado via backend',
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: Color(0xFF10B981),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(context).pop(); // Cerrar QR scanner
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Continuar',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _showError(String message) {
@@ -414,7 +195,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               ),
               const SizedBox(width: 12),
               const Text(
-                'Error de Conexión',
+                'Error',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -449,7 +230,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Asegúrate de que el código QR sea de una TV con Avanze360 activo y que la sesión no haya expirado.',
+                        'Este código QR no es compatible con la aplicación.',
                         style: TextStyle(fontSize: 12, color: Colors.orange),
                       ),
                     ),

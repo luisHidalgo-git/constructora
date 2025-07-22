@@ -6,7 +6,6 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/social_login_button.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
-import 'platform_selection_screen.dart';
 import '../services/auth_service.dart';
 import '../config/api_config.dart';
 

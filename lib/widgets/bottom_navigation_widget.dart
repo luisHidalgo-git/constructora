@@ -3,7 +3,7 @@ import '../utils/app_colors.dart';
 import '../screens/home_screen.dart';
 import '../screens/projects_screen.dart';
 import '../screens/update_project_screen.dart';
-import '../screens/platform_selection_screen.dart';
+import '../screens/login_screen.dart';
 import '../services/auth_service.dart';
 import '../screens/qr_scanner_screen.dart'; // --- Importar pantalla de escaneo QR ---
 
@@ -90,7 +90,7 @@ class BottomNavigationWidget extends StatelessWidget {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const PlatformSelectionScreen(),
+                    builder: (context) => const LoginScreen(),
                   ),
                   (route) => false,
                 );

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'screens/platform_selection_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
+import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,7 +75,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // Siempre mostrar la selección de plataforma primero
-    return const PlatformSelectionScreen();
+    // Si está autenticado, ir al home, sino al login
+    return _isAuthenticated ? const HomeScreen() : const LoginScreen();
   }
 }
