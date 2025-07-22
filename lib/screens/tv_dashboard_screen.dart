@@ -14,10 +14,7 @@ import '../services/auth_service.dart';
 class TVDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
 
-  const TVDashboardScreen({
-    super.key,
-    required this.user,
-  });
+  const TVDashboardScreen({super.key, required this.user});
 
   @override
   State<TVDashboardScreen> createState() => _TVDashboardScreenState();
@@ -49,7 +46,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   Future<void> _loadData() async {
     try {
       print('🔍 TV Dashboard - Loading data...');
-      
+
       // Verificar que tenemos token para hacer las llamadas a la API
       final token = await AuthService.getToken();
       if (token == null) {
@@ -61,9 +58,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         }
         return;
       }
-      
+
       print('✅ TV Dashboard - Token available, loading projects and stats...');
-      
+
       final results = await Future.wait([
         ProjectService.getProjects(),
         StatsService.getStats(),
@@ -75,11 +72,13 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           _stats = results[1] as StatsModel;
           _isLoading = false;
         });
-        
+
         // Generar actividad reciente basada en proyectos reales
         _generateRecentUpdatesFromProjects();
-        
-        print('✅ TV Dashboard - Data loaded successfully: ${_projects.length} projects');
+
+        print(
+          '✅ TV Dashboard - Data loaded successfully: ${_projects.length} projects',
+        );
       }
     } catch (e) {
       print('Error loading TV dashboard data: $e');
@@ -93,16 +92,16 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
   void _generateRecentUpdatesFromProjects() {
     _recentUpdates.clear();
-    
+
     // Generar actualizaciones reales basadas en los datos de los proyectos
     for (int i = 0; i < _projects.length && i < 4; i++) {
       final project = _projects[i];
       final daysAgo = i + 1;
       final updateDate = DateTime.now().subtract(Duration(days: daysAgo));
-      
+
       String updateType;
       String updateDescription;
-      
+
       // Determinar tipo de actualización basado en datos reales del proyecto
       if (project.progress >= 0.9) {
         updateType = 'Actualización';
@@ -117,19 +116,21 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         updateType = 'Actualización';
         updateDescription = 'Planificación en progreso';
       }
-      
+
       _recentUpdates.add({
         'projectName': project.name,
         'updateType': updateType,
         'description': updateDescription,
-        'date': '${updateDate.day.toString().padLeft(2, '0')}/${updateDate.month.toString().padLeft(2, '0')}/${updateDate.year}',
+        'date':
+            '${updateDate.day.toString().padLeft(2, '0')}/${updateDate.month.toString().padLeft(2, '0')}/${updateDate.year}',
         'progress': project.progress,
         'status': project.status,
         'clientName': project.clientName,
-        'completedPercentage': '${(project.progress * 100).toInt()}% completado',
+        'completedPercentage':
+            '${(project.progress * 100).toInt()}% completado',
       });
     }
-    
+
     // Si no hay proyectos, no mostrar actividades
     if (_projects.isEmpty) {
       _recentUpdates.clear();
@@ -155,10 +156,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           ),
           content: const Text(
             '¿Estás seguro de que deseas cerrar la sesión en TV?',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.white70,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.white70),
           ),
           actions: [
             TextButton(
@@ -177,9 +175,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                 _clearTVSession();
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const TVQRScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const TVQRScreen()),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -221,11 +217,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1A1A1A),
-              Color(0xFF2D2D2D),
-              Color(0xFF1A1A1A),
-            ],
+            colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
           ),
         ),
         child: SafeArea(
@@ -235,9 +227,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
               children: [
                 // Header exacto al mockup
                 _buildMockupHeader(),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Layout principal según mockup
                 Expanded(
                   child: Row(
@@ -250,19 +242,17 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                           children: [
                             // Stats Cards en fila horizontal
                             _buildMockupStatsCards(),
-                            
+
                             const SizedBox(height: 24),
-                            
+
                             // Proyectos Activos
-                            Expanded(
-                              child: _buildMockupProjectsSection(),
-                            ),
+                            Expanded(child: _buildMockupProjectsSection()),
                           ],
                         ),
                       ),
-                      
+
                       const SizedBox(width: 24),
-                      
+
                       // Panel derecho - Actividad Reciente (como en mockup)
                       Expanded(
                         flex: 1,
@@ -285,9 +275,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Row(
         children: [
@@ -318,17 +306,17 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               Container(
                 height: 20,
                 width: 1,
                 color: Colors.white.withOpacity(0.3),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               const Text(
                 'Dashboard de Proyectos',
                 style: TextStyle(
@@ -339,9 +327,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
               ),
             ],
           ),
-          
+
           const Spacer(),
-          
+
           // Usuario y botón salir
           Row(
             children: [
@@ -358,10 +346,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                   ),
                   Text(
                     widget.user['position'] ?? 'Supervisor de obra',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white60,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.white60),
                   ),
                 ],
               ),
@@ -430,9 +415,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Row(
         children: [
@@ -476,7 +459,12 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     );
   }
 
-  Widget _buildMockupStatCard(String value, String label, Color color, IconData icon) {
+  Widget _buildMockupStatCard(
+    String value,
+    String label,
+    Color color,
+    IconData icon,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -520,9 +508,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -559,12 +545,10 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                 ),
             ],
           ),
-          
+
           const SizedBox(height: 20),
-          
-          Expanded(
-            child: _buildMockupProjectsGrid(),
-          ),
+
+          Expanded(child: _buildMockupProjectsGrid()),
         ],
       ),
     );
@@ -621,10 +605,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => TVProjectDetailScreen(
-              project: project,
-              user: widget.user,
-            ),
+            builder: (context) =>
+                TVProjectDetailScreen(project: project, user: widget.user),
           ),
         );
       },
@@ -632,9 +614,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         decoration: BoxDecoration(
           color: const Color(0xFF1F1F1F),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.1),
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -677,9 +657,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 4),
-              
+
               Text(
                 project.clientName,
                 style: TextStyle(
@@ -689,9 +669,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              
+
               const Spacer(),
-              
+
               // Progress
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,9 +729,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -768,36 +746,18 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                   color: Colors.white,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Ver todo',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
             ],
           ),
-          
+
           const SizedBox(height: 20),
-          
+
           // Lista de actividades con datos reales
           Expanded(
-            child: _isLoading 
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF6366F1)),
-                )
-              : _recentUpdates.isEmpty
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+                  )
+                : _recentUpdates.isEmpty
                 ? Center(
                     child: Text(
                       'No hay actividad reciente',
@@ -827,9 +787,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF1F1F1F),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Row(
         children: [
@@ -852,9 +810,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
               ),
             ),
           ),
-          
+
           const SizedBox(width: 16),
-          
+
           // Información de la actualización con datos reales
           Expanded(
             child: Column(
