@@ -14,7 +14,10 @@ import '../services/auth_service.dart';
 class TVDashboardScreen extends StatefulWidget {
   final Map<String, dynamic> user;
 
-  const TVDashboardScreen({super.key, required this.user});
+  const TVDashboardScreen({
+    super.key,
+    required this.user,
+  });
 
   @override
   State<TVDashboardScreen> createState() => _TVDashboardScreenState();
@@ -46,7 +49,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   Future<void> _loadData() async {
     try {
       print('🔍 TV Dashboard - Loading data...');
-
+      
       // Verificar que tenemos token para hacer las llamadas a la API
       final token = await AuthService.getToken();
       if (token == null) {
@@ -58,9 +61,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         }
         return;
       }
-
+      
       print('✅ TV Dashboard - Token available, loading projects and stats...');
-
+      
       final results = await Future.wait([
         ProjectService.getProjects(),
         StatsService.getStats(),
@@ -72,13 +75,11 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           _stats = results[1] as StatsModel;
           _isLoading = false;
         });
-
+        
         // Generar actividad reciente basada en proyectos reales
-        _generateRecentUpdates();
-
-        print(
-          '✅ TV Dashboard - Data loaded successfully: ${_projects.length} projects',
-        );
+        _generateRecentUpdatesFromProjects();
+        
+        print('✅ TV Dashboard - Data loaded successfully: ${_projects.length} projects');
       }
     } catch (e) {
       print('Error loading TV dashboard data: $e');
@@ -90,57 +91,48 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     }
   }
 
-  void _generateRecentUpdates() {
+  void _generateRecentUpdatesFromProjects() {
     _recentUpdates.clear();
-
-    // Generar actualizaciones basadas en proyectos reales
-    for (int i = 0; i < _projects.length && i < 6; i++) {
+    
+    // Generar actualizaciones reales basadas en los datos de los proyectos
+    for (int i = 0; i < _projects.length && i < 4; i++) {
       final project = _projects[i];
       final daysAgo = i + 1;
       final updateDate = DateTime.now().subtract(Duration(days: daysAgo));
-
+      
       String updateType;
       String updateDescription;
-
-      // Determinar tipo de actualización basado en el progreso
+      
+      // Determinar tipo de actualización basado en datos reales del proyecto
       if (project.progress >= 0.9) {
-        updateType = 'Finalización';
-        updateDescription = 'Proyecto completado exitosamente';
-      } else if (project.progress >= 0.7) {
-        updateType = 'Avance Mayor';
-        updateDescription = 'Progreso significativo registrado';
-      } else if (project.progress >= 0.4) {
+        updateType = 'Actualización';
+        updateDescription = 'Proyecto próximo a completarse';
+      } else if (project.progress >= 0.5) {
         updateType = 'Actualización';
         updateDescription = 'Nuevos avances en el proyecto';
-      } else {
+      } else if (project.progress >= 0.2) {
         updateType = 'Inicio';
         updateDescription = 'Proyecto iniciado recientemente';
+      } else {
+        updateType = 'Actualización';
+        updateDescription = 'Planificación en progreso';
       }
-
+      
       _recentUpdates.add({
         'projectName': project.name,
         'updateType': updateType,
         'description': updateDescription,
-        'date':
-            '${updateDate.day.toString().padLeft(2, '0')}/${updateDate.month.toString().padLeft(2, '0')}/${updateDate.year}',
+        'date': '${updateDate.day.toString().padLeft(2, '0')}/${updateDate.month.toString().padLeft(2, '0')}/${updateDate.year}',
         'progress': project.progress,
         'status': project.status,
         'clientName': project.clientName,
+        'completedPercentage': '${(project.progress * 100).toInt()}% completado',
       });
     }
-
-    // Si no hay proyectos, agregar mensaje por defecto
-    if (_recentUpdates.isEmpty) {
-      _recentUpdates.add({
-        'projectName': 'Sin proyectos',
-        'updateType': 'Sistema',
-        'description': 'No hay actualizaciones recientes',
-        'date':
-            '${DateTime.now().day.toString().padLeft(2, '0')}/${DateTime.now().month.toString().padLeft(2, '0')}/${DateTime.now().year}',
-        'progress': 0.0,
-        'status': 'Pendiente',
-        'clientName': 'N/A',
-      });
+    
+    // Si no hay proyectos, no mostrar actividades
+    if (_projects.isEmpty) {
+      _recentUpdates.clear();
     }
   }
 
@@ -163,7 +155,10 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           ),
           content: const Text(
             '¿Estás seguro de que deseas cerrar la sesión en TV?',
-            style: TextStyle(fontSize: 16, color: Colors.white70),
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.white70,
+            ),
           ),
           actions: [
             TextButton(
@@ -182,7 +177,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                 _clearTVSession();
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const TVQRScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const TVQRScreen(),
+                  ),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -193,7 +190,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                 ),
               ),
               child: const Text(
-                'Cerrar Sesión',
+                'Salir',
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
             ),
@@ -224,44 +221,53 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1A1A1A), Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
+            colors: [
+              Color(0xFF1A1A1A),
+              Color(0xFF2D2D2D),
+              Color(0xFF1A1A1A),
+            ],
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                // Header mejorado
-                _buildHeader(),
-
+                // Header exacto al mockup
+                _buildMockupHeader(),
+                
                 const SizedBox(height: 24),
-
-                // Contenido principal
+                
+                // Layout principal según mockup
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Panel izquierdo - Stats y Proyectos
+                      // Panel izquierdo - Stats y Proyectos (como en mockup)
                       Expanded(
-                        flex: 3,
+                        flex: 2,
                         child: Column(
                           children: [
-                            // Stats Cards
-                            _buildStatsCards(),
-
+                            // Stats Cards en fila horizontal
+                            _buildMockupStatsCards(),
+                            
                             const SizedBox(height: 24),
-
-                            // Projects Grid
-                            Expanded(child: _buildProjectsSection()),
+                            
+                            // Proyectos Activos
+                            Expanded(
+                              child: _buildMockupProjectsSection(),
+                            ),
                           ],
                         ),
                       ),
-
+                      
                       const SizedBox(width: 24),
-
-                      // Panel derecho - Actividad Reciente
-                      Expanded(flex: 2, child: _buildRecentActivityPanel()),
+                      
+                      // Panel derecho - Actividad Reciente (como en mockup)
+                      Expanded(
+                        flex: 1,
+                        child: _buildMockupRecentActivityPanel(),
+                      ),
                     ],
                   ),
                 ),
@@ -273,68 +279,70 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildMockupHeader() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+        ),
       ),
       child: Row(
         children: [
           // Logo y título
-          Expanded(
-            child: Row(
-              children: [
-                RichText(
-                  text: const TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'Avanze',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: -1.2,
-                        ),
+          Row(
+            children: [
+              RichText(
+                text: const TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Avanze',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: -1,
                       ),
-                      TextSpan(
-                        text: '360',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                          letterSpacing: -1.2,
-                        ),
+                    ),
+                    TextSpan(
+                      text: '360',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF6366F1),
+                        letterSpacing: -1,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(width: 16),
-
-                Container(
-                  height: 24,
-                  width: 1,
-                  color: Colors.white.withOpacity(0.3),
+              ),
+              
+              const SizedBox(width: 16),
+              
+              Container(
+                height: 20,
+                width: 1,
+                color: Colors.white.withOpacity(0.3),
+              ),
+              
+              const SizedBox(width: 16),
+              
+              const Text(
+                'Dashboard de Proyectos',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white70,
                 ),
-
-                const SizedBox(width: 16),
-
-                const Text(
-                  'Dashboard de Proyectos',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-
-          // Información del usuario
+          
+          const Spacer(),
+          
+          // Usuario y botón salir
           Row(
             children: [
               Column(
@@ -349,22 +357,21 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                     ),
                   ),
                   Text(
-                    widget.user['position'] ?? 'Supervisor',
-                    style: const TextStyle(fontSize: 12, color: Colors.white60),
+                    widget.user['position'] ?? 'Supervisor de obra',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white60,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(width: 16),
               Container(
-                width: 48,
-                height: 48,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 2,
-                  ),
+                  color: const Color(0xFF6366F1),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Center(
                   child: Text(
@@ -373,7 +380,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                         .substring(0, 1)
                         .toUpperCase(),
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
                     ),
@@ -386,11 +393,11 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                 icon: const Icon(Icons.logout, size: 16),
                 label: const Text('Salir'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.withOpacity(0.8),
+                  backgroundColor: const Color(0xFFEF4444),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 12,
+                    vertical: 10,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -404,16 +411,16 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     );
   }
 
-  Widget _buildStatsCards() {
+  Widget _buildMockupStatsCards() {
     if (_isLoading || _stats == null) {
       return Container(
-        height: 100,
+        height: 120,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: const Color(0xFF2A2A2A),
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+          child: CircularProgressIndicator(color: Color(0xFF6366F1)),
         ),
       );
     }
@@ -421,32 +428,34 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+        ),
       ),
       child: Row(
         children: [
           Expanded(
-            child: _buildStatCard(
+            child: _buildMockupStatCard(
               '${_stats!.activeProjects}',
               'Proyectos Activos',
-              const Color(0xFF007AFF),
+              const Color(0xFF6366F1),
               Icons.construction,
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: _buildStatCard(
+            child: _buildMockupStatCard(
               '${_stats!.activeAlerts}',
               'Alertas Activas',
               const Color(0xFFFF9500),
-              Icons.warning_amber,
+              Icons.warning,
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: _buildStatCard(
+            child: _buildMockupStatCard(
               _stats!.totalBudget,
               'Presupuesto Total',
               const Color(0xFF10B981),
@@ -455,7 +464,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: _buildStatCard(
+            child: _buildMockupStatCard(
               '${(_stats!.averageProgress * 100).toInt()}%',
               'Progreso Promedio',
               const Color(0xFF8B5CF6),
@@ -467,18 +476,12 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(
-    String value,
-    String label,
-    Color color,
-    IconData icon,
-  ) {
+  Widget _buildMockupStatCard(String value, String label, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -486,13 +489,13 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, color: color, size: 20),
+              Icon(icon, color: Colors.white, size: 24),
               Text(
                 value,
-                style: TextStyle(
-                  fontSize: 20,
+                style: const TextStyle(
+                  fontSize: 24,
                   fontWeight: FontWeight.w700,
-                  color: color,
+                  color: Colors.white,
                 ),
               ),
             ],
@@ -500,10 +503,10 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           const SizedBox(height: 8),
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: color,
+              color: Colors.white,
             ),
           ),
         ],
@@ -511,13 +514,15 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     );
   }
 
-  Widget _buildProjectsSection() {
+  Widget _buildMockupProjectsSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,7 +533,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
               const Text(
                 'Proyectos Activos',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
@@ -540,7 +545,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.2),
+                    color: const Color(0xFF6366F1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -548,25 +553,27 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.primary,
+                      color: Colors.white,
                     ),
                   ),
                 ),
             ],
           ),
-
-          const SizedBox(height: 16),
-
-          Expanded(child: _buildProjectsGrid()),
+          
+          const SizedBox(height: 20),
+          
+          Expanded(
+            child: _buildMockupProjectsGrid(),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildProjectsGrid() {
+  Widget _buildMockupProjectsGrid() {
     if (_isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+        child: CircularProgressIndicator(color: Color(0xFF6366F1)),
       );
     }
 
@@ -595,42 +602,46 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.6,
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 2.2,
       ),
       itemCount: _projects.length,
       itemBuilder: (context, index) {
         final project = _projects[index];
-        return _buildProjectCard(project);
+        return _buildMockupProjectCard(project);
       },
     );
   }
 
-  Widget _buildProjectCard(ProjectModel project) {
+  Widget _buildMockupProjectCard(ProjectModel project) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                TVProjectDetailScreen(project: project, user: widget.user),
+            builder: (context) => TVProjectDetailScreen(
+              project: project,
+              user: widget.user,
+            ),
           ),
         );
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: const Color(0xFF1F1F1F),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.15)),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.1),
+          ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header con estado
+              // Header con nombre y estado
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -638,7 +649,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                     child: Text(
                       project.name,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -648,17 +659,17 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
+                      horizontal: 8,
+                      vertical: 4,
                     ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(project.status),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
                       project.status,
                       style: const TextStyle(
-                        fontSize: 8,
+                        fontSize: 10,
                         fontWeight: FontWeight.w500,
                         color: Colors.white,
                       ),
@@ -666,21 +677,21 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                   ),
                 ],
               ),
-
+              
               const SizedBox(height: 4),
-
+              
               Text(
                 project.clientName,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 12,
                   color: Colors.white.withOpacity(0.7),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-
+              
               const Spacer(),
-
+              
               // Progress
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -691,26 +702,26 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                       Text(
                         'Progreso',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           color: Colors.white.withOpacity(0.7),
                         ),
                       ),
                       Text(
                         '${(project.progress * 100).toInt()}%',
                         style: const TextStyle(
-                          fontSize: 10,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Container(
-                    height: 4,
+                    height: 6,
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(3),
                     ),
                     child: FractionallySizedBox(
                       alignment: Alignment.centerLeft,
@@ -718,7 +729,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: _getProgressColor(project.progress),
-                          borderRadius: BorderRadius.circular(2),
+                          borderRadius: BorderRadius.circular(3),
                         ),
                       ),
                     ),
@@ -732,13 +743,15 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     );
   }
 
-  Widget _buildRecentActivityPanel() {
+  Widget _buildMockupRecentActivityPanel() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -750,42 +763,55 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
               const Text(
                 'Actividad Reciente',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
                 ),
-                child: Text(
-                  'Últimas ${_recentUpdates.length}',
-                  style: const TextStyle(
-                    fontSize: 10,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Ver todo',
+                  style: TextStyle(
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.primary,
+                    color: Colors.white,
                   ),
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: 16),
-
-          // Lista de actividades
+          
+          const SizedBox(height: 20),
+          
+          // Lista de actividades con datos reales
           Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
+            child: _isLoading 
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+                )
+              : _recentUpdates.isEmpty
+                ? Center(
+                    child: Text(
+                      'No hay actividad reciente',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.5),
+                      ),
+                    ),
                   )
                 : ListView.builder(
                     itemCount: _recentUpdates.length,
                     itemBuilder: (context, index) {
                       final update = _recentUpdates[index];
-                      return _buildActivityItem(update, index);
+                      return _buildMockupActivityItem(update, index);
                     },
                   ),
           ),
@@ -794,42 +820,42 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     );
   }
 
-  Widget _buildActivityItem(Map<String, dynamic> update, int index) {
+  Widget _buildMockupActivityItem(Map<String, dynamic> update, int index) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        color: const Color(0xFF1F1F1F),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+        ),
       ),
       child: Row(
         children: [
-          // Imagen estática para actualizaciones de proyecto
+          // Icono estático para proyectos (como solicitaste)
           Container(
-            width: 40,
-            height: 40,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  _getUpdateTypeColor(update['updateType']),
-                  _getUpdateTypeColor(update['updateType']).withOpacity(0.7),
-                ],
+              color: _getUpdateTypeColor(update['updateType']),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Center(
+              child: Text(
+                update['projectName'].toString().substring(0, 1).toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
             ),
-            child: Icon(
-              _getUpdateTypeIcon(update['updateType']),
-              color: Colors.white,
-              size: 20,
-            ),
           ),
-
-          const SizedBox(width: 12),
-
-          // Información de la actualización
+          
+          const SizedBox(width: 16),
+          
+          // Información de la actualización con datos reales
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -841,7 +867,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                       child: Text(
                         update['projectName'],
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -852,50 +878,48 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                     Text(
                       update['date'],
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 12,
                         color: Colors.white.withOpacity(0.6),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   '${update['updateType']}: ${update['description']}',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     color: Colors.white.withOpacity(0.8),
                   ),
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
+                        horizontal: 8,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(
-                          update['status'],
-                        ).withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(4),
+                        color: _getStatusColor(update['status']),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         update['status'],
-                        style: TextStyle(
-                          fontSize: 8,
+                        style: const TextStyle(
+                          fontSize: 10,
                           fontWeight: FontWeight.w500,
-                          color: _getStatusColor(update['status']),
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Text(
-                      '${(update['progress'] * 100).toInt()}% completado',
+                      update['completedPercentage'],
                       style: TextStyle(
-                        fontSize: 8,
+                        fontSize: 10,
                         color: Colors.white.withOpacity(0.6),
                       ),
                     ),
@@ -911,31 +935,12 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
   Color _getUpdateTypeColor(String updateType) {
     switch (updateType) {
-      case 'Finalización':
-        return const Color(0xFF10B981);
-      case 'Avance Mayor':
-        return const Color(0xFF3B82F6);
       case 'Actualización':
         return const Color(0xFF8B5CF6);
       case 'Inicio':
         return const Color(0xFFFF9500);
       default:
-        return const Color(0xFF6B7280);
-    }
-  }
-
-  IconData _getUpdateTypeIcon(String updateType) {
-    switch (updateType) {
-      case 'Finalización':
-        return Icons.check_circle;
-      case 'Avance Mayor':
-        return Icons.trending_up;
-      case 'Actualización':
-        return Icons.update;
-      case 'Inicio':
-        return Icons.play_circle;
-      default:
-        return Icons.info;
+        return const Color(0xFF6366F1);
     }
   }
 
