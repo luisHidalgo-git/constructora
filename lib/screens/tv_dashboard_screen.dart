@@ -101,14 +101,16 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
   void _navigateToProjectDetail(String projectId) {
     print('📺 TV: Looking for project with ID: $projectId');
-    
+
     // Buscar el proyecto en la lista actual
     ProjectModel? project;
     try {
       project = _projects.firstWhere((p) => p.id == projectId);
       print('📺 TV: Found project: ${project.name}');
     } catch (e) {
-      print('📺 TV: Project not found with ID: $projectId, available projects: ${_projects.map((p) => '${p.id}:${p.name}').toList()}');
+      print(
+        '📺 TV: Project not found with ID: $projectId, available projects: ${_projects.map((p) => '${p.id}:${p.name}').toList()}',
+      );
       // Si no se encuentra el proyecto, recargar datos y buscar de nuevo
       _loadData().then((_) {
         try {
@@ -116,7 +118,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           print('📺 TV: Found project after reload: ${project!.name}');
           _performNavigation(project!);
         } catch (e) {
-          print('📺 TV: Project still not found after reload, using first available');
+          print(
+            '📺 TV: Project still not found after reload, using first available',
+          );
           if (_projects.isNotEmpty) {
             _performNavigation(_projects.first);
           }
@@ -134,14 +138,12 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     });
 
     print('📺 TV: Navigating to project detail screen for: ${project.name}');
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TVProjectDetailScreen(
-          project: project, 
-          user: widget.user
-        ),
+        builder: (context) =>
+            TVProjectDetailScreen(project: project, user: widget.user),
         settings: const RouteSettings(name: '/tv_project_detail'),
       ),
     );
@@ -150,54 +152,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Asegurar que estamos en la ruta correcta
-    ModalRoute.of(context)?.settings = const RouteSettings(name: '/tv_dashboard');
-  }
-
-  Future<void> _loadData() async {
-    try {
-      print('🔍 TV Dashboard - Loading data...');
-
-      // Verificar que tenemos token para hacer las llamadas a la API
-      final token = await AuthService.getToken();
-      if (token == null) {
-        print('❌ TV Dashboard - No token available, cannot load data');
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-        return;
-      }
-
-      print('✅ TV Dashboard - Token available, loading projects and stats...');
-
-      final results = await Future.wait([
-        ProjectService.getProjects(),
-        StatsService.getStats(),
-      ]);
-
-      if (mounted) {
-        setState(() {
-          _projects = results[0] as List<ProjectModel>;
-          _stats = results[1] as StatsModel;
-          _isLoading = false;
-        });
-
-        // Generar actividad reciente basada en proyectos reales
-        _generateRecentUpdatesFromProjects();
-
-        print('✅ TV Dashboard - Data loaded successfully: ${_projects.length} projects');
-        print('📺 TV Dashboard - Available projects: ${_projects.map((p) => '${p.id}:${p.name}').toList()}');
-      }
-    } catch (e) {
-      print('❌ TV Dashboard - Error loading data: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+    // Note: Cannot modify route settings after creation
   }
 
   void _handleLogoutEvent() {

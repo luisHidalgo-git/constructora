@@ -6,6 +6,7 @@ import '../utils/app_text_styles.dart';
 import '../screens/update_project_screen.dart';
 import '../models/project_model.dart';
 import '../services/image_service.dart';
+import '../services/sync_service.dart';
 
 class ProjectCard extends StatelessWidget {
   final ProjectModel project;
@@ -33,8 +34,10 @@ class ProjectCard extends StatelessWidget {
       onTap: () {
         // Enviar evento de navegación a detalle de proyecto cuando se toque una tarjeta
         SyncService.navigateToProjectDetail(project.id);
-        print('📱 Mobile: ProjectCard tapped, sent navigate_to_project_detail for: ${project.id}');
-        
+        print(
+          '📱 Mobile: ProjectCard tapped, sent navigate_to_project_detail for: ${project.id}',
+        );
+
         // Ejecutar callback original si existe
         if (onTap != null) {
           onTap!();
