@@ -63,40 +63,23 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     final eventType = event['eventType'];
     final data = event['data'] ?? {};
 
-    print('📱 TV received sync event: $eventType');
+    print('📺 TV Dashboard received sync event: $eventType with data: $data');
 
     switch (eventType) {
       case 'navigate_to_home':
       case 'navigate_back_to_home':
-        // Si estamos en otra pantalla, volver al dashboard
-        if (ModalRoute.of(context)?.settings.name != '/tv_dashboard') {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TVDashboardScreen(user: widget.user),
-              settings: const RouteSettings(name: '/tv_dashboard'),
-            ),
-            (route) => false,
-          );
-        }
+        print('📺 TV: Already on dashboard, staying here');
+        // Ya estamos en el dashboard, no hacer nada
         break;
 
       case 'navigate_to_projects':
-        // Si estamos en detalle de proyecto, volver al dashboard
-        if (ModalRoute.of(context)?.settings.name != '/tv_dashboard') {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TVDashboardScreen(user: widget.user),
-              settings: const RouteSettings(name: '/tv_dashboard'),
-            ),
-            (route) => false,
-          );
-        }
+        print('📺 TV: Already on dashboard showing projects, staying here');
+        // Ya estamos en el dashboard mostrando proyectos, no hacer nada
         break;
 
       case 'navigate_to_project_detail':
         final projectId = data['projectId'];
+        print('📺 TV: Navigating to project detail for project: $projectId');
         if (projectId != null) {
           _navigateToProjectDetail(projectId);
         }
@@ -104,39 +87,116 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
       case 'project_updated':
       case 'project_created':
+        print('📺 TV: Project data changed, reloading dashboard data');
         // Recargar datos para mostrar cambios en tiempo real
         _loadData();
         break;
 
       case 'logout':
+        print('📺 TV: Logout event received, closing session');
         _handleLogoutEvent();
         break;
     }
   }
 
   void _navigateToProjectDetail(String projectId) {
+    print('📺 TV: Looking for project with ID: $projectId');
+    
     // Buscar el proyecto en la lista actual
     ProjectModel? project;
     try {
       project = _projects.firstWhere((p) => p.id == projectId);
+      print('📺 TV: Found project: ${project.name}');
     } catch (e) {
-      // Si no se encuentra el proyecto, usar el primero disponible
-      project = _projects.isNotEmpty ? _projects.first : null;
+      print('📺 TV: Project not found with ID: $projectId, available projects: ${_projects.map((p) => '${p.id}:${p.name}').toList()}');
+      // Si no se encuentra el proyecto, recargar datos y buscar de nuevo
+      _loadData().then((_) {
+        try {
+          project = _projects.firstWhere((p) => p.id == projectId);
+          print('📺 TV: Found project after reload: ${project!.name}');
+          _performNavigation(project!);
+        } catch (e) {
+          print('📺 TV: Project still not found after reload, using first available');
+          if (_projects.isNotEmpty) {
+            _performNavigation(_projects.first);
+          }
+        }
+      });
+      return;
     }
 
-    if (project != null) {
-      setState(() {
-        _selectedProjectId = projectId;
-      });
+    _performNavigation(project);
+  }
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              TVProjectDetailScreen(project: project!, user: widget.user),
-          settings: const RouteSettings(name: '/tv_project_detail'),
+  void _performNavigation(ProjectModel project) {
+    setState(() {
+      _selectedProjectId = project.id;
+    });
+
+    print('📺 TV: Navigating to project detail screen for: ${project.name}');
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TVProjectDetailScreen(
+          project: project, 
+          user: widget.user
         ),
-      );
+        settings: const RouteSettings(name: '/tv_project_detail'),
+      ),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Asegurar que estamos en la ruta correcta
+    ModalRoute.of(context)?.settings = const RouteSettings(name: '/tv_dashboard');
+  }
+
+  Future<void> _loadData() async {
+    try {
+      print('🔍 TV Dashboard - Loading data...');
+
+      // Verificar que tenemos token para hacer las llamadas a la API
+      final token = await AuthService.getToken();
+      if (token == null) {
+        print('❌ TV Dashboard - No token available, cannot load data');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      print('✅ TV Dashboard - Token available, loading projects and stats...');
+
+      final results = await Future.wait([
+        ProjectService.getProjects(),
+        StatsService.getStats(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _projects = results[0] as List<ProjectModel>;
+          _stats = results[1] as StatsModel;
+          _isLoading = false;
+        });
+
+        // Generar actividad reciente basada en proyectos reales
+        _generateRecentUpdatesFromProjects();
+
+        print('✅ TV Dashboard - Data loaded successfully: ${_projects.length} projects');
+        print('📺 TV Dashboard - Available projects: ${_projects.map((p) => '${p.id}:${p.name}').toList()}');
+      }
+    } catch (e) {
+      print('❌ TV Dashboard - Error loading data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

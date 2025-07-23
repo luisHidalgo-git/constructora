@@ -18,7 +18,9 @@ class BottomNavigationWidget extends StatelessWidget {
 
     switch (index) {
       case 0:
+        // Enviar evento de navegación a home ANTES de navegar
         SyncService.navigateToHome();
+        print('📱 Mobile: Sent navigate_to_home event from bottom nav');
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -26,7 +28,9 @@ class BottomNavigationWidget extends StatelessWidget {
         );
         break;
       case 1:
+        // Enviar evento de navegación a proyectos ANTES de navegar
         SyncService.navigateToProjects();
+        print('📱 Mobile: Sent navigate_to_projects event from bottom nav');
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const ProjectsScreen()),

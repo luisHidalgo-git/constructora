@@ -63,15 +63,17 @@ class SyncService {
         'timestamp': DateTime.now().toIso8601String(),
       };
 
+      print('📱 Mobile: Sending navigation event: $eventType with data: ${data ?? {}}');
+      
       await http.post(
         Uri.parse('${ApiConfig.baseUrl}/sync/navigation'),
         headers: headers,
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 5));
 
-      print('✅ Navigation event sent: $eventType');
+      print('✅ Mobile: Navigation event sent successfully: $eventType');
     } catch (e) {
-      print('❌ Error sending navigation event: $e');
+      print('❌ Mobile: Error sending navigation event $eventType: $e');
     }
   }
 
@@ -100,13 +102,16 @@ class SyncService {
           final data = jsonDecode(response.body);
           if (data['hasEvents'] == true) {
             final events = data['events'] as List;
+            print('📺 TV: Received ${events.length} sync events');
             for (var event in events) {
+              print('📺 TV: Processing event: ${event['eventType']}');
               _handleNavigationEvent(event);
             }
           }
         }
       } catch (e) {
-        print('❌ Error polling navigation events: $e');
+        // Silenciar errores de polling para no saturar logs
+        // print('❌ Error polling navigation events: $e');
       }
     });
   }
@@ -114,21 +119,30 @@ class SyncService {
   // Manejar eventos recibidos
   static void _handleNavigationEvent(Map<String, dynamic> event) {
     final userId = event['userId'];
+    final eventType = event['eventType'];
+    print('📺 TV: Handling navigation event: $eventType for user: $userId');
+    
     if (_controllers.containsKey(userId) && !_controllers[userId]!.isClosed) {
       _controllers[userId]!.add(event);
+      print('📺 TV: Event sent to stream controller for user: $userId');
+    } else {
+      print('📺 TV: No active stream controller for user: $userId');
     }
   }
 
   // Eventos específicos
   static Future<void> navigateToProjects() async {
+    print('📱 Mobile: Triggering navigate_to_projects event');
     await sendNavigationEvent(eventType: 'navigate_to_projects');
   }
 
   static Future<void> navigateToHome() async {
+    print('📱 Mobile: Triggering navigate_to_home event');
     await sendNavigationEvent(eventType: 'navigate_to_home');
   }
 
   static Future<void> navigateToProjectDetail(String projectId) async {
+    print('📱 Mobile: Triggering navigate_to_project_detail event for project: $projectId');
     await sendNavigationEvent(
       eventType: 'navigate_to_project_detail',
       data: {'projectId': projectId},
@@ -136,10 +150,12 @@ class SyncService {
   }
 
   static Future<void> navigateBackToHome() async {
+    print('📱 Mobile: Triggering navigate_back_to_home event');
     await sendNavigationEvent(eventType: 'navigate_back_to_home');
   }
 
   static Future<void> projectUpdated(Map<String, dynamic> projectData) async {
+    print('📱 Mobile: Triggering project_updated event');
     await sendNavigationEvent(
       eventType: 'project_updated',
       data: {'project': projectData},
@@ -147,6 +163,7 @@ class SyncService {
   }
 
   static Future<void> projectCreated(Map<String, dynamic> projectData) async {
+    print('📱 Mobile: Triggering project_created event');
     await sendNavigationEvent(
       eventType: 'project_created',
       data: {'project': projectData},
@@ -154,6 +171,7 @@ class SyncService {
   }
 
   static Future<void> logout() async {
+    print('📱 Mobile: Triggering logout event');
     await sendNavigationEvent(eventType: 'logout');
     stopSync();
   }

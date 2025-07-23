@@ -55,12 +55,12 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     final eventType = event['eventType'];
     final data = event['data'] ?? {};
 
-    print('📱 TV Project Detail received sync event: $eventType');
+    print('📺 TV Project Detail received sync event: $eventType with data: $data');
 
     switch (eventType) {
       case 'navigate_to_home':
       case 'navigate_back_to_home':
-        // Volver al dashboard
+        print('📺 TV Project Detail: Navigating back to dashboard (home)');
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
@@ -72,7 +72,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         break;
         
       case 'navigate_to_projects':
-        // Volver al dashboard
+        print('📺 TV Project Detail: Navigating back to dashboard (projects)');
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
@@ -85,8 +85,10 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
       case 'navigate_to_project_detail':
         final projectId = data['projectId'];
+        print('📺 TV Project Detail: Request to navigate to project: $projectId, current: ${widget.project.id}');
         if (projectId != null && projectId != widget.project.id) {
-          // Volver al dashboard primero, luego navegar al nuevo proyecto
+          print('📺 TV Project Detail: Different project requested, going back to dashboard first');
+          // Volver al dashboard primero, el dashboard manejará la navegación al nuevo proyecto
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
@@ -95,22 +97,35 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             ),
             (route) => false,
           );
+        } else if (projectId == widget.project.id) {
+          print('📺 TV Project Detail: Same project requested, staying here');
         }
         break;
 
       case 'project_updated':
-        // Recargar timeline si es el proyecto actual
         final updatedProject = data['project'];
+        print('📺 TV Project Detail: Project updated event received');
         if (updatedProject != null &&
             updatedProject['id'] == widget.project.id) {
+          print('📺 TV Project Detail: Current project was updated, reloading timeline');
           _loadProjectTimeline();
+        } else {
+          print('📺 TV Project Detail: Different project updated, ignoring');
         }
         break;
 
       case 'logout':
+        print('📺 TV Project Detail: Logout event received');
         _handleLogoutEvent();
         break;
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Asegurar que estamos en la ruta correcta
+    ModalRoute.of(context)?.settings = const RouteSettings(name: '/tv_project_detail');
   }
 
   void _handleLogoutEvent() {

@@ -70,8 +70,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   void _showProjectDetails(ProjectModel project) {
-    // Enviar evento de navegación a detalle de proyecto
+    // CRÍTICO: Enviar evento de navegación a detalle de proyecto ANTES de mostrar el diálogo
     SyncService.navigateToProjectDetail(project.id);
+    print('📱 Mobile: Sent navigate_to_project_detail event for project: ${project.id}');
 
     showDialog(
       context: context,
@@ -102,8 +103,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     IconButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        // Enviar evento de regreso a proyectos
+                        // Enviar evento de regreso a proyectos cuando se cierre el diálogo
                         SyncService.navigateToProjects();
+                        print('📱 Mobile: Sent navigate_to_projects event (dialog closed)');
                       },
                       icon: const Icon(Icons.close, color: AppColors.iconGray),
                     ),

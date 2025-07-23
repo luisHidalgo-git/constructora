@@ -14,7 +14,7 @@ router.post('/navigation', auth, async (req, res) => {
     const { eventType, data, timestamp } = req.body;
     const userId = req.user.id;
 
-    console.log(`🔄 Navigation event from ${req.user.email}: ${eventType}`);
+    console.log(`📱 Mobile -> Server: Navigation event from ${req.user.email}: ${eventType}`, data ? `with data: ${JSON.stringify(data)}` : '');
 
     // Crear evento
     const event = {
@@ -39,7 +39,7 @@ router.post('/navigation', auth, async (req, res) => {
       events.splice(0, events.length - 10);
     }
 
-    console.log(`✅ Event stored for user ${userId}: ${eventType}`);
+    console.log(`✅ Server: Event stored for user ${userId}: ${eventType} (${events.length} total events)`);
 
     res.json({
       success: true,
@@ -85,7 +85,7 @@ router.get('/navigation', auth, async (req, res) => {
       event.processed = true;
     });
 
-    console.log(`📨 Sending ${unprocessedEvents.length} events to user ${userId}`);
+    console.log(`📺 Server -> TV: Sending ${unprocessedEvents.length} events to user ${userId}:`, unprocessedEvents.map(e => e.eventType));
 
     res.json({
       hasEvents: true,

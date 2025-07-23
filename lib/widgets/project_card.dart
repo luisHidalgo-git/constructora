@@ -30,7 +30,16 @@ class ProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        // Enviar evento de navegación a detalle de proyecto cuando se toque una tarjeta
+        SyncService.navigateToProjectDetail(project.id);
+        print('📱 Mobile: ProjectCard tapped, sent navigate_to_project_detail for: ${project.id}');
+        
+        // Ejecutar callback original si existe
+        if (onTap != null) {
+          onTap!();
+        }
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
