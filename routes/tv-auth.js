@@ -68,7 +68,7 @@ router.post('/scan-qr', auth, async (req, res) => {
     if (!tvAuth) {
       console.log('❌ QR code not found or expired:', qrCode);
       return res.status(404).json({
-        message: 'Código QR no encontrado o expirado. Genera un nuevo código en la TV.'
+        message: 'QR code not found or expired'
       });
     }
 
@@ -102,7 +102,7 @@ router.post('/scan-qr', auth, async (req, res) => {
   } catch (error) {
     console.error('❌ Error scanning QR code:', error);
     res.status(500).json({
-      message: 'Error del servidor al escanear código QR',
+      message: 'Error scanning QR code',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
@@ -190,42 +190,6 @@ router.delete('/cleanup', async (req, res) => {
     console.error('❌ Error during cleanup:', error);
     res.status(500).json({
       message: 'Error during cleanup',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
-});
-
-// @route   POST /api/tv-auth/logout-tv
-// @desc    Logout from TV and cleanup session
-// @access  Public
-router.post('/logout-tv', async (req, res) => {
-  try {
-    const { qrCode } = req.body;
-    
-    console.log('🔍 TV logout request for QR:', qrCode);
-    
-    if (qrCode) {
-      // Limpiar el código QR específico
-      await TVAuth.deleteOne({ qrCode });
-      console.log('✅ TV session cleaned up for QR:', qrCode);
-    }
-    
-    // También limpiar códigos expirados
-    const cleanupResult = await TVAuth.deleteMany({
-      expiresAt: { $lt: new Date() }
-    });
-    
-    console.log(`✅ Cleaned up ${cleanupResult.deletedCount} expired QR codes during logout`);
-    
-    res.json({
-      message: 'TV logout successful',
-      success: true
-    });
-    
-  } catch (error) {
-    console.error('❌ Error during TV logout:', error);
-    res.status(500).json({
-      message: 'Error during TV logout',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
