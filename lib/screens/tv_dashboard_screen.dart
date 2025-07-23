@@ -45,12 +45,14 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     try {
       final userId = widget.user['id'];
       await SyncService.startSync(userId);
-      
+
       // Escuchar eventos de sincronización
-      _syncSubscription = SyncService.getNavigationStream(userId).listen((event) {
+      _syncSubscription = SyncService.getNavigationStream(userId).listen((
+        event,
+      ) {
         _handleSyncEvent(event);
       });
-      
+
       print('✅ TV Dashboard sync initialized for user: $userId');
     } catch (e) {
       print('❌ Error initializing TV sync: $e');
@@ -60,9 +62,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   void _handleSyncEvent(Map<String, dynamic> event) {
     final eventType = event['eventType'];
     final data = event['data'] ?? {};
-    
+
     print('📱 TV received sync event: $eventType');
-    
+
     switch (eventType) {
       case 'navigate_to_home':
       case 'navigate_back_to_home':
@@ -78,7 +80,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           );
         }
         break;
-        
+
       case 'navigate_to_projects':
         // Si estamos en detalle de proyecto, volver al dashboard
         if (ModalRoute.of(context)?.settings.name != '/tv_dashboard') {
@@ -92,20 +94,20 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           );
         }
         break;
-        
+
       case 'navigate_to_project_detail':
         final projectId = data['projectId'];
         if (projectId != null) {
           _navigateToProjectDetail(projectId);
         }
         break;
-        
+
       case 'project_updated':
       case 'project_created':
         // Recargar datos para mostrar cambios en tiempo real
         _loadData();
         break;
-        
+
       case 'logout':
         _handleLogoutEvent();
         break;
@@ -116,48 +118,23 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     // Buscar el proyecto en la lista actual
     ProjectModel? project;
     try {
-      project = _projects.firstWhere(
-        (p) => p.id == projectId,
-      );
+      project = _projects.firstWhere((p) => p.id == projectId);
     } catch (e) {
       // Si no se encuentra el proyecto, usar el primero disponible
       project = _projects.isNotEmpty ? _projects.first : null;
     }
-    
-    if (project != null) {
-      setState(() {
-        _selectedProjectId = projectId;
-      });
-      
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TVProjectDetailScreen(
-            project: project!,
-            user: widget.user,
-          ),
-          settings: const RouteSettings(name: '/tv_project_detail'),
-        ),
-      );
-    }
-  }
 
-      (p) => p.id == projectId,
-      orElse: () => _projects.isNotEmpty ? _projects.first : null,
-    );
-    
     if (project != null) {
       setState(() {
         _selectedProjectId = projectId;
       });
-      
+
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => TVProjectDetailScreen(
-            project: project,
-            user: widget.user,
-          ),
+          builder: (context) =>
+              TVProjectDetailScreen(project: project!, user: widget.user),
+          settings: const RouteSettings(name: '/tv_project_detail'),
         ),
       );
     }

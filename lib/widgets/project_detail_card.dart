@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:path/path.dart' as path;
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../screens/update_project_screen.dart';
@@ -209,7 +210,6 @@ class ProjectDetailCard extends StatelessWidget {
 
       print('🔍 ProjectDetailCard - Building image provider for: $imageUrl');
 
-
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         print('✅ ProjectDetailCard - Using NetworkImage for: $imageUrl');
@@ -228,7 +228,9 @@ class ProjectDetailCard extends StatelessWidget {
         } else {
           print('❌ ProjectDetailCard - Local file does not exist: $filePath');
           // Si el archivo local no existe, intentar construir URL del servidor
-          final serverUrl = ImageService.buildServerImageUrl('/uploads/${path.basename(filePath)}');
+          final serverUrl = ImageService.buildServerImageUrl(
+            '/uploads/${path.basename(filePath)}',
+          );
           print('🔄 ProjectDetailCard - Trying server URL: $serverUrl');
           return NetworkImage(serverUrl);
         }
@@ -251,7 +253,9 @@ class ProjectDetailCard extends StatelessWidget {
         return NetworkImage(fullUrl);
       }
 
-      print('❌ ProjectDetailCard - Could not determine image provider type for: $imageUrl');
+      print(
+        '❌ ProjectDetailCard - Could not determine image provider type for: $imageUrl',
+      );
       // Usar imagen por defecto si no se puede determinar el tipo
       return const NetworkImage(
         'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',

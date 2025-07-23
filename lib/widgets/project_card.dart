@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:path/path.dart' as path;
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../screens/update_project_screen.dart';
@@ -60,8 +61,8 @@ class ProjectCard extends StatelessWidget {
                           fit: BoxFit.cover,
                         )
                       : null,
-                  color: _buildImageProvider(imageUrl) == null 
-                      ? Colors.grey[300] 
+                  color: _buildImageProvider(imageUrl) == null
+                      ? Colors.grey[300]
                       : null,
                 ),
                 child: _buildImageProvider(imageUrl) == null
@@ -182,19 +183,19 @@ class ProjectCard extends StatelessWidget {
       if (imageUrl.isEmpty) {
         return null;
       }
-      
+
       print('🔍 ProjectCard - Building image provider for: $imageUrl');
-      
+
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         print('✅ ProjectCard - Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
-      
+
       // Si es un archivo local
       if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
-        String filePath = imageUrl.startsWith('file://') 
-            ? imageUrl.substring(7) 
+        String filePath = imageUrl.startsWith('file://')
+            ? imageUrl.substring(7)
             : imageUrl;
         File file = File(filePath);
         if (file.existsSync()) {
@@ -203,35 +204,47 @@ class ProjectCard extends StatelessWidget {
         } else {
           print('❌ ProjectCard - Local file does not exist: $filePath');
           // Si el archivo local no existe, intentar construir URL del servidor
-          final serverUrl = ImageService.buildServerImageUrl('/uploads/${path.basename(filePath)}');
+          final serverUrl = ImageService.buildServerImageUrl(
+            '/uploads/${path.basename(filePath)}',
+          );
           print('🔄 ProjectCard - Trying server URL: $serverUrl');
           return NetworkImage(serverUrl);
         }
       }
-      
+
       // Si es una ruta del servidor sin dominio, construir URL completa
       if (imageUrl.startsWith('/uploads/')) {
         final fullUrl = ImageService.buildServerImageUrl(imageUrl);
         print('✅ ProjectCard - Built server URL: $fullUrl');
         return NetworkImage(fullUrl);
       }
-      
+
       // Si parece ser un nombre de archivo, intentar construir URL del servidor
-      if (!imageUrl.contains('/') && (imageUrl.contains('.jpg') || imageUrl.contains('.png') || imageUrl.contains('.jpeg'))) {
+      if (!imageUrl.contains('/') &&
+          (imageUrl.contains('.jpg') ||
+              imageUrl.contains('.png') ||
+              imageUrl.contains('.jpeg'))) {
         final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
         print('✅ ProjectCard - Built server URL from filename: $fullUrl');
         return NetworkImage(fullUrl);
       }
-      
-      print('❌ ProjectCard - Could not determine image provider type for: $imageUrl');
+
+      print(
+        '❌ ProjectCard - Could not determine image provider type for: $imageUrl',
+      );
       // Usar imagen por defecto si no se puede determinar el tipo
-      return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
+      return const NetworkImage(
+        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
     } catch (e) {
       print('❌ ProjectCard - Error loading image: $e');
       // Usar imagen por defecto en caso de error
-      return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
+      return const NetworkImage(
+        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
     }
   }
+
   Color _getProgressColor() {
     if (progress >= 0.7) {
       return const Color(0xFF10B981); // Green
