@@ -100,7 +100,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                       ),
                     ),
                     IconButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // Enviar evento de regreso a proyectos
+                        SyncService.navigateToProjects();
+                      },
                       icon: const Icon(Icons.close, color: AppColors.iconGray),
                     ),
                   ],

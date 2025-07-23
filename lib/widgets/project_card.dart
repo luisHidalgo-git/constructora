@@ -202,8 +202,10 @@ class ProjectCard extends StatelessWidget {
           return FileImage(file);
         } else {
           print('❌ ProjectCard - Local file does not exist: $filePath');
-          // Si el archivo local no existe, usar imagen por defecto
-          return const NetworkImage('https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800');
+          // Si el archivo local no existe, intentar construir URL del servidor
+          final serverUrl = ImageService.buildServerImageUrl('/uploads/${path.basename(filePath)}');
+          print('🔄 ProjectCard - Trying server URL: $serverUrl');
+          return NetworkImage(serverUrl);
         }
       }
       

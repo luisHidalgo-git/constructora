@@ -18,6 +18,7 @@ class BottomNavigationWidget extends StatelessWidget {
 
     switch (index) {
       case 0:
+        SyncService.navigateToHome();
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -25,6 +26,7 @@ class BottomNavigationWidget extends StatelessWidget {
         );
         break;
       case 1:
+        SyncService.navigateToProjects();
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const ProjectsScreen()),

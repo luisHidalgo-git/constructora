@@ -209,11 +209,9 @@ class ProjectDetailCard extends StatelessWidget {
 
       print('🔍 ProjectDetailCard - Building image provider for: $imageUrl');
 
-      print('🔍 ProjectDetailCard - Building image provider for: $imageUrl');
 
       // Si es una URL de internet
       if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        print('✅ ProjectDetailCard - Using NetworkImage for: $imageUrl');
         print('✅ ProjectDetailCard - Using NetworkImage for: $imageUrl');
         return NetworkImage(imageUrl);
       }
@@ -226,22 +224,19 @@ class ProjectDetailCard extends StatelessWidget {
         File file = File(filePath);
         if (file.existsSync()) {
           print('✅ ProjectDetailCard - Using FileImage for: $filePath');
-          print('✅ ProjectDetailCard - Using FileImage for: $filePath');
           return FileImage(file);
         } else {
           print('❌ ProjectDetailCard - Local file does not exist: $filePath');
-          print('❌ ProjectDetailCard - Local file does not exist: $filePath');
-          // Si el archivo local no existe, usar imagen por defecto
-          return const NetworkImage(
-            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-          );
+          // Si el archivo local no existe, intentar construir URL del servidor
+          final serverUrl = ImageService.buildServerImageUrl('/uploads/${path.basename(filePath)}');
+          print('🔄 ProjectDetailCard - Trying server URL: $serverUrl');
+          return NetworkImage(serverUrl);
         }
       }
 
       // Si es una ruta del servidor sin dominio, construir URL completa
       if (imageUrl.startsWith('/uploads/')) {
         final fullUrl = ImageService.buildServerImageUrl(imageUrl);
-        print('✅ ProjectDetailCard - Built server URL: $fullUrl');
         print('✅ ProjectDetailCard - Built server URL: $fullUrl');
         return NetworkImage(fullUrl);
       }
@@ -253,14 +248,10 @@ class ProjectDetailCard extends StatelessWidget {
               imageUrl.contains('.jpeg'))) {
         final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
         print('✅ ProjectDetailCard - Built server URL from filename: $fullUrl');
-        print('✅ ProjectDetailCard - Built server URL from filename: $fullUrl');
         return NetworkImage(fullUrl);
       }
 
       print('❌ ProjectDetailCard - Could not determine image provider type for: $imageUrl');
-      print(
-        '❌ ProjectDetailCard - Could not determine image provider type for: $imageUrl',
-      );
       // Usar imagen por defecto si no se puede determinar el tipo
       return const NetworkImage(
         'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',

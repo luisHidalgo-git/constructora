@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as path;
+import 'package:path/path.dart' as path;
 import 'package:flutter/foundation.dart';
 import '../config/api_config.dart';
 import '../services/auth_service.dart';
@@ -111,7 +112,19 @@ class ImageService {
           
           // Verificar que la URL es válida
           if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) {
-            print('✅ ImageService - Imagen verificada en servidor: $imageUrl');
+            // Verificar que la imagen realmente existe en el servidor
+            final imageExists = await checkImageExists(imageUrl);
+            if (imageExists) {
+              print('✅ ImageService - Imagen verificada y accesible en servidor: $imageUrl');
+            } else {
+              print('⚠️ ImageService - Imagen subida pero no accesible inmediatamente: $imageUrl');
+              // Esperar un poco y verificar de nuevo
+              await Future.delayed(Duration(seconds: 2));
+              final imageExistsRetry = await checkImageExists(imageUrl);
+              if (!imageExistsRetry) {
+                print('❌ ImageService - Imagen no accesible después de reintento');
+              }
+            }
             return imageUrl;
           } else {
             throw Exception('URL de imagen inválida recibida del servidor');

@@ -58,25 +58,42 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     print('📱 TV Project Detail received sync event: $eventType');
 
     switch (eventType) {
-      case 'navigate_to_projects':
+      case 'navigate_to_home':
+      case 'navigate_back_to_home':
         // Volver al dashboard
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
             builder: (context) => TVDashboardScreen(user: widget.user),
+            settings: const RouteSettings(name: '/tv_dashboard'),
           ),
+          (route) => false,
+        );
+        break;
+        
+      case 'navigate_to_projects':
+        // Volver al dashboard
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TVDashboardScreen(user: widget.user),
+            settings: const RouteSettings(name: '/tv_dashboard'),
+          ),
+          (route) => false,
         );
         break;
 
       case 'navigate_to_project_detail':
         final projectId = data['projectId'];
         if (projectId != null && projectId != widget.project.id) {
-          // Navegar a otro proyecto (recargar esta pantalla con nuevo proyecto)
-          Navigator.pushReplacement(
+          // Volver al dashboard primero, luego navegar al nuevo proyecto
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (context) => TVDashboardScreen(user: widget.user),
+              settings: const RouteSettings(name: '/tv_dashboard'),
             ),
+            (route) => false,
           );
         }
         break;

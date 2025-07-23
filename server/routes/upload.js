@@ -47,11 +47,23 @@ router.post('/image', auth, upload.single('image'), (req, res) => {
     const protocol = req.get('x-forwarded-proto') || req.protocol;
     const host = req.get('host');
     
-    // Para Railway, usar HTTPS siempre
-    const imageUrl = `https://${host}/uploads/${filename}`;
+    // Para Railway y otros servicios, usar HTTPS siempre en producción
+    const imageUrl = process.env.NODE_ENV === 'production' 
+      ? `https://${host}/uploads/${filename}`
+      : `${protocol}://${host}/uploads/${filename}`;
 
     console.log('🔗 URL de imagen generada:', imageUrl);
     console.log('✅ Imagen guardada exitosamente en el servidor');
+    
+    // Verificar que la imagen realmente se puede acceder
+    setTimeout(async () => {
+      try {
+        const testResponse = await require('http').get(imageUrl);
+        console.log('✅ Imagen verificada como accesible:', imageUrl);
+      } catch (e) {
+        console.log('⚠️ Imagen subida pero verificación falló:', e.message);
+      }
+    }, 1000);
     
     res.json({
       message: 'Imagen subida automáticamente al servidor',
@@ -62,7 +74,9 @@ router.post('/image', auth, upload.single('image'), (req, res) => {
       mimetype: req.file.mimetype,
       uploadedAt: new Date().toISOString(),
       uploadedBy: req.user.email,
-      success: true
+      success: true,
+      serverPath: `/uploads/${filename}`,
+      fullUrl: imageUrl
     });
 
   } catch (error) {

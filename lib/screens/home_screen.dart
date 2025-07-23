@@ -12,6 +12,8 @@ import '../models/project_model.dart';
 import '../models/stats_model.dart';
 import '../models/user_model.dart';
 import 'update_project_screen.dart';
+import '../services/sync_service.dart';
+import '../services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -44,6 +46,19 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _searchController.addListener(_onSearchChanged);
     _loadData();
+    _initSync();
+  }
+
+  Future<void> _initSync() async {
+    try {
+      final user = await AuthService.getSavedUser();
+      if (user != null) {
+        await SyncService.startSync(user.id);
+        await SyncService.navigateToHome();
+      }
+    } catch (e) {
+      print('Error initializing sync in home: $e');
+    }
   }
 
   @override

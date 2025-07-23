@@ -124,11 +124,19 @@ class SyncService {
     await sendNavigationEvent(eventType: 'navigate_to_projects');
   }
 
+  static Future<void> navigateToHome() async {
+    await sendNavigationEvent(eventType: 'navigate_to_home');
+  }
+
   static Future<void> navigateToProjectDetail(String projectId) async {
     await sendNavigationEvent(
       eventType: 'navigate_to_project_detail',
       data: {'projectId': projectId},
     );
+  }
+
+  static Future<void> navigateBackToHome() async {
+    await sendNavigationEvent(eventType: 'navigate_back_to_home');
   }
 
   static Future<void> projectUpdated(Map<String, dynamic> projectData) async {

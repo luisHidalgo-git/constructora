@@ -290,7 +290,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             widget.onImageSelected!(serverImageUrl);
           }
 
-          _showMessage('✅ Imagen guardada automáticamente en el servidor');
+          _showMessage('✅ Imagen guardada automáticamente en el servidor y disponible en todos los dispositivos');
 
           // Limpiar imagen local después de subir exitosamente
           ImageService.cleanupLocalImage(image.path);
@@ -304,7 +304,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
 
           _showMessage(
-            'Error: No se pudo subir la imagen al servidor. Intenta de nuevo.',
+            'Error: No se pudo subir la imagen al servidor. Las imágenes deben guardarse en el servidor para funcionar en todos los dispositivos. Intenta de nuevo.',
             isError: true,
           );
         }
@@ -365,7 +365,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
             widget.onImageSelected!(serverImageUrl);
           }
 
-          _showMessage('✅ Imagen guardada automáticamente en el servidor');
+          _showMessage('✅ Imagen guardada automáticamente en el servidor y disponible en todos los dispositivos');
 
           // Limpiar imagen local después de subir exitosamente
           ImageService.cleanupLocalImage(image.path);
@@ -379,7 +379,7 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
 
           _showMessage(
-            'Error: No se pudo subir la imagen al servidor. Intenta de nuevo.',
+            'Error: No se pudo subir la imagen al servidor. Las imágenes deben guardarse en el servidor para funcionar en todos los dispositivos. Intenta de nuevo.',
             isError: true,
           );
         }
@@ -531,10 +531,10 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
             Text(
               _isUploading
-                  ? 'Por favor espera...'
+                  ? 'Guardando en servidor para todos los dispositivos...'
                   : _selectedImagePath != null
-                      ? 'Toca para cambiar la imagen'
-                  : 'Toca para seleccionar una imagen',
+                      ? 'Imagen guardada en servidor - Toca para cambiar'
+                  : 'Toca para seleccionar (se guardará automáticamente)',
               style: AppTextStyles.subtitle.copyWith(
                 fontSize: 12,
                 color: AppColors.textGray,

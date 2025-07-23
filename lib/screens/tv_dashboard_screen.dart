@@ -64,8 +64,33 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     print('📱 TV received sync event: $eventType');
     
     switch (eventType) {
+      case 'navigate_to_home':
+      case 'navigate_back_to_home':
+        // Si estamos en otra pantalla, volver al dashboard
+        if (ModalRoute.of(context)?.settings.name != '/tv_dashboard') {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TVDashboardScreen(user: widget.user),
+              settings: const RouteSettings(name: '/tv_dashboard'),
+            ),
+            (route) => false,
+          );
+        }
+        break;
+        
       case 'navigate_to_projects':
-        // Ya estamos en dashboard, no hacer nada
+        // Si estamos en detalle de proyecto, volver al dashboard
+        if (ModalRoute.of(context)?.settings.name != '/tv_dashboard') {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TVDashboardScreen(user: widget.user),
+              settings: const RouteSettings(name: '/tv_dashboard'),
+            ),
+            (route) => false,
+          );
+        }
         break;
         
       case 'navigate_to_project_detail':
@@ -89,7 +114,34 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
   void _navigateToProjectDetail(String projectId) {
     // Buscar el proyecto en la lista actual
-    final project = _projects.firstWhere(
+    ProjectModel? project;
+    try {
+      project = _projects.firstWhere(
+        (p) => p.id == projectId,
+      );
+    } catch (e) {
+      // Si no se encuentra el proyecto, usar el primero disponible
+      project = _projects.isNotEmpty ? _projects.first : null;
+    }
+    
+    if (project != null) {
+      setState(() {
+        _selectedProjectId = projectId;
+      });
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TVProjectDetailScreen(
+            project: project!,
+            user: widget.user,
+          ),
+          settings: const RouteSettings(name: '/tv_project_detail'),
+        ),
+      );
+    }
+  }
+
       (p) => p.id == projectId,
       orElse: () => _projects.isNotEmpty ? _projects.first : null,
     );
@@ -693,6 +745,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           MaterialPageRoute(
             builder: (context) =>
                 TVProjectDetailScreen(project: project, user: widget.user),
+            settings: const RouteSettings(name: '/tv_project_detail'),
           ),
         );
       },
