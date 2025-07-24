@@ -714,14 +714,17 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       );
     }
 
-    return ListView.builder(
+    return GridView.builder(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 2.2, // Hacer las tarjetas más pequeñas y horizontales
+      ),
       itemCount: _projects.length,
       itemBuilder: (context, index) {
         final project = _projects[index];
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: _buildMockupProjectCard(project),
-        );
+        return _buildMockupProjectCard(project);
       },
     );
   }
@@ -739,7 +742,6 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         );
       },
       child: Container(
-        height: 200,
         decoration: BoxDecoration(
           color: const Color(0xFF1F1F1F),
           borderRadius: BorderRadius.circular(12),
@@ -749,8 +751,8 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           children: [
             // Imagen del proyecto
             Container(
-              width: 120,
-              height: 200,
+              width: 80,
+              height: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
@@ -771,7 +773,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                       child: Icon(
                         Icons.image_outlined,
                         color: Colors.grey,
-                        size: 40,
+                        size: 24,
                       ),
                     )
                   : null,
@@ -780,39 +782,42 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
             // Información del proyecto
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Header con nombre y estado
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
                             project.name,
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: Colors.white,
                             ),
-                            maxLines: 2,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+                            horizontal: 8,
+                            vertical: 4,
                           ),
                           decoration: BoxDecoration(
                             color: _getStatusColor(project.status),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             project.status,
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 10,
                               fontWeight: FontWeight.w500,
                               color: Colors.white,
                             ),
@@ -821,40 +826,17 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
 
                     Text(
                       project.clientName,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         color: Colors.white.withOpacity(0.7),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-
-                    const SizedBox(height: 12),
-
-                    Text(
-                      'Grupo Inmobiliario ABC',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.5),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Text(
-                      'Presupuesto: ${project.budget}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-
-                    const Spacer(),
 
                     // Progress
                     Column(
@@ -866,26 +848,26 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                             Text(
                               'Progreso',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 10,
                                 color: Colors.white.withOpacity(0.7),
                               ),
                             ),
                             Text(
                               '${(project.progress * 100).toInt()}%',
                               style: const TextStyle(
-                                fontSize: 16,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         Container(
-                          height: 8,
+                          height: 4,
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(2),
                           ),
                           child: FractionallySizedBox(
                             alignment: Alignment.centerLeft,
@@ -893,7 +875,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                             child: Container(
                               decoration: BoxDecoration(
                                 color: _getProgressColor(project.progress),
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(2),
                               ),
                             ),
                           ),
