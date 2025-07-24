@@ -17,6 +17,7 @@ import '../core/widgets/empty_state_widget.dart';
 import '../services/project_image_service.dart';
 import '../models/project_image_model.dart';
 import '../widgets/project_gallery_widget.dart';
+import 'project_detail_screen.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key});
@@ -75,81 +76,18 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   void _showProjectDetails(ProjectModel project) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProjectDetailScreen(project: project),
+      ),
+    ).then((_) {
+      _refreshProjects();
+    });
+
     SyncService.navigateToProjectDetail(project.id);
     print(
       '📱 Mobile: Sent navigate_to_project_detail event for project: ${project.id}',
-    );
-
-    _loadProjectImages(project.id);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.9,
-            height: MediaQuery.of(context).size.height * 0.8,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDialogHeader(project),
-                const SizedBox(height: 16),
-                _buildProjectImage(project),
-                const SizedBox(height: 16),
-                _buildProjectGallerySection(project),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: _buildProjectDetails(project),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _loadProjectImages(String projectId) async {
-    try {
-      final images = await ProjectImageService.getProjectImages(projectId);
-      setState(() {
-        _projectImages[projectId] = images;
-      });
-    } catch (e) {
-      print('Error loading project images: $e');
-      setState(() {
-        _projectImages[projectId] = [];
-      });
-    }
-  }
-
-  Widget _buildDialogHeader(ProjectModel project) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            project.name,
-            style: AppTextStyles.header.copyWith(fontSize: 20),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        IconButton(
-          onPressed: () {
-            Navigator.pop(context);
-            SyncService.navigateToProjects();
-            print('📱 Mobile: Sent navigate_to_projects event (dialog closed)');
-          },
-          icon: const Icon(Icons.close, color: AppColors.iconGray),
-        ),
-      ],
     );
   }
 
@@ -204,13 +142,27 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   Widget _buildProjectGallerySection(ProjectModel project) {
     final images = _projectImages[project.id] ?? [];
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Galería del Proyecto',
-          style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Galería del Proyecto',
+              style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+            ),
+            if (images.isNotEmpty)
+              Text(
+                '${images.length} ${images.length == 1 ? 'imagen' : 'imágenes'}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 12),
         if (images.isEmpty)
@@ -233,10 +185,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   const SizedBox(height: 8),
                   Text(
                     'No hay imágenes en la galería',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Las imágenes aparecerán aquí cuando se agreguen',
+                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
                   ),
                 ],
               ),
@@ -258,13 +212,24 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      image: ImageUtils.buildImageProvider(image.imageUrl) != null
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                      image:
+                          ImageUtils.buildImageProvider(image.imageUrl) != null
                           ? DecorationImage(
-                              image: ImageUtils.buildImageProvider(image.imageUrl)!,
+                              image: ImageUtils.buildImageProvider(
+                                image.imageUrl,
+                              )!,
                               fit: BoxFit.cover,
                             )
                           : null,
-                      color: ImageUtils.buildImageProvider(image.imageUrl) == null
+                      color:
+                          ImageUtils.buildImageProvider(image.imageUrl) == null
                           ? Colors.grey[300]
                           : null,
                     ),
@@ -274,7 +239,42 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             color: Colors.grey,
                             size: 30,
                           )
-                        : null,
+                        : Stack(
+                            children: [
+                              // Overlay con información de la imagen
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    borderRadius: const BorderRadius.only(
+                                      bottomLeft: Radius.circular(8),
+                                      bottomRight: Radius.circular(8),
+                                    ),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.7),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
                 );
               },
@@ -294,7 +294,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           onImageDeleted: (imageId) {
             // Actualizar la lista local
             for (var projectId in _projectImages.keys) {
-              _projectImages[projectId]?.removeWhere((img) => img.id == imageId);
+              _projectImages[projectId]?.removeWhere(
+                (img) => img.id == imageId,
+              );
             }
             setState(() {});
           },

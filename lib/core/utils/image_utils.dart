@@ -71,6 +71,8 @@ class ImageUtils {
     BorderRadius? borderRadius,
     BoxFit fit = BoxFit.cover,
     Widget? placeholder,
+    bool showOverlay = false,
+    String? overlayText,
   }) {
     return Container(
       width: width,
@@ -87,13 +89,50 @@ class ImageUtils {
             ? Colors.grey[300]
             : null,
       ),
-      child: buildImageProvider(imageUrl) == null
-          ? (placeholder ?? const Icon(
-              Icons.image_outlined,
-              color: Colors.grey,
-              size: 30,
-            ))
-          : null,
+      child: Stack(
+        children: [
+          if (buildImageProvider(imageUrl) == null)
+            Center(
+              child: placeholder ?? const Icon(
+                Icons.image_outlined,
+                color: Colors.grey,
+                size: 30,
+              ),
+            ),
+          if (showOverlay && overlayText != null)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: borderRadius?.bottomLeft ?? const Radius.circular(12),
+                    bottomRight: borderRadius?.bottomRight ?? const Radius.circular(12),
+                  ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.7),
+                    ],
+                  ),
+                ),
+                child: Text(
+                  overlayText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

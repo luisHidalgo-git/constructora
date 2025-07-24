@@ -396,6 +396,13 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: isError ? 4 : 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: !isError ? SnackBarAction(
+          label: 'Ver Galería',
+          textColor: Colors.white,
+          onPressed: () {
+            // Acción opcional para ver la galería completa
+          },
+        ) : null,
       ),
     );
   }
@@ -498,6 +505,14 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
                 color: Colors.grey[600],
               ),
             ),
+            const SizedBox(height: 4),
+            Text(
+              'Toca "Agregar" para subir la primera imagen',
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[500],
+              ),
+            ),
           ],
         ),
       );
@@ -517,11 +532,26 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
             decoration: BoxDecoration(
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
             ),
             child: const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-                strokeWidth: 2,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: AppColors.primary,
+                    strokeWidth: 2,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Subiendo...',
+                    style: TextStyle(
+                      fontSize: 8,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -536,6 +566,13 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
               image: ImageUtils.buildImageProvider(image.imageUrl) != null
                   ? DecorationImage(
                       image: ImageUtils.buildImageProvider(image.imageUrl)!,
@@ -552,7 +589,33 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
                     color: Colors.grey,
                     size: 30,
                   )
-                : null,
+                : Stack(
+                    children: [
+                      // Overlay con número de imagen
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         );
       },

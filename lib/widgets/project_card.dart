@@ -5,6 +5,7 @@ import '../models/project_model.dart';
 import '../services/sync_service.dart';
 import '../core/utils/image_utils.dart';
 import '../core/utils/color_utils.dart';
+import '../screens/project_detail_screen.dart';
 
 class ProjectCard extends StatelessWidget {
   final ProjectModel project;
@@ -36,10 +37,13 @@ class ProjectCard extends StatelessWidget {
           '📱 Mobile: ProjectCard tapped, sent navigate_to_project_detail for: ${project.id}',
         );
 
-        // Ejecutar callback original si existe
-        if (onTap != null) {
-          onTap!();
-        }
+        // Navegar a la pantalla de detalle del proyecto
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProjectDetailScreen(project: project),
+          ),
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),

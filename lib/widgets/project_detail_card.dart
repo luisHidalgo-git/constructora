@@ -177,7 +177,7 @@ class ProjectDetailCard extends StatelessWidget {
             const SizedBox(height: 8),
             // Budget Info
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

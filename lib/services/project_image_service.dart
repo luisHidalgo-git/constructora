@@ -138,6 +138,7 @@ class ProjectImageService {
           .timeout(Duration(milliseconds: ApiConfig.timeout));
 
       print('🔍 ProjectImageService - Response status: ${response.statusCode}');
+      print('🔍 ProjectImageService - Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -145,8 +146,14 @@ class ProjectImageService {
         
         print('✅ ProjectImageService - Found ${imagesData.length} images');
         
-        return imagesData.map((json) => ProjectImageModel.fromJson(json)).toList();
+        final images = imagesData.map((json) => ProjectImageModel.fromJson(json)).toList();
+        
+        // Ordenar por fecha de subida (más recientes primero)
+        images.sort((a, b) => b.uploadedAt.compareTo(a.uploadedAt));
+        
+        return images;
       } else {
+        print('❌ ProjectImageService - Error response: ${response.body}');
         throw Exception('Error al obtener imágenes del proyecto: ${response.statusCode}');
       }
     } catch (e) {

@@ -26,7 +26,7 @@ class ProjectImageModel {
   factory ProjectImageModel.fromJson(Map<String, dynamic> json) {
     return ProjectImageModel(
       id: json['id'] ?? '',
-      projectId: json['project'] ?? '',
+      projectId: json['project'] is String ? json['project'] : json['project']?['_id'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
       filename: json['filename'] ?? '',
       originalName: json['originalName'] ?? '',

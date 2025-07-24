@@ -410,6 +410,11 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
 
                     // Galería de imágenes para proyectos existentes
                     if (isUpdate) ...[
+                      Text(
+                        'Galería de Imágenes del Proyecto',
+                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
                       ProjectGalleryWidget(
                         projectId: widget.project!.id,
                         initialImages: _projectImages,
@@ -417,7 +422,29 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                           setState(() {
                             _projectImages = images;
                           });
+                          print('🔍 Project images updated: ${images.length} images');
                         },
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.blue, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Las imágenes de la galería se mostrarán en los detalles del proyecto como evidencia de avances.',
+                                style: TextStyle(fontSize: 12, color: Colors.blue),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                         const SizedBox(height: 32),
