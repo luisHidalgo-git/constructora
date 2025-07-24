@@ -742,131 +742,34 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         );
       },
       child: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFF1F1F1F),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          image: _buildImageProvider(project.imageUrl) != null
+              ? DecorationImage(
+                  image: _buildImageProvider(project.imageUrl)!,
+                  fit: BoxFit.cover,
+                )
+              : null,
+          color: _buildImageProvider(project.imageUrl) == null
+              ? Colors.grey[700]
+              : null,
         ),
-        child: Row(
-          children: [
-            // Imagen del proyecto - ahora a la izquierda
-            Container(
-              width: 80,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  bottomLeft: Radius.circular(12),
-                ),
-                image: _buildImageProvider(project.imageUrl) != null
-                    ? DecorationImage(
-                        image: _buildImageProvider(project.imageUrl)!,
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-                color: _buildImageProvider(project.imageUrl) == null
-                    ? Colors.grey[700]
-                    : null,
-              ),
-              child: _buildImageProvider(project.imageUrl) == null
-                  ? const Center(
-                      child: Icon(
-                        Icons.image_outlined,
-                        color: Colors.grey,
-                        size: 20,
-                      ),
-                    )
-                  : null,
-            ),
-
-            const SizedBox(width: 12),
-
-            // Información del proyecto - ahora a la derecha
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                child: Row(
-                  children: [
-                    // Información básica
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Nombre del proyecto
-                          Text(
-                            project.name,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          const SizedBox(height: 2),
-
-                          // Cliente
-                          Text(
-                            project.clientName,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.white.withOpacity(0.7),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(width: 8),
-
-                    // Estado y progreso
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // Estado
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(project.status),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            project.status,
-                            style: const TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 4),
-
-                        // Progreso
-                        Text(
-                          '${(project.progress * 100).toInt()}%',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+        child: _buildImageProvider(project.imageUrl) == null
+            ? const Center(
+                child: Icon(Icons.image_outlined, color: Colors.grey, size: 40),
+              )
+            : Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withOpacity(0.3)],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
