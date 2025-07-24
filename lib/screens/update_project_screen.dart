@@ -11,6 +11,9 @@ import '../features/projects/widgets/project_form_fields.dart';
 import '../features/projects/widgets/project_update_fields.dart';
 import '../features/projects/utils/project_utils.dart';
 import '../core/utils/validators.dart';
+import '../widgets/project_gallery_widget.dart';
+import '../models/project_image_model.dart';
+import '../services/project_image_service.dart';
 
 class UpdateProjectScreen extends StatefulWidget {
   final ProjectModel? project;
@@ -43,6 +46,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
   bool _isLoading = false;
   bool _hasUnsavedChanges = false;
   String? _selectedImagePath;
+  List<ProjectImageModel> _projectImages = [];
 
   @override
   void initState() {
@@ -85,6 +89,20 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     _projectStatus = project.status;
     _keyIndicators = Map.from(project.keyIndicators);
     _selectedImagePath = project.imageUrl;
+    _loadProjectImages();
+  }
+
+  Future<void> _loadProjectImages() async {
+    if (widget.project != null) {
+      try {
+        final images = await ProjectImageService.getProjectImages(widget.project!.id);
+        setState(() {
+          _projectImages = images;
+        });
+      } catch (e) {
+        print('Error loading project images: $e');
+      }
+    }
   }
 
   @override
@@ -387,6 +405,21 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                         ),
                       ],
                       if (!isUpdate) ...[
+
+                    const SizedBox(height: 24),
+
+                    // Galería de imágenes para proyectos existentes
+                    if (isUpdate) ...[
+                      ProjectGalleryWidget(
+                        projectId: widget.project!.id,
+                        initialImages: _projectImages,
+                        onImagesChanged: (images) {
+                          setState(() {
+                            _projectImages = images;
+                          });
+                        },
+                      ),
+                    ],
                         const SizedBox(height: 32),
                         CustomFilePicker(
                           initialImagePath: _selectedImagePath,

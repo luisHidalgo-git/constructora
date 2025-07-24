@@ -51,6 +51,11 @@ class ApiConfig {
   
   // Sync endpoints
   static String get sync => '$baseUrl/sync';
+  
+  // Project Images endpoints
+  static String get projectImages => '$baseUrl/project-images';
+  static String projectImagesByProject(String projectId) => '$projectImages/$projectId';
+  static String projectImageById(String imageId) => '$projectImages/$imageId';
 
   // Método para verificar la conectividad
   static Future<bool> checkConnectivity() async {

@@ -14,6 +14,9 @@ import '../core/utils/color_utils.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/error_widget.dart';
 import '../core/widgets/empty_state_widget.dart';
+import '../services/project_image_service.dart';
+import '../models/project_image_model.dart';
+import '../widgets/project_gallery_widget.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key});
@@ -26,6 +29,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   List<ProjectModel> _projects = [];
   bool _isLoading = true;
   String? _error;
+  Map<String, List<ProjectImageModel>> _projectImages = {};
 
   @override
   void initState() {
@@ -76,6 +80,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       '📱 Mobile: Sent navigate_to_project_detail event for project: ${project.id}',
     );
 
+    _loadProjectImages(project.id);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -93,6 +99,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 _buildDialogHeader(project),
                 const SizedBox(height: 16),
                 _buildProjectImage(project),
+                const SizedBox(height: 16),
+                _buildProjectGallerySection(project),
                 const SizedBox(height: 20),
                 Expanded(
                   child: SingleChildScrollView(
@@ -105,6 +113,20 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         );
       },
     );
+  }
+
+  Future<void> _loadProjectImages(String projectId) async {
+    try {
+      final images = await ProjectImageService.getProjectImages(projectId);
+      setState(() {
+        _projectImages[projectId] = images;
+      });
+    } catch (e) {
+      print('Error loading project images: $e');
+      setState(() {
+        _projectImages[projectId] = [];
+      });
+    }
   }
 
   Widget _buildDialogHeader(ProjectModel project) {
@@ -177,6 +199,107 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         const SizedBox(height: 16),
         _buildKeyIndicatorsSection(project),
       ],
+    );
+  }
+
+  Widget _buildProjectGallerySection(ProjectModel project) {
+    final images = _projectImages[project.id] ?? [];
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Galería del Proyecto',
+          style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+        ),
+        const SizedBox(height: 12),
+        if (images.isEmpty)
+          Container(
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.photo_library_outlined,
+                    color: Colors.grey[400],
+                    size: 32,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No hay imágenes en la galería',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Container(
+            height: 100,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: images.length,
+              itemBuilder: (context, index) {
+                final image = images[index];
+                return GestureDetector(
+                  onTap: () => _showImageViewer(images, index),
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      image: ImageUtils.buildImageProvider(image.imageUrl) != null
+                          ? DecorationImage(
+                              image: ImageUtils.buildImageProvider(image.imageUrl)!,
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                      color: ImageUtils.buildImageProvider(image.imageUrl) == null
+                          ? Colors.grey[300]
+                          : null,
+                    ),
+                    child: ImageUtils.buildImageProvider(image.imageUrl) == null
+                        ? const Icon(
+                            Icons.image_outlined,
+                            color: Colors.grey,
+                            size: 30,
+                          )
+                        : null,
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showImageViewer(List<ProjectImageModel> images, int initialIndex) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProjectImageViewer(
+          images: images,
+          initialIndex: initialIndex,
+          onImageDeleted: (imageId) {
+            // Actualizar la lista local
+            for (var projectId in _projectImages.keys) {
+              _projectImages[projectId]?.removeWhere((img) => img.id == imageId);
+            }
+            setState(() {});
+          },
+        ),
+      ),
     );
   }
 

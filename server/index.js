@@ -177,6 +177,7 @@ try {
   app.use('/api/upload', require('./routes/upload'));
   app.use('/api/tv-auth', require('./routes/tv-auth'));
   app.use('/api/sync', require('./routes/sync'));
+  app.use('/api/project-images', require('./routes/project-images'));
   console.log('✅ Rutas cargadas exitosamente');
 } catch (error) {
   console.error('❌ Error cargando rutas:', error);
