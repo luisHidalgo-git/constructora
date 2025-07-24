@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
-import 'package:path/path.dart' as path;
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
-import '../screens/update_project_screen.dart';
 import '../models/project_model.dart';
-import '../services/image_service.dart';
+import '../core/utils/image_utils.dart';
+import '../core/utils/color_utils.dart';
 
 class ProjectDetailCard extends StatelessWidget {
   final ProjectModel project;
@@ -119,17 +117,17 @@ class ProjectDetailCard extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                image: _buildImageProvider(imageUrl) != null
+                image: ImageUtils.buildImageProvider(imageUrl) != null
                     ? DecorationImage(
-                        image: _buildImageProvider(imageUrl)!,
+                        image: ImageUtils.buildImageProvider(imageUrl)!,
                         fit: BoxFit.cover,
                       )
                     : null,
-                color: _buildImageProvider(imageUrl) == null
+                color: ImageUtils.buildImageProvider(imageUrl) == null
                     ? Colors.grey[300]
                     : null,
               ),
-              child: _buildImageProvider(imageUrl) == null
+              child: ImageUtils.buildImageProvider(imageUrl) == null
                   ? const Center(
                       child: Icon(
                         Icons.image_outlined,
@@ -151,7 +149,7 @@ class ProjectDetailCard extends StatelessWidget {
                       minHeight: 8,
                       backgroundColor: Colors.grey[200],
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        _getProgressColor(),
+                        ColorUtils.getProgressColor(progress),
                       ),
                     ),
                   ),
@@ -200,82 +198,5 @@ class ProjectDetailCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  ImageProvider? _buildImageProvider(String imageUrl) {
-    try {
-      if (imageUrl.isEmpty) {
-        return null;
-      }
-
-      print('🔍 ProjectDetailCard - Building image provider for: $imageUrl');
-
-      // Si es una URL de internet
-      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        print('✅ ProjectDetailCard - Using NetworkImage for: $imageUrl');
-        return NetworkImage(imageUrl);
-      }
-
-      // Si es un archivo local
-      if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
-        String filePath = imageUrl.startsWith('file://')
-            ? imageUrl.substring(7)
-            : imageUrl;
-        File file = File(filePath);
-        if (file.existsSync()) {
-          print('✅ ProjectDetailCard - Using FileImage for: $filePath');
-          return FileImage(file);
-        } else {
-          print('❌ ProjectDetailCard - Local file does not exist: $filePath');
-          // Si el archivo local no existe, intentar construir URL del servidor
-          final serverUrl = ImageService.buildServerImageUrl(
-            '/uploads/${path.basename(filePath)}',
-          );
-          print('🔄 ProjectDetailCard - Trying server URL: $serverUrl');
-          return NetworkImage(serverUrl);
-        }
-      }
-
-      // Si es una ruta del servidor sin dominio, construir URL completa
-      if (imageUrl.startsWith('/uploads/')) {
-        final fullUrl = ImageService.buildServerImageUrl(imageUrl);
-        print('✅ ProjectDetailCard - Built server URL: $fullUrl');
-        return NetworkImage(fullUrl);
-      }
-
-      // Si parece ser un nombre de archivo, intentar construir URL del servidor
-      if (!imageUrl.contains('/') &&
-          (imageUrl.contains('.jpg') ||
-              imageUrl.contains('.png') ||
-              imageUrl.contains('.jpeg'))) {
-        final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
-        print('✅ ProjectDetailCard - Built server URL from filename: $fullUrl');
-        return NetworkImage(fullUrl);
-      }
-
-      print(
-        '❌ ProjectDetailCard - Could not determine image provider type for: $imageUrl',
-      );
-      // Usar imagen por defecto si no se puede determinar el tipo
-      return const NetworkImage(
-        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-      );
-    } catch (e) {
-      print('❌ ProjectDetailCard - Error loading image: $e');
-      // Usar imagen por defecto en caso de error
-      return const NetworkImage(
-        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-      );
-    }
-  }
-
-  Color _getProgressColor() {
-    if (progress >= 0.7) {
-      return const Color(0xFF10B981); // Green
-    } else if (progress >= 0.4) {
-      return const Color(0xFF3B82F6); // Blue
-    } else {
-      return const Color(0xFFEF4444); // Red
-    }
   }
 }

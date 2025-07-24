@@ -1,33 +1,31 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import '../core/constants/app_constants.dart';
 
 class ApiConfig {
   static String get baseUrl {
     try {
-      // Usar Railway como servidor principal
-      String url = dotenv.env['API_BASE_URL'] ?? 'https://constructora-production-beec.up.railway.app/api';
+      String url = dotenv.env['API_BASE_URL'] ?? AppConstants.defaultApiUrl;
       
-      // Debug de la URL
       print('🔗 API Base URL: $url');
       print('🔗 Release Mode: $kReleaseMode');
       
       return url;
     } catch (e) {
       print('❌ Error loading API_BASE_URL: $e');
-      // Fallback al servidor de Railway
-      return 'https://constructora-production-beec.up.railway.app/api';
+      return AppConstants.defaultApiUrl;
     }
   }
 
   static int get timeout {
     try {
-      final timeout = int.parse(dotenv.env['API_TIMEOUT'] ?? '45000');
+      final timeout = int.parse(dotenv.env['API_TIMEOUT'] ?? AppConstants.defaultTimeout.toString());
       print('⏱️ API Timeout: ${timeout}ms');
       return timeout;
     } catch (e) {
       print('❌ Error loading API_TIMEOUT: $e');
-      return 45000;
+      return AppConstants.defaultTimeout;
     }
   }
 

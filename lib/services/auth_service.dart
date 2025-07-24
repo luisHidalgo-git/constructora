@@ -5,18 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import '../config/api_config.dart';
 import '../models/user_model.dart';
+import '../core/constants/app_constants.dart';
+import '../core/utils/validators.dart';
 
 class AuthService {
-  static const String _tokenKey = 'auth_token';
-  static const String _userKey = 'user_data';
-
-  // Método para debug de la URL
-  static void _debugApiCall(String endpoint, Map<String, dynamic> body) {
-    print('🔗 API Call Debug:');
-    print('   Endpoint: $endpoint');
-    print('   Body: ${jsonEncode(body)}');
-  }
-
   // Login
   static Future<Map<String, dynamic>> login(
     String email,
@@ -25,10 +17,6 @@ class AuthService {
     try {
       final requestBody = {'email': email, 'password': password};
 
-      // Debug de la llamada
-      _debugApiCall(ApiConfig.authLogin, requestBody);
-
-      // Headers mejorados para el backend desplegado
       final headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -140,17 +128,17 @@ class AuthService {
         return {'success': false, 'message': 'El email es requerido'};
       }
 
-      if (!_isValidEmail(email.trim())) {
+      if (!Validators.isValidEmail(email.trim())) {
         return {
           'success': false,
           'message': 'Por favor ingresa un email válido',
         };
       }
 
-      if (password.length < 6) {
+      if (password.length < AppConstants.minPasswordLength) {
         return {
           'success': false,
-          'message': 'La contraseña debe tener al menos 6 caracteres',
+          'message': 'La contraseña debe tener al menos ${AppConstants.minPasswordLength} caracteres',
         };
       }
 
@@ -162,10 +150,6 @@ class AuthService {
         'position': position,
       };
 
-      // Debug de la llamada
-      _debugApiCall(ApiConfig.authRegister, requestBody);
-
-      // Headers mejorados
       final headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -262,11 +246,6 @@ class AuthService {
     }
   }
 
-  // Método auxiliar para validar email
-  static bool _isValidEmail(String email) {
-    return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
-  }
-
   // Obtener perfil actual
   static Future<UserModel?> getCurrentUser() async {
     try {
@@ -322,7 +301,7 @@ class AuthService {
   // Obtener token
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_tokenKey);
+    final token = prefs.getString(AppConstants.tokenKey);
     if (token != null) {
       print('🔍 Token retrieved from storage: ${token.substring(0, 20)}...');
     } else {
@@ -335,7 +314,7 @@ class AuthService {
   static Future<UserModel?> getSavedUser() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userData = prefs.getString(_userKey);
+      final userData = prefs.getString(AppConstants.userKey);
       if (userData != null) {
         print('✅ Saved user data found');
         return UserModel.fromJson(jsonDecode(userData));
@@ -369,21 +348,21 @@ class AuthService {
   static Future<void> logout() async {
     print('🔍 Logging out user...');
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_userKey);
+    await prefs.remove(AppConstants.tokenKey);
+    await prefs.remove(AppConstants.userKey);
     print('✅ User logged out, tokens cleared');
   }
 
   // Métodos privados
   static Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    await prefs.setString(AppConstants.tokenKey, token);
     print('✅ Token saved to storage');
   }
 
   static Future<void> _saveUser(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_userKey, jsonEncode(userData));
+    await prefs.setString(AppConstants.userKey, jsonEncode(userData));
     print('✅ User data saved to storage');
   }
 

@@ -7,10 +7,13 @@ import '../utils/app_text_styles.dart';
 import '../services/project_service.dart';
 import '../models/project_model.dart';
 import '../screens/update_project_screen.dart';
-import 'dart:io';
-import '../services/image_service.dart';
 import '../services/sync_service.dart';
 import '../services/auth_service.dart';
+import '../core/utils/image_utils.dart';
+import '../core/utils/color_utils.dart';
+import '../core/widgets/loading_widget.dart';
+import '../core/widgets/error_widget.dart';
+import '../core/widgets/empty_state_widget.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key});
@@ -120,17 +123,17 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                   width: double.infinity,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    image: _buildImageProvider(project.imageUrl) != null
+                    image: ImageUtils.buildImageProvider(project.imageUrl) != null
                         ? DecorationImage(
-                            image: _buildImageProvider(project.imageUrl)!,
+                            image: ImageUtils.buildImageProvider(project.imageUrl)!,
                             fit: BoxFit.cover,
                           )
                         : null,
-                    color: _buildImageProvider(project.imageUrl) == null
+                    color: ImageUtils.buildImageProvider(project.imageUrl) == null
                         ? Colors.grey[300]
                         : null,
                   ),
-                  child: _buildImageProvider(project.imageUrl) == null
+                  child: ImageUtils.buildImageProvider(project.imageUrl) == null
                       ? const Center(
                           child: Icon(
                             Icons.image_outlined,
@@ -179,7 +182,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                 value: project.progress,
                                 minHeight: 8,
                                 backgroundColor: Colors.grey[200],
-                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    ColorUtils.getProgressColor(project.progress),
                                   _getProgressColor(project.progress),
                                 ),
                               ),
@@ -224,7 +227,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: _getIndicatorColor(entry.value),
+                                    color: ColorUtils.getIndicatorColor(entry.value),
                                   ),
                                 ),
                               ],
@@ -255,75 +258,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         ),
       ],
     );
-  }
-
-  ImageProvider? _buildImageProvider(String imageUrl) {
-    try {
-      if (imageUrl.isEmpty) {
-        return null;
-      }
-
-      // Si es una URL de internet
-      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        return NetworkImage(imageUrl);
-      }
-
-      // Si es un archivo local
-      if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
-        String filePath = imageUrl.startsWith('file://')
-            ? imageUrl.substring(7)
-            : imageUrl;
-        File file = File(filePath);
-        if (file.existsSync()) {
-          return FileImage(file);
-        }
-      }
-
-      // Si es una ruta del servidor sin dominio, construir URL completa
-      if (imageUrl.startsWith('/uploads/')) {
-        final fullUrl = ImageService.buildServerImageUrl(imageUrl);
-        return NetworkImage(fullUrl);
-      }
-
-      // Si parece ser un nombre de archivo, intentar construir URL del servidor
-      if (!imageUrl.contains('/') &&
-          (imageUrl.contains('.jpg') ||
-              imageUrl.contains('.png') ||
-              imageUrl.contains('.jpeg'))) {
-        final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
-        return NetworkImage(fullUrl);
-      }
-
-      return const NetworkImage(
-        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-      );
-    } catch (e) {
-      return const NetworkImage(
-        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-      );
-    }
-  }
-
-  Color _getProgressColor(double progress) {
-    if (progress >= 0.7) {
-      return const Color(0xFF10B981);
-    } else if (progress >= 0.4) {
-      return const Color(0xFF3B82F6);
-    } else {
-      return const Color(0xFFEF4444);
-    }
-  }
-
-  Color _getIndicatorColor(double value) {
-    if (value >= 0.8) {
-      return const Color(0xFF10B981);
-    } else if (value >= 0.6) {
-      return const Color(0xFF3B82F6);
-    } else if (value >= 0.4) {
-      return const Color(0xFFFF9500);
-    } else {
-      return const Color(0xFFEF4444);
-    }
   }
 
   void _showProjectOptions(ProjectModel project) {
@@ -673,60 +607,22 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   Widget _buildProjectsList() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingWidget();
     }
 
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Error al cargar proyectos',
-              style: AppTextStyles.header.copyWith(
-                fontSize: 18,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: AppTextStyles.subtitle,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _refreshProjects,
-              child: const Text('Reintentar'),
-            ),
-          ],
-        ),
+      return CustomErrorWidget(
+        title: 'Error al cargar proyectos',
+        message: _error!,
+        onRetry: _refreshProjects,
       );
     }
 
     if (_projects.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.construction, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No hay proyectos',
-              style: AppTextStyles.header.copyWith(
-                fontSize: 18,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Crea tu primer proyecto para comenzar',
-              style: AppTextStyles.subtitle,
-            ),
-          ],
-        ),
+      return const EmptyStateWidget(
+        title: 'No hay proyectos',
+        message: 'Crea tu primer proyecto para comenzar',
+        icon: Icons.construction,
       );
     }
 

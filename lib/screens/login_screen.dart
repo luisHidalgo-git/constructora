@@ -2,12 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/social_login_button.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../services/auth_service.dart';
 import '../config/api_config.dart';
+import '../features/auth/widgets/auth_form_field.dart';
+import '../features/auth/widgets/auth_button.dart';
+import '../core/utils/validators.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,8 +31,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      _showMessage('Por favor completa todos los campos', isError: true);
+    // Validar campos
+    final emailError = Validators.validateEmail(_emailController.text);
+    final passwordError = Validators.validateRequired(_passwordController.text, 'La contraseña');
+    
+    if (emailError != null) {
+      _showMessage(emailError, isError: true);
+      return;
+    }
+    
+    if (passwordError != null) {
+      _showMessage(passwordError, isError: true);
       return;
     }
 
@@ -155,23 +165,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
 
                     // Email Field
-                    Text('Correo Electrónico', style: AppTextStyles.fieldLabel),
-                    const SizedBox(height: 6),
-                    CustomTextField(
+                    AuthFormField(
+                      label: 'Correo Electrónico',
                       controller: _emailController,
                       hintText: 'hello@example.com',
                       keyboardType: TextInputType.emailAddress,
+                      validator: Validators.validateEmail,
                     ),
 
                     const SizedBox(height: 12),
 
                     // Password Field
-                    Text('Contraseña', style: AppTextStyles.fieldLabel),
-                    const SizedBox(height: 6),
-                    CustomTextField(
+                    AuthFormField(
+                      label: 'Contraseña',
                       controller: _passwordController,
                       hintText: '••••••••••',
                       obscureText: _obscurePassword,
+                      validator: (value) => Validators.validateRequired(value, 'La contraseña'),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -191,33 +201,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 20),
 
                     // Login Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                'Iniciar Sesión',
-                                style: AppTextStyles.buttonText,
-                              ),
-                      ),
+                    AuthButton(
+                      text: 'Iniciar Sesión',
+                      onPressed: _handleLogin,
+                      isLoading: _isLoading,
                     ),
 
                     const SizedBox(height: 12),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
+import '../core/utils/formatters.dart';
 
 class CustomBudgetField extends StatefulWidget {
   final TextEditingController controller;
@@ -29,24 +30,6 @@ class _CustomBudgetFieldState extends State<CustomBudgetField> {
     }
   }
 
-  String _formatCurrency(String value) {
-    // Remover todo excepto números
-    String numbersOnly = value.replaceAll(RegExp(r'[^\d]'), '');
-    
-    if (numbersOnly.isEmpty) {
-      return '';
-    }
-
-    // Convertir a número y formatear con comas
-    int number = int.parse(numbersOnly);
-    String formatted = number.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-
-    return '\$$formatted';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -70,7 +53,7 @@ class _CustomBudgetFieldState extends State<CustomBudgetField> {
         ],
         onChanged: (value) {
           // Formatear el valor automáticamente
-          String formatted = _formatCurrency(value);
+          String formatted = Formatters.formatCurrency(value);
           
           // Solo actualizar si es diferente para evitar bucle infinito
           if (formatted != widget.controller.text) {

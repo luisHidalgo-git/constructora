@@ -5,6 +5,7 @@ import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../services/image_service.dart';
+import '../core/utils/image_utils.dart';
 
 class CustomFilePicker extends StatefulWidget {
   final Function(String)? onImageSelected;
@@ -470,17 +471,17 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
                   height: 80,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    image: _buildImageProvider(_selectedImagePath!) != null
+                    image: ImageUtils.buildImageProvider(_selectedImagePath!) != null
                         ? DecorationImage(
-                            image: _buildImageProvider(_selectedImagePath!)!,
+                            image: ImageUtils.buildImageProvider(_selectedImagePath!)!,
                             fit: BoxFit.cover,
                           )
                         : null,
-                    color: _buildImageProvider(_selectedImagePath!) == null
+                    color: ImageUtils.buildImageProvider(_selectedImagePath!) == null
                         ? Colors.grey[300]
                         : null,
                   ),
-                  child: _buildImageProvider(_selectedImagePath!) == null
+                  child: ImageUtils.buildImageProvider(_selectedImagePath!) == null
                       ? const Icon(
                           Icons.image_outlined,
                           color: Colors.grey,
@@ -545,48 +546,5 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
         ),
       ),
     );
-  }
-
-  ImageProvider? _buildImageProvider(String imageUrl) {
-    try {
-      if (imageUrl.isEmpty) {
-        return null;
-      }
-
-      print('🔍 CustomFilePicker - Building image provider for: $imageUrl');
-
-      // Si es una URL de internet (del servidor)
-      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        print('✅ CustomFilePicker - Using NetworkImage for: $imageUrl');
-        return NetworkImage(imageUrl);
-      }
-
-      // Si es un archivo local
-      if (imageUrl.startsWith('file://') || imageUrl.startsWith('/')) {
-        String filePath = imageUrl.startsWith('file://')
-            ? imageUrl.substring(7)
-            : imageUrl;
-        File file = File(filePath);
-        if (file.existsSync()) {
-          print('✅ CustomFilePicker - Using FileImage for: $filePath');
-          return FileImage(file);
-        } else {
-          print('❌ CustomFilePicker - Local file does not exist: $filePath');
-        }
-      }
-
-      // Si es una ruta del servidor sin dominio, construir URL completa
-      if (imageUrl.startsWith('/uploads/')) {
-        final fullUrl = ImageService.buildServerImageUrl(imageUrl);
-        print('✅ CustomFilePicker - Built server URL: $fullUrl');
-        return NetworkImage(fullUrl);
-      }
-
-      print('❌ CustomFilePicker - Could not determine image provider type for: $imageUrl');
-      return null;
-    } catch (e) {
-      print('❌ CustomFilePicker - Error loading image: $e');
-      return null;
-    }
   }
 }

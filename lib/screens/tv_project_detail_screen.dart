@@ -7,7 +7,10 @@ import 'tv_dashboard_screen.dart';
 import '../services/sync_service.dart';
 import 'dart:async';
 import 'tv_qr_screen.dart';
-import '../services/image_service.dart';
+import '../features/tv/widgets/tv_header.dart';
+import '../core/utils/image_utils.dart';
+import '../core/utils/color_utils.dart';
+import '../core/utils/formatters.dart';
 
 class TVProjectDetailScreen extends StatefulWidget {
   final ProjectModel project;
@@ -205,23 +208,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     }
   }
 
-  String _formatActivityDate(DateTime? dateTime) {
-    if (dateTime == null) return 'Sin fecha';
-
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inDays == 0) {
-      return 'Hoy';
-    } else if (difference.inDays == 1) {
-      return 'Ayer';
-    } else if (difference.inDays < 7) {
-      return 'Hace ${difference.inDays} días';
-    } else {
-      return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
-    }
-  }
-
   String _getIndicatorFromType(String type) {
     switch (type) {
       case 'installation':
@@ -278,7 +264,18 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             child: Column(
               children: [
                 // Header exacto al mockup
-                _buildMockupHeader(),
+                TVHeader(
+                  title: 'Detalle del Proyecto',
+                  user: widget.user,
+                  onBack: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TVDashboardScreen(user: widget.user),
+                      ),
+                    );
+                  },
+                ),
 
                 const SizedBox(height: 24),
 
@@ -301,137 +298,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildMockupHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Row(
-        children: [
-          // Logo y título
-          Row(
-            children: [
-              RichText(
-                text: const TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Avanze',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: -1,
-                      ),
-                    ),
-                    TextSpan(
-                      text: '360',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF6366F1),
-                        letterSpacing: -1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 16),
-
-              Container(
-                height: 20,
-                width: 1,
-                color: Colors.white.withOpacity(0.3),
-              ),
-
-              const SizedBox(width: 16),
-
-              const Text(
-                'Detalle del Proyecto',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
-          ),
-
-          const Spacer(),
-
-          // Usuario y botón volver
-          Row(
-            children: [
-              Text(
-                widget.user['name'].toString().split(' ')[0],
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                widget.user['position'] ?? 'Supervisor de obra',
-                style: const TextStyle(fontSize: 12, color: Colors.white60),
-              ),
-              const SizedBox(width: 16),
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Center(
-                  child: Text(
-                    widget.user['name']
-                        .toString()
-                        .substring(0, 1)
-                        .toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          TVDashboardScreen(user: widget.user),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.arrow_back, size: 16),
-                label: const Text('Volver'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -505,7 +371,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _getStatusColor(widget.project.status).withOpacity(0.2),
+                color: ColorUtils.getStatusColor(widget.project.status).withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -513,7 +379,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: _getStatusColor(widget.project.status),
+                  color: ColorUtils.getStatusColor(widget.project.status),
                 ),
               ),
             ),
@@ -528,17 +394,17 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             width: double.infinity,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              image: _buildImageProvider(widget.project.imageUrl) != null
+              image: ImageUtils.buildImageProvider(widget.project.imageUrl) != null
                   ? DecorationImage(
-                      image: _buildImageProvider(widget.project.imageUrl)!,
+                      image: ImageUtils.buildImageProvider(widget.project.imageUrl)!,
                       fit: BoxFit.cover,
                     )
                   : null,
-              color: _buildImageProvider(widget.project.imageUrl) == null
+              color: ImageUtils.buildImageProvider(widget.project.imageUrl) == null
                   ? Colors.grey[700]
                   : null,
             ),
-            child: _buildImageProvider(widget.project.imageUrl) == null
+            child: ImageUtils.buildImageProvider(widget.project.imageUrl) == null
                 ? const Center(
                     child: Icon(
                       Icons.image_outlined,
@@ -612,7 +478,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                       widthFactor: widget.project.progress,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: _getProgressColor(widget.project.progress),
+                          color: ColorUtils.getProgressColor(widget.project.progress),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -891,7 +757,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               Expanded(
                 child: Text(
                   update['title'] ?? 'Actualización',
-                  style: const TextStyle(
+                  date: Formatters.formatActivityDate(activity.createdAt),
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -1021,7 +887,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                       widthFactor: indicatorValue,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: _getIndicatorColorByName(indicator),
+                          color: ColorUtils.getIndicatorColorByName(indicator),
                           borderRadius: BorderRadius.circular(1.5),
                         ),
                       ),
@@ -1036,85 +902,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     );
   }
 
-  Color _getIndicatorColorByName(String indicator) {
-    switch (indicator) {
-      case 'Calidad':
-        return const Color(0xFF10B981);
-      case 'Tiempo':
-        return const Color(0xFFFF9500);
-      case 'Presupuesto':
-        return const Color(0xFF6366F1);
-      case 'Satisfacción':
-        return const Color(0xFF8B5CF6);
-      case 'Instalaciones':
-        return const Color(0xFF3B82F6);
-      default:
-        return const Color(0xFF6366F1);
-    }
-  }
-
-  ImageProvider? _buildImageProvider(String imageUrl) {
-    try {
-      if (imageUrl.isEmpty) {
-        return null;
-      }
-
-      // Si es una URL de internet
-      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        return NetworkImage(imageUrl);
-      }
-
-      // Si es una ruta del servidor sin dominio, construir URL completa
-      if (imageUrl.startsWith('/uploads/')) {
-        final fullUrl = ImageService.buildServerImageUrl(imageUrl);
-        return NetworkImage(fullUrl);
-      }
-
-      // Si parece ser un nombre de archivo, intentar construir URL del servidor
-      if (!imageUrl.contains('/') &&
-          (imageUrl.contains('.jpg') ||
-              imageUrl.contains('.png') ||
-              imageUrl.contains('.jpeg'))) {
-        final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
-        return NetworkImage(fullUrl);
-      }
-
-      // Usar imagen por defecto si no se puede determinar el tipo
-      return const NetworkImage(
-        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-      );
-    } catch (e) {
-      // Usar imagen por defecto en caso de error
-      return const NetworkImage(
-        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-      );
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Activo':
-        return const Color(0xFF10B981);
-      case 'Pausado':
-        return const Color(0xFFFF9500);
-      case 'Completado':
-        return const Color(0xFF3B82F6);
-      case 'Cancelado':
-        return const Color(0xFFEF4444);
-      default:
-        return const Color(0xFF10B981);
-    }
-  }
-
-  Color _getProgressColor(double progress) {
-    if (progress >= 0.7) {
-      return const Color(0xFF10B981);
-    } else if (progress >= 0.4) {
-      return const Color(0xFF6366F1);
-    } else {
-      return const Color(0xFFEF4444);
-    }
-  }
 }
 
 // Widget para el carrusel de imágenes

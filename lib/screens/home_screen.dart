@@ -14,6 +14,9 @@ import '../models/user_model.dart';
 import 'update_project_screen.dart';
 import '../services/sync_service.dart';
 import '../services/auth_service.dart';
+import '../core/widgets/loading_widget.dart';
+import '../core/widgets/error_widget.dart';
+import '../core/widgets/empty_state_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -465,85 +468,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildProjectsList() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingWidget();
     }
 
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Error al cargar proyectos',
-              style: AppTextStyles.header.copyWith(
-                fontSize: 18,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: AppTextStyles.subtitle,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _refreshData,
-              child: const Text('Reintentar'),
-            ),
-          ],
-        ),
+      return CustomErrorWidget(
+        title: 'Error al cargar proyectos',
+        message: _error!,
+        onRetry: _refreshData,
       );
     }
 
     if (_filteredProjects.isEmpty && _projects.isNotEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No se encontraron proyectos',
-              style: AppTextStyles.header.copyWith(
-                fontSize: 18,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Intenta con otros términos de búsqueda',
-              style: AppTextStyles.subtitle,
-            ),
-          ],
-        ),
+      return const EmptyStateWidget(
+        title: 'No se encontraron proyectos',
+        message: 'Intenta con otros términos de búsqueda',
+        icon: Icons.search_off,
       );
     }
 
     if (_projects.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.construction, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No hay proyectos',
-              style: AppTextStyles.header.copyWith(
-                fontSize: 18,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Crea tu primer proyecto para comenzar',
-              style: AppTextStyles.subtitle,
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
+      return const EmptyStateWidget(
+        title: 'No hay proyectos',
+        message: 'Crea tu primer proyecto para comenzar',
+        icon: Icons.construction,
       );
     }
 

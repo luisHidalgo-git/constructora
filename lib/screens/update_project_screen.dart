@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 import '../screens/home_screen.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/custom_date_field.dart';
-import '../widgets/custom_budget_field.dart';
 import '../widgets/custom_file_picker.dart';
-import '../widgets/location_picker_widget.dart';
-import '../widgets/progress_indicator_widget.dart';
-import '../widgets/status_selector.dart';
-import '../widgets/key_indicators_widget.dart';
-import '../widgets/update_notes_widget.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../models/project_model.dart';
 import '../services/project_service.dart';
 import '../services/image_service.dart';
 import '../services/sync_service.dart';
+import '../features/projects/widgets/project_form_fields.dart';
+import '../features/projects/widgets/project_update_fields.dart';
+import '../features/projects/utils/project_utils.dart';
+import '../core/utils/validators.dart';
 
 class UpdateProjectScreen extends StatefulWidget {
   final ProjectModel? project;
@@ -181,126 +177,39 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
           },
         ) ??
         false;
+
+  Widget _buildRequiredFieldsInfo() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: AppColors.primary,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Los campos marcados con (*) son obligatorios',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
-
-  Future<void> _updateProject() async {
-    // Validación mejorada con mensajes específicos
-    String? validationError = _validateFields();
-    if (validationError != null) {
-      _showMessage(validationError, isError: true);
-      return;
-    }
-
-    // Validar que si hay imagen seleccionada, esté en el servidor
-    if (_selectedImagePath != null && ImageService.isLocalImage(_selectedImagePath!)) {
-      _showMessage(
-        'ERROR: La imagen debe estar guardada en el servidor. Por favor, selecciona la imagen nuevamente y espera a que se suba completamente.',
-        isError: true,
-      );
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // La imagen DEBE estar en el servidor para soporte multi-dispositivo
-      String imageUrl = _selectedImagePath ?? widget.project?.imageUrl ?? '';
-      print('🔍 Image URL for project: $imageUrl');
-
-      final projectData = ProjectModel(
-        id: widget.project?.id ?? '',
-        name: _projectNameController.text,
-        clientName: _clientNameController.text,
-        description: _projectManagerController.text,
-        location: _locationController.text,
-        budget: _budgetController.text,
-        startDate: _startDateController.text,
-        endDate: _endDateController.text,
-        progress: _projectProgress,
-        status: _projectStatus,
-        keyIndicators: _keyIndicators,
-        imageUrl: imageUrl,
-      );
-
-      ProjectModel result;
-      if (widget.project != null) {
-        // Actualizar proyecto existente
-        result = await ProjectService.updateProject(
-          widget.project!.id,
-          projectData,
-        );
-        // Enviar evento de proyecto actualizado
-        await SyncService.projectUpdated(result.toUpdateJson());
-        _showMessage('Proyecto actualizado exitosamente');
-      } else {
-        // Crear nuevo proyecto
-        result = await ProjectService.createProject(projectData);
-        // Enviar evento de proyecto creado
-        await SyncService.projectCreated(result.toUpdateJson());
-        _showMessage('Proyecto creado exitosamente');
-        // Marcar como guardado
-        setState(() {
-          _hasUnsavedChanges = false;
-        });
-      }
-
-      Navigator.pop(context, result);
-    } catch (e) {
-      print('❌ Error saving project: $e');
-      String errorMessage = e.toString();
-      if (errorMessage.contains('imagen debe estar en el servidor')) {
-        _showMessage(
-          'ERROR CRÍTICO: Para usar la app en múltiples dispositivos, todas las imágenes deben guardarse en el servidor. Por favor, selecciona la imagen nuevamente.',
-          isError: true,
-        );
-      } else {
-        _showMessage('Error: ${e.toString()}', isError: true);
-      }
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  String? _validateFields() {
-    List<String> missingFields = [];
-
-    if (_projectNameController.text.trim().isEmpty) {
-      missingFields.add('Nombre del proyecto');
-    }
-    if (_clientNameController.text.trim().isEmpty) {
-      missingFields.add('Nombre del cliente');
-    }
-    if (_projectManagerController.text.trim().isEmpty) {
-      missingFields.add('Descripción del proyecto');
-    }
-    if (_locationController.text.trim().isEmpty) {
-      missingFields.add('Ubicación');
-    }
-    if (_budgetController.text.trim().isEmpty) {
-      missingFields.add('Presupuesto');
-    }
-    if (_startDateController.text.trim().isEmpty) {
-      missingFields.add('Fecha de inicio');
-    }
-    if (_endDateController.text.trim().isEmpty) {
-      missingFields.add('Fecha de fin');
-    }
-
-    if (missingFields.isEmpty) {
-      return null;
-    }
-
-    if (missingFields.length == 1) {
-      return 'Por favor completa el campo: ${missingFields.first}';
-    } else if (missingFields.length <= 3) {
-      return 'Por favor completa los campos: ${missingFields.join(', ')}';
-    } else {
-      return 'Por favor completa todos los campos obligatorios (${missingFields.length} campos faltantes)';
-    }
-  }
+}
 
   void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -315,82 +224,130 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
   }
 
   void _updateProgressProportionally(double newProgress) {
-    setState(() {
-      _projectProgress = newProgress;
-
-      // Actualizar indicadores clave proporcionalmente basándose en el progreso general
-      final progressFactor = newProgress;
-      _keyIndicators = _keyIndicators.map((key, value) {
-        // Mantener la relación proporcional pero ajustar según el progreso general
-        double baseValue = widget.project?.keyIndicators[key] ?? 0.5;
-        double adjustedValue = (baseValue * 0.7) + (progressFactor * 0.3);
-        return MapEntry(key, adjustedValue.clamp(0.0, 1.0));
-      });
-
-      // Actualizar estado basándose en el progreso
-      if (newProgress >= 0.95) {
-        _projectStatus = 'Completado';
-      } else if (newProgress >= 0.8) {
-        _projectStatus = 'Activo';
-      } else if (newProgress < 0.1) {
-        _projectStatus = 'Pausado';
-      }
-    });
+    ProjectUtils.updateProgressProportionally(
+      newProgress: newProgress,
+      originalProject: widget.project,
+      setProgress: (progress) => setState(() => _projectProgress = progress),
+      setIndicators: (indicators) => setState(() => _keyIndicators = indicators),
+      setStatus: (status) => setState(() => _projectStatus = status),
+      currentIndicators: _keyIndicators,
+    );
   }
 
   void _updateStatusProportionally(String newStatus) {
-    setState(() {
-      _projectStatus = newStatus;
-
-      // Ajustar progreso basándose en el estado
-      switch (newStatus) {
-        case 'Completado':
-          if (_projectProgress < 0.95) {
-            _projectProgress = 1.0;
-            _updateIndicatorsBasedOnProgress(1.0);
-          }
-          break;
-        case 'Pausado':
-          if (_projectProgress > 0.3) {
-            _projectProgress = (_projectProgress * 0.7).clamp(0.0, 0.3);
-            _updateIndicatorsBasedOnProgress(_projectProgress);
-          }
-          break;
-        case 'Cancelado':
-          // No cambiar progreso automáticamente para cancelado
-          break;
-        case 'Activo':
-          if (_projectProgress < 0.1) {
-            _projectProgress = 0.2;
-            _updateIndicatorsBasedOnProgress(0.2);
-          }
-          break;
-      }
-    });
-  }
-
-  void _updateIndicatorsBasedOnProgress(double progress) {
-    _keyIndicators = _keyIndicators.map((key, value) {
-      double baseValue = widget.project?.keyIndicators[key] ?? 0.5;
-      double adjustedValue = (baseValue * 0.7) + (progress * 0.3);
-      return MapEntry(key, adjustedValue.clamp(0.0, 1.0));
-    });
+    ProjectUtils.updateStatusProportionally(
+      newStatus: newStatus,
+      currentProgress: _projectProgress,
+      originalProject: widget.project,
+      setProgress: (progress) => setState(() => _projectProgress = progress),
+      setIndicators: (indicators) => setState(() => _keyIndicators = indicators),
+      setStatus: (status) => setState(() => _projectStatus = status),
+      currentIndicators: _keyIndicators,
+    );
   }
 
   void _updateIndicatorsProportionally(Map<String, double> newIndicators) {
+    ProjectUtils.updateIndicatorsProportionally(
+      newIndicators: newIndicators,
+      currentProgress: _projectProgress,
+      setProgress: (progress) => setState(() => _projectProgress = progress),
+      setIndicators: (indicators) => setState(() => _keyIndicators = indicators),
+    );
+  }
+
+  String? _validateFields() {
+    final missingFields = ProjectUtils.validateProjectFields(
+      projectName: _projectNameController.text,
+      clientName: _clientNameController.text,
+      description: _projectManagerController.text,
+      location: _locationController.text,
+      budget: _budgetController.text,
+      startDate: _startDateController.text,
+      endDate: _endDateController.text,
+    );
+
+    return ProjectUtils.getValidationErrorMessage(missingFields);
+  }
+
+  Future<void> _updateProject() async {
+    // Validación
+    String? validationError = _validateFields();
+    if (validationError != null) {
+      _showMessage(validationError, isError: true);
+      return;
+    }
+
+    // Validar imagen
+    if (_selectedImagePath != null && ImageService.isLocalImage(_selectedImagePath!)) {
+      _showMessage(
+        'ERROR: La imagen debe estar guardada en el servidor. Por favor, selecciona la imagen nuevamente y espera a que se suba completamente.',
+        isError: true,
+      );
+      return;
+    }
+
     setState(() {
-      _keyIndicators = newIndicators;
-
-      // Calcular progreso promedio basándose en indicadores
-      double averageIndicator =
-          newIndicators.values.reduce((a, b) => a + b) / newIndicators.length;
-
-      // Ajustar progreso general si la diferencia es significativa
-      if ((averageIndicator - _projectProgress).abs() > 0.2) {
-        _projectProgress = ((_projectProgress * 0.6) + (averageIndicator * 0.4))
-            .clamp(0.0, 1.0);
-      }
+      _isLoading = true;
     });
+
+    try {
+      String imageUrl = _selectedImagePath ?? widget.project?.imageUrl ?? '';
+      
+      String processedImageUrl;
+      try {
+        processedImageUrl = await ImageService.processImageForProject(imageUrl);
+      } catch (e) {
+        if (imageUrl.isNotEmpty && ImageService.isLocalImage(imageUrl)) {
+          throw Exception('No se puede crear el proyecto: Error subiendo imagen. ${e.toString()}');
+        }
+        processedImageUrl = 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
+      }
+
+      final projectData = ProjectModel(
+        id: widget.project?.id ?? '',
+        name: _projectNameController.text,
+        clientName: _clientNameController.text,
+        description: _projectManagerController.text,
+        location: _locationController.text,
+        budget: _budgetController.text,
+        startDate: _startDateController.text,
+        endDate: _endDateController.text,
+        progress: _projectProgress,
+        status: _projectStatus,
+        keyIndicators: _keyIndicators,
+        imageUrl: processedImageUrl,
+      );
+
+      ProjectModel result;
+      if (widget.project != null) {
+        result = await ProjectService.updateProject(widget.project!.id, projectData);
+        await SyncService.projectUpdated(result.toUpdateJson());
+        _showMessage('Proyecto actualizado exitosamente');
+      } else {
+        result = await ProjectService.createProject(projectData);
+        await SyncService.projectCreated(result.toUpdateJson());
+        _showMessage('Proyecto creado exitosamente');
+        setState(() {
+          _hasUnsavedChanges = false;
+        });
+      }
+
+      Navigator.pop(context, result);
+    } catch (e) {
+      String errorMessage = e.toString();
+      if (errorMessage.contains('imagen debe estar en el servidor')) {
+        _showMessage(
+          'ERROR CRÍTICO: Para usar la app en múltiples dispositivos, todas las imágenes deben guardarse en el servidor. Por favor, selecciona la imagen nuevamente.',
+          isError: true,
+        );
+      } else {
+        _showMessage('Error: ${e.toString()}', isError: true);
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -465,151 +422,31 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Project Name
-                      Text(
-                        'Nombre del proyecto',
-                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      CustomTextField(
-                        controller: _projectNameController,
-                        hintText: 'Complejo Industrial Norte',
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Client Name
-                      Text(
-                        'Nombre del cliente',
-                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      CustomTextField(
-                        controller: _clientNameController,
-                        hintText: 'Ej. Manufactura Industrial SAC',
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Project Description
-                      Text(
-                        'Descripción del proyecto',
-                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      CustomTextField(
-                        controller: _projectManagerController,
-                        hintText: 'Ej. Una breve descripción del proyecto...',
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Location
-                      Text(
-                        'Ubicación',
-                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      LocationPickerWidget(
-                        initialLocation: _locationController.text,
-                        onLocationSelected: (location) {
-                          setState(() {
-                            _locationController.text = location;
-                            _onFieldChanged();
-                          });
-                        },
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Total Budget
-                      Text(
-                        'Presupuesto Total',
-                        style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      CustomBudgetField(
-                        controller: _budgetController,
-                        hintText: '2,500,000',
-                        onChanged: _onFieldChanged,
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Date Fields
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Fecha de Inicio',
-                                  style: AppTextStyles.fieldLabel.copyWith(
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                CustomDateField(
-                                  controller: _startDateController,
-                                  hintText: 'dd/mm/aaaa',
-                                  onChanged: _onFieldChanged,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Fecha de Fin',
-                                  style: AppTextStyles.fieldLabel.copyWith(
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                CustomDateField(
-                                  controller: _endDateController,
-                                  hintText: 'dd/mm/aaaa',
-                                  onChanged: _onFieldChanged,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      // Campos básicos del proyecto
+                      ProjectFormFields(
+                        projectNameController: _projectNameController,
+                        clientNameController: _clientNameController,
+                        descriptionController: _projectManagerController,
+                        locationController: _locationController,
+                        budgetController: _budgetController,
+                        startDateController: _startDateController,
+                        endDateController: _endDateController,
+                        onFieldChanged: _onFieldChanged,
                       ),
 
                       if (isUpdate) ...[
                         const SizedBox(height: 32),
 
-                        // Project Progress
-                        ProgressIndicatorWidget(
+                        // Campos de actualización del proyecto
+                        ProjectUpdateFields(
                           progress: _projectProgress,
+                          status: _projectStatus,
+                          keyIndicators: _keyIndicators,
+                          notesController: _notesController,
                           onProgressChanged: _updateProgressProportionally,
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Project Status
-                        StatusSelector(
-                          currentStatus: _projectStatus,
                           onStatusChanged: _updateStatusProportionally,
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Key Indicators
-                        KeyIndicatorsWidget(
-                          indicators: _keyIndicators,
                           onIndicatorsChanged: _updateIndicatorsProportionally,
                         ),
-
-                        const SizedBox(height: 24),
-
-                        // Update Notes
-                        UpdateNotesWidget(controller: _notesController),
                       ],
 
                       if (!isUpdate) ...[
@@ -632,35 +469,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                         const SizedBox(height: 16),
 
                         // Campos obligatorios info
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: AppColors.primary.withOpacity(0.2),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: AppColors.primary,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 8),
-                              const Expanded(
-                                child: Text(
-                                  'Los campos marcados con (*) son obligatorios',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        _buildRequiredFieldsInfo(),
                       ],
 
                       const SizedBox(height: 40),

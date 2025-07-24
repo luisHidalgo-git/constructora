@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/social_login_button.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
-import '../services/auth_service.dart'; // Ajusta la ruta según tu estructura
+import '../services/auth_service.dart';
+import '../features/auth/widgets/auth_form_field.dart';
+import '../features/auth/widgets/auth_button.dart';
+import '../core/utils/validators.dart';
 
-// Asegúrate de que RegisterScreen sea un StatefulWidget
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+  
   @override
-  _RegisterScreenState createState() => _RegisterScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
@@ -73,52 +75,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool _validateForm() {
-    if (_nameController.text.trim().isEmpty) {
-      _showMessage('Por favor ingresa tu nombre completo', isError: true);
+    final nameError = Validators.validateName(_nameController.text);
+    final emailError = Validators.validateEmail(_emailController.text);
+    final passwordError = Validators.validatePassword(_passwordController.text);
+    final confirmError = Validators.validatePasswordConfirmation(
+      _passwordController.text,
+      _confirmPasswordController.text,
+    );
+    
+    if (nameError != null) {
+      _showMessage(nameError, isError: true);
       return false;
     }
-
-    if (_nameController.text.trim().length < 2) {
-      _showMessage('El nombre debe tener al menos 2 caracteres', isError: true);
+    
+    if (emailError != null) {
+      _showMessage(emailError, isError: true);
       return false;
     }
-
-    if (_emailController.text.trim().isEmpty) {
-      _showMessage('Por favor ingresa tu email', isError: true);
+    
+    if (passwordError != null) {
+      _showMessage(passwordError, isError: true);
       return false;
     }
-
-    if (!_isValidEmail(_emailController.text.trim())) {
-      _showMessage('Por favor ingresa un email válido', isError: true);
-      return false;
-    }
-
-    if (_passwordController.text.length < 6) {
-      _showMessage(
-        'La contraseña debe tener al menos 6 caracteres',
-        isError: true,
-      );
-      return false;
-    }
-
-    if (_passwordController.text.length > 128) {
-      _showMessage(
-        'La contraseña no puede exceder 128 caracteres',
-        isError: true,
-      );
-      return false;
-    }
-
-    if (_passwordController.text != _confirmPasswordController.text) {
-      _showMessage('Las contraseñas no coinciden', isError: true);
+    
+    if (confirmError != null) {
+      _showMessage(confirmError, isError: true);
       return false;
     }
 
     return true;
-  }
-
-  bool _isValidEmail(String email) {
-    return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email);
   }
 
   void _showMessage(String message, {bool isError = false}) {
@@ -216,30 +201,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 24),
 
                     // Name Field
-                    Text('Nombre Completo', style: AppTextStyles.fieldLabel),
-                    const SizedBox(height: 6),
-                    CustomTextField(
+                    AuthFormField(
+                      label: 'Nombre Completo',
                       controller: _nameController,
                       hintText: 'Ej. Carlos Mendoza',
+                      validator: Validators.validateName,
                     ),
 
                     const SizedBox(height: 16),
 
                     // Email Field
-                    Text('Correo Electrónico', style: AppTextStyles.fieldLabel),
-                    const SizedBox(height: 6),
-                    CustomTextField(
+                    AuthFormField(
+                      label: 'Correo Electrónico',
                       controller: _emailController,
                       hintText: 'carlos@constructora.com',
                       keyboardType: TextInputType.emailAddress,
+                      validator: Validators.validateEmail,
                     ),
 
                     const SizedBox(height: 16),
 
                     // Position Field
-                    Text('Cargo/Posición', style: AppTextStyles.fieldLabel),
-                    const SizedBox(height: 6),
-                    CustomTextField(
+                    AuthFormField(
+                      label: 'Cargo/Posición',
                       controller: _positionController,
                       hintText:
                           'Ej. Supervisor de Obra, Supervisor Eléctrico, etc.',
@@ -248,12 +232,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 16),
 
                     // Password Field
-                    Text('Contraseña', style: AppTextStyles.fieldLabel),
-                    const SizedBox(height: 6),
-                    CustomTextField(
+                    AuthFormField(
+                      label: 'Contraseña',
                       controller: _passwordController,
                       hintText: '••••••••••',
                       obscureText: _obscurePassword,
+                      validator: Validators.validatePassword,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
@@ -273,15 +257,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 16),
 
                     // Confirm Password Field
-                    Text(
-                      'Confirmar Contraseña',
-                      style: AppTextStyles.fieldLabel,
-                    ),
-                    const SizedBox(height: 6),
-                    CustomTextField(
+                    AuthFormField(
+                      label: 'Confirmar Contraseña',
                       controller: _confirmPasswordController,
                       hintText: '••••••••••',
                       obscureText: _obscureConfirmPassword,
+                      validator: (value) => Validators.validatePasswordConfirmation(
+                        _passwordController.text,
+                        value,
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirmPassword
@@ -301,33 +285,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 24),
 
                     // Register Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleRegister,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                'Crear Cuenta',
-                                style: AppTextStyles.buttonText,
-                              ),
-                      ),
+                    AuthButton(
+                      text: 'Crear Cuenta',
+                      onPressed: _handleRegister,
+                      isLoading: _isLoading,
                     ),
 
                     const SizedBox(height: 16),
