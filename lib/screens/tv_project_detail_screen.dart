@@ -157,11 +157,26 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         setState(() {
           if (activities.isNotEmpty) {
             // Usar actividades reales como notas de actualización
+            // Ordenar por fecha más reciente primero
+            activities.sort((a, b) {
+              try {
+                final dateA = DateTime.parse(
+                  a.createdAt?.toIso8601String() ?? '',
+                );
+                final dateB = DateTime.parse(
+                  b.createdAt?.toIso8601String() ?? '',
+                );
+                return dateB.compareTo(dateA); // Más reciente primero
+              } catch (e) {
+                return 0;
+              }
+            });
+
             _updateNotes = activities.map((activity) {
               return {
                 'title': activity.title,
                 'description': activity.description ?? 'Sin descripción',
-                'date': activity.date,
+                'date': _formatActivityDate(activity.createdAt),
                 'type': activity.type,
                 'status': activity.status,
                 'indicator': _getIndicatorFromType(activity.type),
@@ -187,6 +202,23 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
           _isLoadingNotes = false;
         });
       }
+    }
+  }
+
+  String _formatActivityDate(DateTime? dateTime) {
+    if (dateTime == null) return 'Sin fecha';
+
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays == 0) {
+      return 'Hoy';
+    } else if (difference.inDays == 1) {
+      return 'Ayer';
+    } else if (difference.inDays < 7) {
+      return 'Hace ${difference.inDays} días';
+    } else {
+      return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
     }
   }
 
@@ -256,12 +288,12 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Panel izquierdo - Detalles del proyecto (como en mockup)
-                      Expanded(flex: 2, child: _buildMockupProjectDetails()),
+                      Expanded(flex: 3, child: _buildMockupProjectDetails()),
 
                       const SizedBox(width: 24),
 
                       // Panel derecho - Cronograma (como en mockup)
-                      Expanded(flex: 1, child: _buildMockupProjectTimeline()),
+                      Expanded(flex: 2, child: _buildMockupProjectTimeline()),
                     ],
                   ),
                 ),
@@ -501,7 +533,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
               // Imagen del proyecto
               Container(
-                height: 200,
+                height: 180,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
@@ -572,6 +604,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
 
@@ -584,6 +617,8 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                   fontSize: 14,
                   color: Colors.white.withOpacity(0.7),
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
 
               const SizedBox(height: 4),
@@ -595,6 +630,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -697,7 +733,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
           const SizedBox(height: 20),
 
           // Indicadores Clave como en la imagen de muestra
-          Expanded(
+          Flexible(
             child: _isLoadingNotes
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFF6366F1)),
@@ -712,35 +748,57 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
   Widget _buildKeyIndicatorsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Indicadores Clave en grid 2x2
-        Expanded(
-          flex: 3,
-          child: GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 2.5,
+        SizedBox(
+          height: 160, // Altura fija para evitar overflow
+          child: Column(
             children: [
-              _buildKeyIndicatorCard(
-                'Calidad',
-                widget.project.keyIndicators['Calidad'] ?? 0.0,
-                const Color(0xFF10B981),
+              // Primera fila de indicadores
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildKeyIndicatorCard(
+                        'Calidad',
+                        widget.project.keyIndicators['Calidad'] ?? 0.0,
+                        const Color(0xFF10B981),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildKeyIndicatorCard(
+                        'Tiempo',
+                        widget.project.keyIndicators['Tiempo'] ?? 0.0,
+                        const Color(0xFFFF9500),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              _buildKeyIndicatorCard(
-                'Tiempo',
-                widget.project.keyIndicators['Tiempo'] ?? 0.0,
-                const Color(0xFFFF9500),
-              ),
-              _buildKeyIndicatorCard(
-                'Presupuesto',
-                widget.project.keyIndicators['Presupuesto'] ?? 0.0,
-                const Color(0xFF6366F1),
-              ),
-              _buildKeyIndicatorCard(
-                'Satisfacción',
-                widget.project.keyIndicators['Satisfacción'] ?? 0.0,
-                const Color(0xFF8B5CF6),
+              const SizedBox(height: 12),
+              // Segunda fila de indicadores
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildKeyIndicatorCard(
+                        'Presupuesto',
+                        widget.project.keyIndicators['Presupuesto'] ?? 0.0,
+                        const Color(0xFF6366F1),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildKeyIndicatorCard(
+                        'Satisfacción',
+                        widget.project.keyIndicators['Satisfacción'] ?? 0.0,
+                        const Color(0xFF8B5CF6),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -760,8 +818,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
         const SizedBox(height: 12),
 
-        Expanded(
-          flex: 2,
+        // Mostrar solo la última nota de actualización
+        SizedBox(
+          height: 80, // Altura fija para una sola nota
           child: _updateNotes.isEmpty
               ? Center(
                   child: Text(
@@ -773,13 +832,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                     textAlign: TextAlign.center,
                   ),
                 )
-              : ListView.builder(
-                  itemCount: _updateNotes.length,
-                  itemBuilder: (context, index) {
-                    final update = _updateNotes[index];
-                    return _buildUpdateNoteItem(update);
-                  },
-                ),
+              : _buildUpdateNoteItem(
+                  _updateNotes.first,
+                ), // Solo mostrar la primera (más reciente)
         ),
       ],
     );
@@ -796,6 +851,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
@@ -806,39 +862,32 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${(value * 100).toInt()}%',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+          Text(
+            '${(value * 100).toInt()}%',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Barra de progreso
+          Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(2),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: value,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              // Barra de progreso pequeña
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.only(left: 12),
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: value,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -847,7 +896,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
   Widget _buildUpdateNoteItem(Map<String, dynamic> update) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFF1F1F1F),
@@ -856,6 +904,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -872,6 +921,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 update['date'] ?? '',
                 style: TextStyle(

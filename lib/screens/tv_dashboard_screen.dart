@@ -716,10 +716,10 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: 3,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 2.2, // Hacer las tarjetas más pequeñas y horizontales
+        childAspectRatio: 0.8, // Cambiar a formato vertical como en mockup
       ),
       itemCount: _projects.length,
       itemBuilder: (context, index) {
@@ -747,16 +747,16 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
-        child: Row(
+        child: Column(
           children: [
-            // Imagen del proyecto
+            // Imagen del proyecto - ahora en la parte superior
             Container(
-              width: 80,
-              height: double.infinity,
+              width: double.infinity,
+              height: 120,
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
-                  bottomLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
                 ),
                 image: _buildImageProvider(project.imageUrl) != null
                     ? DecorationImage(
@@ -779,55 +779,29 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                   : null,
             ),
 
-            // Información del proyecto
+            // Información del proyecto - ahora debajo de la imagen
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    // Header con nombre y estado
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            project.name,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(project.status),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            project.status,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
+                    // Nombre del proyecto
+                    Text(
+                      project.name,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
 
                     const SizedBox(height: 4),
 
+                    // Cliente
                     Text(
                       project.clientName,
                       style: TextStyle(
@@ -838,7 +812,31 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
 
-                    // Progress
+                    const SizedBox(height: 8),
+
+                    // Estado
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(project.status),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        project.status,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    // Progress - al final
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
