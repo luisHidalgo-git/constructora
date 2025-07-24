@@ -714,17 +714,14 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       );
     }
 
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 2.2,
-      ),
+    return ListView.builder(
       itemCount: _projects.length,
       itemBuilder: (context, index) {
         final project = _projects[index];
-        return _buildMockupProjectCard(project);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: _buildMockupProjectCard(project),
+        );
       },
     );
   }
@@ -742,116 +739,217 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         );
       },
       child: Container(
+        height: 200,
         decoration: BoxDecoration(
           color: const Color(0xFF1F1F1F),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header con nombre y estado
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      project.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+        child: Row(
+          children: [
+            // Imagen del proyecto
+            Container(
+              width: 120,
+              height: 200,
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  bottomLeft: Radius.circular(12),
+                ),
+                image: _buildImageProvider(project.imageUrl) != null
+                    ? DecorationImage(
+                        image: _buildImageProvider(project.imageUrl)!,
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                color: _buildImageProvider(project.imageUrl) == null
+                    ? Colors.grey[700]
+                    : null,
+              ),
+              child: _buildImageProvider(project.imageUrl) == null
+                  ? const Center(
+                      child: Icon(
+                        Icons.image_outlined,
+                        color: Colors.grey,
+                        size: 40,
+                      ),
+                    )
+                  : null,
+            ),
+
+            // Información del proyecto
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header con nombre y estado
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            project.name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(project.status),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            project.status,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      project.clientName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.7),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
+
+                    const SizedBox(height: 12),
+
+                    Text(
+                      'Grupo Inmobiliario ABC',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.5),
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(project.status),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      project.status,
+
+                    const SizedBox(height: 16),
+
+                    Text(
+                      'Presupuesto: ${project.budget}',
                       style: const TextStyle(
-                        fontSize: 10,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: Colors.white,
                       ),
                     ),
-                  ),
-                ],
-              ),
 
-              const SizedBox(height: 4),
+                    const Spacer(),
 
-              Text(
-                project.clientName,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.white.withOpacity(0.7),
+                    // Progress
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Progreso',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withOpacity(0.7),
+                              ),
+                            ),
+                            Text(
+                              '${(project.progress * 100).toInt()}%',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: project.progress,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _getProgressColor(project.progress),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
-
-              const Spacer(),
-
-              // Progress
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Progreso',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                      Text(
-                        '${(project.progress * 100).toInt()}%',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: project.progress,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: _getProgressColor(project.progress),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  ImageProvider? _buildImageProvider(String imageUrl) {
+    try {
+      if (imageUrl.isEmpty) {
+        return null;
+      }
+
+      // Si es una URL de internet
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return NetworkImage(imageUrl);
+      }
+
+      // Si es una ruta del servidor sin dominio, construir URL completa
+      if (imageUrl.startsWith('/uploads/')) {
+        final serverBaseUrl =
+            'https://constructora-production-beec.up.railway.app';
+        final fullUrl = '$serverBaseUrl$imageUrl';
+        return NetworkImage(fullUrl);
+      }
+
+      // Si parece ser un nombre de archivo, intentar construir URL del servidor
+      if (!imageUrl.contains('/') &&
+          (imageUrl.contains('.jpg') ||
+              imageUrl.contains('.png') ||
+              imageUrl.contains('.jpeg'))) {
+        final serverBaseUrl =
+            'https://constructora-production-beec.up.railway.app';
+        final fullUrl = '$serverBaseUrl/uploads/$imageUrl';
+        return NetworkImage(fullUrl);
+      }
+
+      // Usar imagen por defecto si no se puede determinar el tipo
+      return const NetworkImage(
+        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
+    } catch (e) {
+      // Usar imagen por defecto en caso de error
+      return const NetworkImage(
+        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
+    }
   }
 
   Widget _buildMockupRecentActivityPanel() {

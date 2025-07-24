@@ -7,6 +7,7 @@ import 'tv_dashboard_screen.dart';
 import '../services/sync_service.dart';
 import 'dart:async';
 import 'tv_qr_screen.dart';
+import '../services/image_service.dart';
 
 class TVProjectDetailScreen extends StatefulWidget {
   final ProjectModel project;
@@ -23,14 +24,14 @@ class TVProjectDetailScreen extends StatefulWidget {
 }
 
 class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
-  List<Map<String, dynamic>> _projectTimeline = [];
-  bool _isLoadingActivities = true;
+  List<Map<String, dynamic>> _updateNotes = [];
+  bool _isLoadingNotes = true;
   StreamSubscription<Map<String, dynamic>>? _syncSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadProjectTimeline();
+    _loadUpdateNotes();
     _initSync();
   }
 
@@ -116,7 +117,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
           print(
             '📺 TV Project Detail: Current project was updated, reloading timeline',
           );
-          _loadProjectTimeline();
+          _loadUpdateNotes();
         } else {
           print('📺 TV Project Detail: Different project updated, ignoring');
         }
@@ -143,84 +144,79 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     );
   }
 
-  Future<void> _loadProjectTimeline() async {
+  Future<void> _loadUpdateNotes() async {
     try {
+      print('🔍 TV Project Detail - Loading update notes...');
+
       // Intentar cargar actividades reales del proyecto
       final activities = await ActivityService.getActivitiesByProject(
         widget.project.id,
       );
 
-      if (activities.isNotEmpty) {
-        // Usar actividades reales del servidor
-        _projectTimeline = activities.map((activity) {
-          return {
-            'title': activity.title,
-            'date': activity.date,
-            'isCompleted': activity.status == 'completed',
-            'progress': activity.status == 'completed'
-                ? 1.0
-                : activity.status == 'in_progress'
-                ? 0.5
-                : 0.0,
-            'type': activity.type,
-            'description': activity.description ?? '',
-          };
-        }).toList();
-      } else {
-        // Si no hay actividades reales, generar timeline basado en el progreso del proyecto
-        _generateTimelineFromProgress();
-      }
+      if (mounted) {
+        setState(() {
+          if (activities.isNotEmpty) {
+            // Usar actividades reales como notas de actualización
+            _updateNotes = activities.map((activity) {
+              return {
+                'title': activity.title,
+                'description': activity.description ?? 'Sin descripción',
+                'date': activity.date,
+                'type': activity.type,
+                'status': activity.status,
+                'indicator': _getIndicatorFromType(activity.type),
+                'indicatorValue': _getIndicatorValueFromStatus(activity.status),
+              };
+            }).toList();
+          } else {
+            // Si no hay actividades, mostrar lista vacía
+            _updateNotes = [];
+          }
+          _isLoadingNotes = false;
+        });
 
-      setState(() {
-        _isLoadingActivities = false;
-      });
+        print(
+          '✅ TV Project Detail - Update notes loaded: ${_updateNotes.length} notes',
+        );
+      }
     } catch (e) {
-      print('Error loading project activities: $e');
-      // En caso de error, generar timeline basado en progreso
-      _generateTimelineFromProgress();
-      setState(() {
-        _isLoadingActivities = false;
-      });
+      print('Error loading update notes: $e');
+      if (mounted) {
+        setState(() {
+          _updateNotes = [];
+          _isLoadingNotes = false;
+        });
+      }
     }
   }
 
-  void _generateTimelineFromProgress() {
-    _projectTimeline.clear();
+  String _getIndicatorFromType(String type) {
+    switch (type) {
+      case 'installation':
+        return 'Instalaciones';
+      case 'review':
+        return 'Calidad';
+      case 'completion':
+        return 'Tiempo';
+      case 'inspection':
+        return 'Calidad';
+      case 'maintenance':
+        return 'Presupuesto';
+      default:
+        return 'Satisfacción';
+    }
+  }
 
-    // Generar timeline basado en el progreso real del proyecto
-    final totalPhases = 8;
-    final completedPhases = (totalPhases * widget.project.progress).round();
-
-    final phaseNames = [
-      'Planificación inicial',
-      'Preparación del terreno',
-      'Cimentación',
-      'Estructura principal',
-      'Instalaciones eléctricas',
-      'Instalaciones sanitarias',
-      'Acabados interiores',
-      'Finalización y entrega',
-    ];
-
-    final startDate = DateTime.now().subtract(const Duration(days: 60));
-
-    for (int i = 0; i < totalPhases; i++) {
-      final isCompleted = i < completedPhases;
-      final phaseDate = startDate.add(Duration(days: i * 7));
-
-      _projectTimeline.add({
-        'title': phaseNames[i],
-        'date':
-            '${phaseDate.day.toString().padLeft(2, '0')}/${phaseDate.month.toString().padLeft(2, '0')}/${phaseDate.year}',
-        'isCompleted': isCompleted,
-        'progress': isCompleted
-            ? 1.0
-            : (i == completedPhases
-                  ? (widget.project.progress * totalPhases) - completedPhases
-                  : 0.0),
-        'type': 'construction',
-        'description': 'Fase de construcción',
-      });
+  double _getIndicatorValueFromStatus(String status) {
+    switch (status) {
+      case 'completed':
+        return 1.0;
+      case 'in_progress':
+        return 0.6;
+      case 'pending':
+        return 0.3;
+      default:
+        return 0.0;
     }
   }
 
@@ -419,187 +415,260 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header del proyecto con icono y estado
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.construction,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  widget.project.name,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(widget.project.status),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  widget.project.status,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Grid de información como en mockup
-          Row(
-            children: [
-              Expanded(
-                child: _buildMockupInfoCard(
-                  'Cliente',
-                  widget.project.clientName,
-                  const Color(0xFF6366F1),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildMockupInfoCard(
-                  'Presupuesto',
-                  widget.project.budget,
-                  const Color(0xFF10B981),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                child: _buildMockupInfoCard(
-                  'Inicio',
-                  widget.project.startDate,
-                  const Color(0xFF8B5CF6),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildMockupInfoCard(
-                  'Fin Estimado',
-                  widget.project.endDate,
-                  const Color(0xFFFF9500),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Progreso General como en mockup
+          // Imagen del proyecto
           Container(
-            padding: const EdgeInsets.all(20),
+            height: 300,
+            width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFF1F1F1F),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              image: _buildImageProvider(widget.project.imageUrl) != null
+                  ? DecorationImage(
+                      image: _buildImageProvider(widget.project.imageUrl)!,
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              color: _buildImageProvider(widget.project.imageUrl) == null
+                  ? Colors.grey[700]
+                  : null,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Progreso General',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+            child: _buildImageProvider(widget.project.imageUrl) == null
+                ? const Center(
+                    child: Icon(
+                      Icons.image_outlined,
+                      color: Colors.grey,
+                      size: 80,
                     ),
-                    Text(
-                      '${(widget.project.progress * 100).toInt()}%',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: _getProgressColor(widget.project.progress),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: widget.project.progress,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _getProgressColor(widget.project.progress),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+                  )
+                : null,
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // Indicadores Clave como en mockup
-          const Text(
-            'Indicadores Clave',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
+          // Información del proyecto en scroll
           Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildMockupIndicatorCard(
-                    'Calidad',
-                    widget.project.keyIndicators['Calidad'] ?? 0.0,
-                    const Color(0xFF10B981),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header del proyecto con icono y estado
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.construction,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.project.name,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(widget.project.status),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          widget.project.status,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildMockupIndicatorCard(
-                    'Tiempo',
-                    widget.project.keyIndicators['Tiempo'] ?? 0.0,
-                    const Color(0xFFFF9500),
+
+                  const SizedBox(height: 24),
+
+                  Text(
+                    'Grupo Inmobiliario ABC',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 24),
+
+                  // Grid de información como en mockup
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMockupInfoCard(
+                          'Cliente',
+                          widget.project.clientName,
+                          const Color(0xFF6366F1),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildMockupInfoCard(
+                          'Presupuesto',
+                          widget.project.budget,
+                          const Color(0xFF10B981),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMockupInfoCard(
+                          'Inicio',
+                          widget.project.startDate,
+                          const Color(0xFF8B5CF6),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildMockupInfoCard(
+                          'Fin Estimado',
+                          widget.project.endDate,
+                          const Color(0xFFFF9500),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Progreso General como en mockup
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1F1F1F),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Progreso General',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              '${(widget.project.progress * 100).toInt()}%',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: _getProgressColor(
+                                  widget.project.progress,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Container(
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: widget.project.progress,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _getProgressColor(
+                                  widget.project.progress,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Indicadores Clave como en mockup
+                  const Text(
+                    'Indicadores Clave',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMockupIndicatorCard(
+                          'Calidad',
+                          widget.project.keyIndicators['Calidad'] ?? 0.0,
+                          const Color(0xFF10B981),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildMockupIndicatorCard(
+                          'Tiempo',
+                          widget.project.keyIndicators['Tiempo'] ?? 0.0,
+                          const Color(0xFFFF9500),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMockupIndicatorCard(
+                          'Presupuesto',
+                          widget.project.keyIndicators['Presupuesto'] ?? 0.0,
+                          const Color(0xFF6366F1),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildMockupIndicatorCard(
+                          'Satisfacción',
+                          widget.project.keyIndicators['Satisfacción'] ?? 0.0,
+                          const Color(0xFF8B5CF6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -699,17 +768,47 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
           const SizedBox(height: 20),
 
-          // Timeline con datos reales
+          // Timeline con notas de actualización
           Expanded(
-            child: _isLoadingActivities
+            child: _isLoadingNotes
                 ? const Center(
                     child: CircularProgressIndicator(color: Color(0xFF6366F1)),
                   )
+                : _updateNotes.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.note_outlined,
+                          size: 48,
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No hay notas de actualización',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white.withOpacity(0.7),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Las actualizaciones del teléfono aparecerán aquí',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white.withOpacity(0.5),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
                 : ListView.builder(
-                    itemCount: _projectTimeline.length,
+                    itemCount: _updateNotes.length,
                     itemBuilder: (context, index) {
-                      final activity = _projectTimeline[index];
-                      return _buildMockupTimelineItem(activity, index);
+                      final note = _updateNotes[index];
+                      return _buildMockupTimelineItem(note, index);
                     },
                   ),
           ),
@@ -718,9 +817,10 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     );
   }
 
-  Widget _buildMockupTimelineItem(Map<String, dynamic> activity, int index) {
-    final isCompleted = activity['isCompleted'];
-    final progress = activity['progress'];
+  Widget _buildMockupTimelineItem(Map<String, dynamic> note, int index) {
+    final indicator = note['indicator'] ?? 'General';
+    final indicatorValue = note['indicatorValue'] ?? 0.0;
+    final isCompleted = note['status'] == 'completed';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -728,29 +828,29 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       decoration: BoxDecoration(
         color: isCompleted
             ? const Color(0xFF10B981).withOpacity(0.1)
-            : progress > 0
+            : indicatorValue > 0
             ? const Color(0xFF6366F1).withOpacity(0.1)
             : const Color(0xFF1F1F1F),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isCompleted
               ? const Color(0xFF10B981).withOpacity(0.3)
-              : progress > 0
+              : indicatorValue > 0
               ? const Color(0xFF6366F1).withOpacity(0.3)
               : Colors.white.withOpacity(0.1),
         ),
       ),
       child: Row(
         children: [
-          // Indicador de estado
+          // Indicador de estado con color del indicador clave
           Container(
             width: 12,
             height: 12,
             decoration: BoxDecoration(
               color: isCompleted
                   ? const Color(0xFF10B981)
-                  : progress > 0
-                  ? const Color(0xFF6366F1)
+                  : indicatorValue > 0
+                  ? _getIndicatorColorByName(indicator)
                   : Colors.white.withOpacity(0.3),
               shape: BoxShape.circle,
             ),
@@ -761,7 +861,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
           const SizedBox(width: 12),
 
-          // Contenido de la actividad
+          // Contenido de la nota de actualización
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -771,7 +871,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        activity['title'],
+                        note['title'] ?? 'Actualización',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -782,7 +882,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                       ),
                     ),
                     Text(
-                      activity['date'],
+                      note['date'] ?? '',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.white.withOpacity(0.6),
@@ -790,7 +890,17 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                     ),
                   ],
                 ),
-                if (progress > 0 && !isCompleted) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '$indicator: ${note['description'] ?? 'Sin descripción'}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (indicatorValue > 0 && !isCompleted) ...[
                   const SizedBox(height: 8),
                   Container(
                     height: 3,
@@ -800,10 +910,10 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                     ),
                     child: FractionallySizedBox(
                       alignment: Alignment.centerLeft,
-                      widthFactor: progress,
+                      widthFactor: indicatorValue,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1),
+                          color: _getIndicatorColorByName(indicator),
                           borderRadius: BorderRadius.circular(1.5),
                         ),
                       ),
@@ -816,6 +926,61 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         ],
       ),
     );
+  }
+
+  Color _getIndicatorColorByName(String indicator) {
+    switch (indicator) {
+      case 'Calidad':
+        return const Color(0xFF10B981);
+      case 'Tiempo':
+        return const Color(0xFFFF9500);
+      case 'Presupuesto':
+        return const Color(0xFF6366F1);
+      case 'Satisfacción':
+        return const Color(0xFF8B5CF6);
+      case 'Instalaciones':
+        return const Color(0xFF3B82F6);
+      default:
+        return const Color(0xFF6366F1);
+    }
+  }
+
+  ImageProvider? _buildImageProvider(String imageUrl) {
+    try {
+      if (imageUrl.isEmpty) {
+        return null;
+      }
+
+      // Si es una URL de internet
+      if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+        return NetworkImage(imageUrl);
+      }
+
+      // Si es una ruta del servidor sin dominio, construir URL completa
+      if (imageUrl.startsWith('/uploads/')) {
+        final fullUrl = ImageService.buildServerImageUrl(imageUrl);
+        return NetworkImage(fullUrl);
+      }
+
+      // Si parece ser un nombre de archivo, intentar construir URL del servidor
+      if (!imageUrl.contains('/') &&
+          (imageUrl.contains('.jpg') ||
+              imageUrl.contains('.png') ||
+              imageUrl.contains('.jpeg'))) {
+        final fullUrl = ImageService.buildServerImageUrl('/uploads/$imageUrl');
+        return NetworkImage(fullUrl);
+      }
+
+      // Usar imagen por defecto si no se puede determinar el tipo
+      return const NetworkImage(
+        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
+    } catch (e) {
+      // Usar imagen por defecto en caso de error
+      return const NetworkImage(
+        'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      );
+    }
   }
 
   Color _getStatusColor(String status) {
