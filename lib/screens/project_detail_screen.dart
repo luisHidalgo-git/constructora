@@ -36,7 +36,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   Future<void> _sendNavigationEvent() async {
     await SyncService.navigateToProjectDetail(widget.project.id);
-    print('📱 Mobile: Sent navigate_to_project_detail event for: ${widget.project.id}');
+    print(
+      '📱 Mobile: Sent navigate_to_project_detail event for: ${widget.project.id}',
+    );
   }
 
   Future<void> _loadProjectImages() async {
@@ -46,7 +48,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     });
 
     try {
-      final images = await ProjectImageService.getProjectImages(widget.project.id);
+      final images = await ProjectImageService.getProjectImages(
+        widget.project.id,
+      );
       setState(() {
         _projectImages = images;
         _isLoadingImages = false;
@@ -211,9 +215,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   top: 16,
                   right: 16,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: ColorUtils.getStatusColor(widget.project.status).withOpacity(0.9),
+                      color: ColorUtils.getStatusColor(
+                        widget.project.status,
+                      ).withOpacity(0.9),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -270,9 +279,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 child: _buildInfoRow('Inicio', widget.project.startDate),
               ),
               const SizedBox(width: 16),
-              Expanded(
-                child: _buildInfoRow('Fin', widget.project.endDate),
-              ),
+              Expanded(child: _buildInfoRow('Fin', widget.project.endDate)),
             ],
           ),
         ],
@@ -284,10 +291,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTextStyles.subtitle.copyWith(fontSize: 12),
-        ),
+        Text(label, style: AppTextStyles.subtitle.copyWith(fontSize: 12)),
         const SizedBox(height: 4),
         Text(
           value,
@@ -326,9 +330,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 style: AppTextStyles.fieldLabel.copyWith(fontSize: 16),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: ColorUtils.getProgressColor(widget.project.progress).withOpacity(0.1),
+                  color: ColorUtils.getProgressColor(
+                    widget.project.progress,
+                  ).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -378,48 +387,81 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             style: AppTextStyles.fieldLabel.copyWith(fontSize: 16),
           ),
           const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 2.5,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            children: widget.project.keyIndicators.entries.map((entry) {
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: ColorUtils.getIndicatorColorByName(entry.key).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: ColorUtils.getIndicatorColorByName(entry.key).withOpacity(0.3),
+          // Usar Column en lugar de GridView para evitar overflow
+          Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildIndicatorCard(
+                      'Calidad',
+                      widget.project.keyIndicators['Calidad'] ?? 0.0,
+                    ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      entry.key,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: ColorUtils.getIndicatorColorByName(entry.key),
-                        fontWeight: FontWeight.w500,
-                      ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildIndicatorCard(
+                      'Tiempo',
+                      widget.project.keyIndicators['Tiempo'] ?? 0.0,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${(entry.value * 100).toInt()}%',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDark,
-                      ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildIndicatorCard(
+                      'Presupuesto',
+                      widget.project.keyIndicators['Presupuesto'] ?? 0.0,
                     ),
-                  ],
-                ),
-              );
-            }).toList(),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildIndicatorCard(
+                      'Satisfacción',
+                      widget.project.keyIndicators['Satisfacción'] ?? 0.0,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIndicatorCard(String label, double value) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ColorUtils.getIndicatorColorByName(label).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: ColorUtils.getIndicatorColorByName(label).withOpacity(0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: ColorUtils.getIndicatorColorByName(label),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${(value * 100).toInt()}%',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textDark,
+            ),
           ),
         ],
       ),
@@ -519,10 +561,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               const SizedBox(height: 4),
               Text(
                 'Las imágenes aparecerán aquí cuando se agreguen desde la edición',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[500],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -610,10 +649,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           const SizedBox(height: 12),
           Text(
             'Mostrando ${_projectImages.length} imágenes de avances del proyecto',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
         ],
