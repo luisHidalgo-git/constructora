@@ -31,7 +31,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   void initState() {
     super.initState();
     _loadProjects();
-    // Iniciar sincronización y enviar evento de navegación a proyectos
     _initSync();
   }
 
@@ -61,9 +60,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       });
     } catch (e) {
       setState(() {
-        _projects = []; // Mantener vacío si no hay datos
+        _projects = [];
         _isLoading = false;
-        // No mostrar error si simplemente no hay datos
       });
     }
   }
@@ -73,9 +71,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   void _showProjectDetails(ProjectModel project) {
-    // CRÍTICO: Enviar evento de navegación a detalle de proyecto ANTES de mostrar el diálogo
     SyncService.navigateToProjectDetail(project.id);
-    print('📱 Mobile: Sent navigate_to_project_detail event for project: ${project.id}');
+    print(
+      '📱 Mobile: Sent navigate_to_project_detail event for project: ${project.id}',
+    );
 
     showDialog(
       context: context,
@@ -91,151 +90,13 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        project.name,
-                        style: AppTextStyles.header.copyWith(fontSize: 20),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        // Enviar evento de regreso a proyectos cuando se cierre el diálogo
-                        SyncService.navigateToProjects();
-                        print('📱 Mobile: Sent navigate_to_projects event (dialog closed)');
-                      },
-                      icon: const Icon(Icons.close, color: AppColors.iconGray),
-                    ),
-                  ],
-                ),
-
+                _buildDialogHeader(project),
                 const SizedBox(height: 16),
-
-                // Project Image
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    image: ImageUtils.buildImageProvider(project.imageUrl) != null
-                        ? DecorationImage(
-                            image: ImageUtils.buildImageProvider(project.imageUrl)!,
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    color: ImageUtils.buildImageProvider(project.imageUrl) == null
-                        ? Colors.grey[300]
-                        : null,
-                  ),
-                  child: ImageUtils.buildImageProvider(project.imageUrl) == null
-                      ? const Center(
-                          child: Icon(
-                            Icons.image_outlined,
-                            color: Colors.grey,
-                            size: 60,
-                          ),
-                        )
-                      : null,
-                ),
-
+                _buildProjectImage(project),
                 const SizedBox(height: 20),
-
-                // Project Details
                 Expanded(
                   child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildDetailRow('Cliente', project.clientName),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('Descripción', project.description),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('Ubicación', project.location),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('Presupuesto', project.budget),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('Fecha de Inicio', project.startDate),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('Fecha de Fin', project.endDate),
-                        const SizedBox(height: 12),
-                        _buildDetailRow('Estado', project.status),
-                        const SizedBox(height: 16),
-
-                        // Progress
-                        Text(
-                          'Progreso',
-                          style: AppTextStyles.fieldLabel.copyWith(
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: LinearProgressIndicator(
-                                value: project.progress,
-                                minHeight: 8,
-                                backgroundColor: Colors.grey[200],
-                                    ColorUtils.getProgressColor(project.progress),
-                                  _getProgressColor(project.progress),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              '${(project.progress * 100).toInt()}%',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Key Indicators
-                        Text(
-                          'Indicadores Clave',
-                          style: AppTextStyles.fieldLabel.copyWith(
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ...project.keyIndicators.entries.map((entry) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  entry.key,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textGray,
-                                  ),
-                                ),
-                                Text(
-                                  '${(entry.value * 100).toInt()}%',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: ColorUtils.getIndicatorColor(entry.value),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ],
-                    ),
+                    child: _buildProjectDetails(project),
                   ),
                 ),
               ],
@@ -243,6 +104,79 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDialogHeader(ProjectModel project) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            project.name,
+            style: AppTextStyles.header.copyWith(fontSize: 20),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+            SyncService.navigateToProjects();
+            print('📱 Mobile: Sent navigate_to_projects event (dialog closed)');
+          },
+          icon: const Icon(Icons.close, color: AppColors.iconGray),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProjectImage(ProjectModel project) {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        image: ImageUtils.buildImageProvider(project.imageUrl) != null
+            ? DecorationImage(
+                image: ImageUtils.buildImageProvider(project.imageUrl)!,
+                fit: BoxFit.cover,
+              )
+            : null,
+        color: ImageUtils.buildImageProvider(project.imageUrl) == null
+            ? Colors.grey[300]
+            : null,
+      ),
+      child: ImageUtils.buildImageProvider(project.imageUrl) == null
+          ? const Center(
+              child: Icon(Icons.image_outlined, color: Colors.grey, size: 60),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildProjectDetails(ProjectModel project) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildDetailRow('Cliente', project.clientName),
+        const SizedBox(height: 12),
+        _buildDetailRow('Descripción', project.description),
+        const SizedBox(height: 12),
+        _buildDetailRow('Ubicación', project.location),
+        const SizedBox(height: 12),
+        _buildDetailRow('Presupuesto', project.budget),
+        const SizedBox(height: 12),
+        _buildDetailRow('Fecha de Inicio', project.startDate),
+        const SizedBox(height: 12),
+        _buildDetailRow('Fecha de Fin', project.endDate),
+        const SizedBox(height: 12),
+        _buildDetailRow('Estado', project.status),
+        const SizedBox(height: 16),
+        _buildProgressSection(project),
+        const SizedBox(height: 16),
+        _buildKeyIndicatorsSection(project),
+      ],
     );
   }
 
@@ -256,6 +190,80 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           value,
           style: const TextStyle(fontSize: 14, color: AppColors.textDark),
         ),
+      ],
+    );
+  }
+
+  Widget _buildProgressSection(ProjectModel project) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Progreso',
+          style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: LinearProgressIndicator(
+                value: project.progress,
+                minHeight: 8,
+                backgroundColor: Colors.grey[200],
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  ColorUtils.getProgressColor(project.progress),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              '${(project.progress * 100).toInt()}%',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textDark,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildKeyIndicatorsSection(ProjectModel project) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Indicadores Clave',
+          style: AppTextStyles.fieldLabel.copyWith(fontSize: 14),
+        ),
+        const SizedBox(height: 12),
+        ...project.keyIndicators.entries.map((entry) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  entry.key,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textGray,
+                  ),
+                ),
+                Text(
+                  '${(entry.value * 100).toInt()}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: ColorUtils.getIndicatorColor(entry.value),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
       ],
     );
   }
@@ -289,83 +297,80 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 24),
-
-              // Actualizar
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.edit,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-                ),
-                title: const Text(
-                  'Actualizar',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
-                  ),
-                ),
-                subtitle: const Text(
-                  'Editar información del proyecto',
-                  style: TextStyle(fontSize: 12, color: AppColors.textGray),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          UpdateProjectScreen(project: project),
-                    ),
-                  ).then((result) {
-                    if (result != null) {
-                      _refreshProjects();
-                    }
-                  });
-                },
-              ),
-
+              _buildUpdateOption(project),
               const SizedBox(height: 8),
-
-              // Eliminar
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.delete, color: Colors.red, size: 20),
-                ),
-                title: const Text(
-                  'Eliminar',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.red,
-                  ),
-                ),
-                subtitle: const Text(
-                  'Borrar proyecto permanentemente',
-                  style: TextStyle(fontSize: 12, color: AppColors.textGray),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmDeleteProject(project);
-                },
-              ),
-
+              _buildDeleteOption(project),
               const SizedBox(height: 16),
             ],
           ),
         );
+      },
+    );
+  }
+
+  Widget _buildUpdateOption(ProjectModel project) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.edit, color: AppColors.primary, size: 20),
+      ),
+      title: const Text(
+        'Actualizar',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textDark,
+        ),
+      ),
+      subtitle: const Text(
+        'Editar información del proyecto',
+        style: TextStyle(fontSize: 12, color: AppColors.textGray),
+      ),
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UpdateProjectScreen(project: project),
+          ),
+        ).then((result) {
+          if (result != null) {
+            _refreshProjects();
+          }
+        });
+      },
+    );
+  }
+
+  Widget _buildDeleteOption(ProjectModel project) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.delete, color: Colors.red, size: 20),
+      ),
+      title: const Text(
+        'Eliminar',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.red,
+        ),
+      ),
+      subtitle: const Text(
+        'Borrar proyecto permanentemente',
+        style: TextStyle(fontSize: 12, color: AppColors.textGray),
+      ),
+      onTap: () {
+        Navigator.pop(context);
+        _confirmDeleteProject(project);
       },
     );
   }
@@ -476,7 +481,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   Future<void> _deleteProject(ProjectModel project) async {
     try {
-      // Mostrar loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -485,11 +489,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         ),
       );
 
-      // Eliminar del servidor
       final success = await ProjectService.deleteProject(project.id);
 
       if (mounted && success) {
-        Navigator.pop(context); // Cerrar loading
+        Navigator.pop(context);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -502,12 +505,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           ),
         );
 
-        // Actualizar la lista
         _refreshProjects();
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // Cerrar loading
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
@@ -526,82 +528,81 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const HomeScreen(),
-                        ),
-                        (route) => false,
-                      );
-                    },
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        color: AppColors.iconDark,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      'Mis Proyectos',
-                      style: AppTextStyles.header.copyWith(fontSize: 20),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _refreshProjects,
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.refresh,
-                        color: AppColors.iconGray,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Projects List
+            _buildHeader(),
             Expanded(child: _buildProjectsList()),
           ],
         ),
       ),
       bottomNavigationBar: const BottomNavigationWidget(currentIndex: 1),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+                (route) => false,
+              );
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.arrow_back,
+                color: AppColors.iconDark,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Mis Proyectos',
+              style: AppTextStyles.header.copyWith(fontSize: 20),
+            ),
+          ),
+          GestureDetector(
+            onTap: _refreshProjects,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.refresh,
+                color: AppColors.iconGray,
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

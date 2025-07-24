@@ -50,7 +50,6 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
     if (widget.project != null) {
       _loadProjectData();
     } else {
-      // Para proyectos nuevos, detectar cambios
       _setupChangeListeners();
     }
   }
@@ -104,12 +103,10 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
   Future<bool> _onWillPop() async {
     final isUpdate = widget.project != null;
 
-    // Si es actualización o no hay cambios, permitir salir
     if (isUpdate || !_hasUnsavedChanges) {
       return true;
     }
 
-    // Si es creación y hay cambios, mostrar confirmación
     return await showDialog<bool>(
           context: context,
           barrierDismissible: false,
@@ -177,6 +174,7 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
           },
         ) ??
         false;
+  }
 
   Widget _buildRequiredFieldsInfo() {
     return Container(
@@ -184,32 +182,22 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       decoration: BoxDecoration(
         color: AppColors.primary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.primary.withOpacity(0.2),
-        ),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.info_outline,
-            color: AppColors.primary,
-            size: 16,
-          ),
+          Icon(Icons.info_outline, color: AppColors.primary, size: 16),
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
               'Los campos marcados con (*) son obligatorios',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.primary,
-              ),
+              style: TextStyle(fontSize: 12, color: AppColors.primary),
             ),
           ),
         ],
       ),
     );
   }
-}
 
   void _showMessage(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -228,7 +216,8 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       newProgress: newProgress,
       originalProject: widget.project,
       setProgress: (progress) => setState(() => _projectProgress = progress),
-      setIndicators: (indicators) => setState(() => _keyIndicators = indicators),
+      setIndicators: (indicators) =>
+          setState(() => _keyIndicators = indicators),
       setStatus: (status) => setState(() => _projectStatus = status),
       currentIndicators: _keyIndicators,
     );
@@ -240,7 +229,8 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       currentProgress: _projectProgress,
       originalProject: widget.project,
       setProgress: (progress) => setState(() => _projectProgress = progress),
-      setIndicators: (indicators) => setState(() => _keyIndicators = indicators),
+      setIndicators: (indicators) =>
+          setState(() => _keyIndicators = indicators),
       setStatus: (status) => setState(() => _projectStatus = status),
       currentIndicators: _keyIndicators,
     );
@@ -251,7 +241,8 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       newIndicators: newIndicators,
       currentProgress: _projectProgress,
       setProgress: (progress) => setState(() => _projectProgress = progress),
-      setIndicators: (indicators) => setState(() => _keyIndicators = indicators),
+      setIndicators: (indicators) =>
+          setState(() => _keyIndicators = indicators),
     );
   }
 
@@ -270,15 +261,14 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
   }
 
   Future<void> _updateProject() async {
-    // Validación
     String? validationError = _validateFields();
     if (validationError != null) {
       _showMessage(validationError, isError: true);
       return;
     }
 
-    // Validar imagen
-    if (_selectedImagePath != null && ImageService.isLocalImage(_selectedImagePath!)) {
+    if (_selectedImagePath != null &&
+        ImageService.isLocalImage(_selectedImagePath!)) {
       _showMessage(
         'ERROR: La imagen debe estar guardada en el servidor. Por favor, selecciona la imagen nuevamente y espera a que se suba completamente.',
         isError: true,
@@ -292,15 +282,18 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
 
     try {
       String imageUrl = _selectedImagePath ?? widget.project?.imageUrl ?? '';
-      
+
       String processedImageUrl;
       try {
         processedImageUrl = await ImageService.processImageForProject(imageUrl);
       } catch (e) {
         if (imageUrl.isNotEmpty && ImageService.isLocalImage(imageUrl)) {
-          throw Exception('No se puede crear el proyecto: Error subiendo imagen. ${e.toString()}');
+          throw Exception(
+            'No se puede crear el proyecto: Error subiendo imagen. ${e.toString()}',
+          );
         }
-        processedImageUrl = 'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
+        processedImageUrl =
+            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
       }
 
       final projectData = ProjectModel(
@@ -320,7 +313,10 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
 
       ProjectModel result;
       if (widget.project != null) {
-        result = await ProjectService.updateProject(widget.project!.id, projectData);
+        result = await ProjectService.updateProject(
+          widget.project!.id,
+          projectData,
+        );
         await SyncService.projectUpdated(result.toUpdateJson());
         _showMessage('Proyecto actualizado exitosamente');
       } else {
@@ -361,68 +357,13 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () async {
-                        final shouldPop = await _onWillPop();
-                        if (shouldPop) {
-                          if (Navigator.canPop(context)) {
-                            Navigator.pop(context);
-                          } else {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const HomeScreen(),
-                              ),
-                              (route) => false,
-                            );
-                          }
-                        }
-                      },
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back,
-                          color: AppColors.iconDark,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        isUpdate ? 'Actualizar Proyecto' : 'Crear Proyecto',
-                        style: AppTextStyles.header.copyWith(fontSize: 20),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Form Content
+              _buildHeader(isUpdate),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Campos básicos del proyecto
                       ProjectFormFields(
                         projectNameController: _projectNameController,
                         clientNameController: _clientNameController,
@@ -433,11 +374,8 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                         endDateController: _endDateController,
                         onFieldChanged: _onFieldChanged,
                       ),
-
                       if (isUpdate) ...[
                         const SizedBox(height: 32),
-
-                        // Campos de actualización del proyecto
                         ProjectUpdateFields(
                           progress: _projectProgress,
                           status: _projectStatus,
@@ -448,11 +386,8 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                           onIndicatorsChanged: _updateIndicatorsProportionally,
                         ),
                       ],
-
                       if (!isUpdate) ...[
                         const SizedBox(height: 32),
-
-                        // File Picker
                         CustomFilePicker(
                           initialImagePath: _selectedImagePath,
                           onImageSelected: (imagePath) {
@@ -465,47 +400,11 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                             _onFieldChanged();
                           },
                         ),
-
                         const SizedBox(height: 16),
-
-                        // Campos obligatorios info
                         _buildRequiredFieldsInfo(),
                       ],
-
                       const SizedBox(height: 40),
-
-                      // Action Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _updateProject,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  isUpdate
-                                      ? 'Enviar Actualización'
-                                      : 'Crear Proyecto',
-                                  style: AppTextStyles.buttonText,
-                                ),
-                        ),
-                      ),
-
+                      _buildActionButton(isUpdate),
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -514,6 +413,90 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool isUpdate) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () async {
+              final shouldPop = await _onWillPop();
+              if (shouldPop) {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                    (route) => false,
+                  );
+                }
+              }
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.arrow_back,
+                color: AppColors.iconDark,
+                size: 20,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              isUpdate ? 'Actualizar Proyecto' : 'Crear Proyecto',
+              style: AppTextStyles.header.copyWith(fontSize: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton(bool isUpdate) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _updateProject,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
+          ),
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(
+                isUpdate ? 'Enviar Actualización' : 'Crear Proyecto',
+                style: AppTextStyles.buttonText,
+              ),
       ),
     );
   }

@@ -42,7 +42,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     try {
       final userId = widget.user['id'];
 
-      // Escuchar eventos de sincronización
       _syncSubscription = SyncService.getNavigationStream(userId).listen((
         event,
       ) {
@@ -66,77 +65,43 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     switch (eventType) {
       case 'navigate_to_home':
       case 'navigate_back_to_home':
-        print('📺 TV Project Detail: Navigating back to dashboard (home)');
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TVDashboardScreen(user: widget.user),
-            settings: const RouteSettings(name: '/tv_dashboard'),
-          ),
-          (route) => false,
-        );
+        _navigateBackToDashboard();
         break;
 
       case 'navigate_to_projects':
-        print('📺 TV Project Detail: Navigating back to dashboard (projects)');
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TVDashboardScreen(user: widget.user),
-            settings: const RouteSettings(name: '/tv_dashboard'),
-          ),
-          (route) => false,
-        );
+        _navigateBackToDashboard();
         break;
 
       case 'navigate_to_project_detail':
         final projectId = data['projectId'];
-        print(
-          '📺 TV Project Detail: Request to navigate to project: $projectId, current: ${widget.project.id}',
-        );
         if (projectId != null && projectId != widget.project.id) {
-          print(
-            '📺 TV Project Detail: Different project requested, going back to dashboard first',
-          );
-          // Volver al dashboard primero, el dashboard manejará la navegación al nuevo proyecto
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TVDashboardScreen(user: widget.user),
-              settings: const RouteSettings(name: '/tv_dashboard'),
-            ),
-            (route) => false,
-          );
-        } else if (projectId == widget.project.id) {
-          print('📺 TV Project Detail: Same project requested, staying here');
+          _navigateBackToDashboard();
         }
         break;
 
       case 'project_updated':
         final updatedProject = data['project'];
-        print('📺 TV Project Detail: Project updated event received');
         if (updatedProject != null &&
             updatedProject['id'] == widget.project.id) {
-          print(
-            '📺 TV Project Detail: Current project was updated, reloading timeline',
-          );
           _loadUpdateNotes();
-        } else {
-          print('📺 TV Project Detail: Different project updated, ignoring');
         }
         break;
 
       case 'logout':
-        print('📺 TV Project Detail: Logout event received');
         _handleLogoutEvent();
         break;
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Note: Cannot modify route settings after creation
+  void _navigateBackToDashboard() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TVDashboardScreen(user: widget.user),
+        settings: const RouteSettings(name: '/tv_dashboard'),
+      ),
+      (route) => false,
+    );
   }
 
   void _handleLogoutEvent() {
@@ -151,7 +116,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     try {
       print('🔍 TV Project Detail - Loading update notes...');
 
-      // Intentar cargar actividades reales del proyecto
       final activities = await ActivityService.getActivitiesByProject(
         widget.project.id,
       );
@@ -159,8 +123,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       if (mounted) {
         setState(() {
           if (activities.isNotEmpty) {
-            // Usar actividades reales como notas de actualización
-            // Ordenar por fecha más reciente primero
             activities.sort((a, b) {
               try {
                 final dateA = DateTime.parse(
@@ -169,7 +131,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                 final dateB = DateTime.parse(
                   b.createdAt?.toIso8601String() ?? '',
                 );
-                return dateB.compareTo(dateA); // Más reciente primero
+                return dateB.compareTo(dateA);
               } catch (e) {
                 return 0;
               }
@@ -187,7 +149,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               };
             }).toList();
           } else {
-            // Si no hay actividades, mostrar lista vacía
             _updateNotes = [];
           }
           _isLoadingNotes = false;
@@ -206,6 +167,11 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         });
       }
     }
+  }
+
+  String _formatActivityDate(DateTime? dateTime) {
+    if (dateTime == null) return 'Sin fecha';
+    return Formatters.formatActivityDate(dateTime);
   }
 
   String _getIndicatorFromType(String type) {
@@ -238,6 +204,10 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     }
   }
 
+  Color _getIndicatorColorByName(String indicator) {
+    return ColorUtils.getIndicatorColorByName(indicator);
+  }
+
   @override
   void dispose() {
     _syncSubscription?.cancel();
@@ -263,7 +233,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                // Header exacto al mockup
                 TVHeader(
                   title: 'Detalle del Proyecto',
                   user: widget.user,
@@ -271,26 +240,20 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TVDashboardScreen(user: widget.user),
+                        builder: (context) =>
+                            TVDashboardScreen(user: widget.user),
                       ),
                     );
                   },
                 ),
-
                 const SizedBox(height: 24),
-
-                // Layout principal según mockup
                 Expanded(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Panel izquierdo - Detalles del proyecto (como en mockup)
-                      Expanded(flex: 3, child: _buildMockupProjectDetails()),
-
+                      Expanded(flex: 3, child: _buildProjectDetails()),
                       const SizedBox(width: 24),
-
-                      // Panel derecho - Cronograma (como en mockup)
-                      Expanded(flex: 2, child: _buildMockupProjectTimeline()),
+                      Expanded(flex: 2, child: _buildProjectTimeline()),
                     ],
                   ),
                 ),
@@ -302,7 +265,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     );
   }
 
-  Widget _buildMockupProjectDetails() {
+  Widget _buildProjectDetails() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -313,12 +276,8 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Panel izquierdo - Información del proyecto
           Expanded(flex: 2, child: _buildProjectInfo()),
-
           const SizedBox(width: 24),
-
-          // Panel derecho - Indicadores clave
           Expanded(flex: 1, child: _buildKeyIndicatorsPanel()),
         ],
       ),
@@ -329,174 +288,166 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header con ubicación y estado
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        _buildProjectHeader(),
+        const SizedBox(height: 20),
+        Expanded(child: _buildProjectImage()),
+        const SizedBox(height: 20),
+        _buildProjectBasicInfo(),
+      ],
+    );
+  }
+
+  Widget _buildProjectHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 16,
+                  Icon(
+                    Icons.location_on_outlined,
+                    size: 16,
+                    color: Colors.white.withOpacity(0.7),
+                  ),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      widget.project.location,
+                      style: TextStyle(
+                        fontSize: 14,
                         color: Colors.white.withOpacity(0.7),
                       ),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          widget.project.location,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withOpacity(0.7),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.project.startDate,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withOpacity(0.6),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: ColorUtils.getStatusColor(widget.project.status).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                widget.project.status,
+              const SizedBox(height: 4),
+              Text(
+                widget.project.startDate,
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: ColorUtils.getStatusColor(widget.project.status),
+                  color: Colors.white.withOpacity(0.6),
                 ),
               ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 20),
-
-        // Imagen del proyecto
-        Expanded(
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              image: ImageUtils.buildImageProvider(widget.project.imageUrl) != null
-                  ? DecorationImage(
-                      image: ImageUtils.buildImageProvider(widget.project.imageUrl)!,
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-              color: ImageUtils.buildImageProvider(widget.project.imageUrl) == null
-                  ? Colors.grey[700]
-                  : null,
-            ),
-            child: ImageUtils.buildImageProvider(widget.project.imageUrl) == null
-                ? const Center(
-                    child: Icon(
-                      Icons.image_outlined,
-                      color: Colors.grey,
-                      size: 60,
-                    ),
-                  )
-                : null,
+            ],
           ),
         ),
-
-        const SizedBox(height: 20),
-
-        // Información del proyecto
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Nombre del proyecto
-            Text(
-              widget.project.name,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: ColorUtils.getStatusColor(
+              widget.project.status,
+            ).withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            widget.project.status,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: ColorUtils.getStatusColor(widget.project.status),
             ),
+          ),
+        ),
+      ],
+    );
+  }
 
-            const SizedBox(height: 8),
+  Widget _buildProjectImage() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        image: ImageUtils.buildImageProvider(widget.project.imageUrl) != null
+            ? DecorationImage(
+                image: ImageUtils.buildImageProvider(widget.project.imageUrl)!,
+                fit: BoxFit.cover,
+              )
+            : null,
+        color: ImageUtils.buildImageProvider(widget.project.imageUrl) == null
+            ? Colors.grey[700]
+            : null,
+      ),
+      child: ImageUtils.buildImageProvider(widget.project.imageUrl) == null
+          ? const Center(
+              child: Icon(Icons.image_outlined, color: Colors.grey, size: 60),
+            )
+          : null,
+    );
+  }
 
-            // Cliente
-            Text(
-              widget.project.clientName,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white.withOpacity(0.8),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+  Widget _buildProjectBasicInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.project.name,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          widget.project.clientName,
+          style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.8)),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Presupuesto: ${widget.project.budget}',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 16),
+        _buildProgressBar(),
+      ],
+    );
+  }
+
+  Widget _buildProgressBar() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 8,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(4),
             ),
-
-            const SizedBox(height: 12),
-
-            // Presupuesto
-            Text(
-              'Presupuesto: ${widget.project.budget}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            const SizedBox(height: 16),
-
-            // Progreso
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: widget.project.progress,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: ColorUtils.getProgressColor(widget.project.progress),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                  ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: widget.project.progress,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: ColorUtils.getProgressColor(widget.project.progress),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  '${(widget.project.progress * 100).toInt()}%',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          '${(widget.project.progress * 100).toInt()}%',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
       ],
     );
@@ -514,14 +465,10 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             color: Colors.white,
           ),
         ),
-
         const SizedBox(height: 20),
-
-        // Indicadores en grid 2x2
         Expanded(
           child: Column(
             children: [
-              // Primera fila
               Expanded(
                 child: Row(
                   children: [
@@ -544,7 +491,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Segunda fila
               Expanded(
                 child: Row(
                   children: [
@@ -571,118 +517,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         ),
       ],
     );
-  }
-
-  Widget _buildMockupInfoCard(String label, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMockupIndicatorCard(String label, double value, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${(value * 100).toInt()}%',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMockupProjectTimeline() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          const Text(
-            'Galería del Proyecto',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Carrusel de imágenes
-          Flexible(child: _buildImageCarousel()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImageCarousel() {
-    // Lista de imágenes para el carrusel (incluyendo la imagen del proyecto y algunas adicionales)
-    final List<String> carouselImages = [
-      widget.project.imageUrl,
-      'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/416405/pexels-photo-416405.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/1216589/pexels-photo-1216589.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=800',
-    ];
-
-    return _ImageCarouselWidget(images: carouselImages);
   }
 
   Widget _buildKeyIndicatorCard(String label, double value, Color color) {
@@ -716,7 +550,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          // Barra de progreso
           Container(
             height: 4,
             decoration: BoxDecoration(
@@ -739,172 +572,45 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     );
   }
 
-  Widget _buildUpdateNoteItem(Map<String, dynamic> update) {
+  Widget _buildProjectTimeline() {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1F1F1F),
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  update['title'] ?? 'Actualización',
-                  date: Formatters.formatActivityDate(activity.createdAt),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                update['date'] ?? '',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.white.withOpacity(0.6),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            update['description'] ?? 'Sin descripción',
+          const Text(
+            'Galería del Proyecto',
             style: TextStyle(
-              fontSize: 10,
-              color: Colors.white.withOpacity(0.8),
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
+          const SizedBox(height: 20),
+          Flexible(child: _buildImageCarousel()),
         ],
       ),
     );
   }
 
-  Widget _buildMockupTimelineItem(Map<String, dynamic> note, int index) {
-    final indicator = note['indicator'] ?? 'General';
-    final indicatorValue = note['indicatorValue'] ?? 0.0;
-    final isCompleted = note['status'] == 'completed';
+  Widget _buildImageCarousel() {
+    final List<String> carouselImages = [
+      widget.project.imageUrl,
+      'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/416405/pexels-photo-416405.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/1216589/pexels-photo-1216589.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=800',
+    ];
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isCompleted
-            ? const Color(0xFF10B981).withOpacity(0.1)
-            : indicatorValue > 0
-            ? const Color(0xFF6366F1).withOpacity(0.1)
-            : const Color(0xFF1F1F1F),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isCompleted
-              ? const Color(0xFF10B981).withOpacity(0.3)
-              : indicatorValue > 0
-              ? const Color(0xFF6366F1).withOpacity(0.3)
-              : Colors.white.withOpacity(0.1),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Indicador de estado con color del indicador clave
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: isCompleted
-                  ? const Color(0xFF10B981)
-                  : indicatorValue > 0
-                  ? _getIndicatorColorByName(indicator)
-                  : Colors.white.withOpacity(0.3),
-              shape: BoxShape.circle,
-            ),
-            child: isCompleted
-                ? const Icon(Icons.check, color: Colors.white, size: 8)
-                : null,
-          ),
-
-          const SizedBox(width: 12),
-
-          // Contenido de la nota de actualización
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        note['title'] ?? 'Actualización',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(
-                      note['date'] ?? '',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.6),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$indicator: ${note['description'] ?? 'Sin descripción'}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withOpacity(0.8),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (indicatorValue > 0 && !isCompleted) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 3,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(1.5),
-                    ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: indicatorValue,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: ColorUtils.getIndicatorColorByName(indicator),
-                          borderRadius: BorderRadius.circular(1.5),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    return _ImageCarouselWidget(images: carouselImages);
   }
-
 }
 
-// Widget para el carrusel de imágenes
 class _ImageCarouselWidget extends StatefulWidget {
   final List<String> images;
 
@@ -967,7 +673,6 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
       ),
       child: Stack(
         children: [
-          // Imagen actual
           Container(
             width: double.infinity,
             height: double.infinity,
@@ -979,8 +684,6 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
               ),
             ),
           ),
-
-          // Overlay con información
           Positioned(
             bottom: 0,
             left: 0,
@@ -1009,7 +712,6 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
                       color: Colors.white,
                     ),
                   ),
-                  // Indicadores de puntos
                   Row(
                     children: widget.images.asMap().entries.map((entry) {
                       return Container(
@@ -1029,8 +731,6 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
               ),
             ),
           ),
-
-          // Indicador de transición
           Positioned(
             top: 16,
             right: 16,
@@ -1040,12 +740,12 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
                 color: Colors.black.withOpacity(0.6),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.slideshow, color: Colors.white, size: 12),
-                  const SizedBox(width: 4),
-                  const Text(
+                  SizedBox(width: 4),
+                  Text(
                     'Auto',
                     style: TextStyle(
                       fontSize: 10,
