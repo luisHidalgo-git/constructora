@@ -444,199 +444,266 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Tarjeta del proyecto como en móvil
-          _buildProjectCardMobileStyle(),
+          // Panel izquierdo - Información del proyecto
+          Expanded(flex: 2, child: _buildProjectInfo()),
+
+          const SizedBox(width: 24),
+
+          // Panel derecho - Indicadores clave
+          Expanded(flex: 1, child: _buildKeyIndicatorsPanel()),
         ],
       ),
     );
   }
 
-  Widget _buildProjectCardMobileStyle() {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1F1F1F),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header con ubicación y estado
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildProjectInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header con ubicación y estado
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on_outlined,
-                              size: 16,
-                              color: Colors.white.withOpacity(0.7),
-                            ),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                widget.project.location,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white.withOpacity(0.7),
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.project.startDate,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 16,
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          widget.project.location,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.7),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(
-                        widget.project.status,
-                      ).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      widget.project.status,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: _getStatusColor(widget.project.status),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // Imagen del proyecto
-              Container(
-                height: 180,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: _buildImageProvider(widget.project.imageUrl) != null
-                      ? DecorationImage(
-                          image: _buildImageProvider(widget.project.imageUrl)!,
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                  color: _buildImageProvider(widget.project.imageUrl) == null
-                      ? Colors.grey[700]
-                      : null,
-                ),
-                child: _buildImageProvider(widget.project.imageUrl) == null
-                    ? const Center(
-                        child: Icon(
-                          Icons.image_outlined,
-                          color: Colors.grey,
-                          size: 60,
-                        ),
-                      )
-                    : null,
-              ),
-
-              const SizedBox(height: 20),
-
-              // Progreso y presupuesto
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      child: FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: widget.project.progress,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _getProgressColor(widget.project.progress),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(height: 4),
                   Text(
-                    '${(widget.project.progress * 100).toInt()}%',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                    widget.project.startDate,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.6),
                     ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 16),
-
-              // Nombre del proyecto
-              Text(
-                widget.project.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: _getStatusColor(widget.project.status).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
               ),
-
-              const SizedBox(height: 8),
-
-              // Cliente y presupuesto
-              Text(
-                widget.project.clientName,
+              child: Text(
+                widget.project.status,
                 style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: _getStatusColor(widget.project.status),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
+            ),
+          ],
+        ),
 
-              const SizedBox(height: 4),
+        const SizedBox(height: 20),
 
-              Text(
-                'Presupuesto: ${widget.project.budget}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+        // Imagen del proyecto
+        Expanded(
+          child: Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              image: _buildImageProvider(widget.project.imageUrl) != null
+                  ? DecorationImage(
+                      image: _buildImageProvider(widget.project.imageUrl)!,
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              color: _buildImageProvider(widget.project.imageUrl) == null
+                  ? Colors.grey[700]
+                  : null,
+            ),
+            child: _buildImageProvider(widget.project.imageUrl) == null
+                ? const Center(
+                    child: Icon(
+                      Icons.image_outlined,
+                      color: Colors.grey,
+                      size: 60,
+                    ),
+                  )
+                : null,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Información del proyecto
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Nombre del proyecto
+            Text(
+              widget.project.name,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+
+            const SizedBox(height: 8),
+
+            // Cliente
+            Text(
+              widget.project.clientName,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.8),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Presupuesto
+            Text(
+              'Presupuesto: ${widget.project.budget}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Progreso
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: widget.project.progress,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _getProgressColor(widget.project.progress),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 12),
+                Text(
+                  '${(widget.project.progress * 100).toInt()}%',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildKeyIndicatorsPanel() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Indicadores Clave',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Indicadores en grid 2x2
+        Expanded(
+          child: Column(
+            children: [
+              // Primera fila
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildKeyIndicatorCard(
+                        'Calidad',
+                        widget.project.keyIndicators['Calidad'] ?? 0.0,
+                        const Color(0xFF10B981),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildKeyIndicatorCard(
+                        'Tiempo',
+                        widget.project.keyIndicators['Tiempo'] ?? 0.0,
+                        const Color(0xFFFF9500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Segunda fila
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildKeyIndicatorCard(
+                        'Presupuesto',
+                        widget.project.keyIndicators['Presupuesto'] ?? 0.0,
+                        const Color(0xFF6366F1),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildKeyIndicatorCard(
+                        'Satisfacción',
+                        widget.project.keyIndicators['Satisfacción'] ?? 0.0,
+                        const Color(0xFF8B5CF6),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -722,7 +789,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         children: [
           // Header
           const Text(
-            'Cronograma del Proyecto',
+            'Galería del Proyecto',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -732,112 +799,24 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
           const SizedBox(height: 20),
 
-          // Indicadores Clave como en la imagen de muestra
-          Flexible(
-            child: _isLoadingNotes
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF6366F1)),
-                  )
-                : _buildKeyIndicatorsSection(),
-          ),
+          // Carrusel de imágenes
+          Flexible(child: _buildImageCarousel()),
         ],
       ),
     );
   }
 
-  Widget _buildKeyIndicatorsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Indicadores Clave en grid 2x2
-        SizedBox(
-          height: 160, // Altura fija para evitar overflow
-          child: Column(
-            children: [
-              // Primera fila de indicadores
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildKeyIndicatorCard(
-                        'Calidad',
-                        widget.project.keyIndicators['Calidad'] ?? 0.0,
-                        const Color(0xFF10B981),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildKeyIndicatorCard(
-                        'Tiempo',
-                        widget.project.keyIndicators['Tiempo'] ?? 0.0,
-                        const Color(0xFFFF9500),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Segunda fila de indicadores
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildKeyIndicatorCard(
-                        'Presupuesto',
-                        widget.project.keyIndicators['Presupuesto'] ?? 0.0,
-                        const Color(0xFF6366F1),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildKeyIndicatorCard(
-                        'Satisfacción',
-                        widget.project.keyIndicators['Satisfacción'] ?? 0.0,
-                        const Color(0xFF8B5CF6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+  Widget _buildImageCarousel() {
+    // Lista de imágenes para el carrusel (incluyendo la imagen del proyecto y algunas adicionales)
+    final List<String> carouselImages = [
+      widget.project.imageUrl,
+      'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/416405/pexels-photo-416405.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/1216589/pexels-photo-1216589.jpeg?auto=compress&cs=tinysrgb&w=800',
+      'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=800',
+    ];
 
-        const SizedBox(height: 20),
-
-        // Actividad Reciente
-        const Text(
-          'Actividad Reciente',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // Mostrar solo la última nota de actualización
-        SizedBox(
-          height: 80, // Altura fija para una sola nota
-          child: _updateNotes.isEmpty
-              ? Center(
-                  child: Text(
-                    'No hay notas de actualización\nLas actualizaciones del teléfono aparecerán aquí',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withOpacity(0.5),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              : _buildUpdateNoteItem(
-                  _updateNotes.first,
-                ), // Solo mostrar la primera (más reciente)
-        ),
-      ],
-    );
+    return _ImageCarouselWidget(images: carouselImages);
   }
 
   Widget _buildKeyIndicatorCard(String label, double value, Color color) {
@@ -1135,5 +1114,164 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     } else {
       return const Color(0xFFEF4444);
     }
+  }
+}
+
+// Widget para el carrusel de imágenes
+class _ImageCarouselWidget extends StatefulWidget {
+  final List<String> images;
+
+  const _ImageCarouselWidget({required this.images});
+
+  @override
+  State<_ImageCarouselWidget> createState() => _ImageCarouselWidgetState();
+}
+
+class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
+  int _currentIndex = 0;
+  Timer? _carouselTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCarousel();
+  }
+
+  void _startCarousel() {
+    _carouselTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentIndex = (_currentIndex + 1) % widget.images.length;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _carouselTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.images.isEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[700],
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(
+          child: Icon(Icons.image_outlined, color: Colors.grey, size: 60),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Imagen actual
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              image: DecorationImage(
+                image: NetworkImage(widget.images[_currentIndex]),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+          // Overlay con información
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(12),
+                  bottomRight: Radius.circular(12),
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Imagen ${_currentIndex + 1} de ${widget.images.length}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                  // Indicadores de puntos
+                  Row(
+                    children: widget.images.asMap().entries.map((entry) {
+                      return Container(
+                        width: 8,
+                        height: 8,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _currentIndex == entry.key
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.4),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Indicador de transición
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.slideshow, color: Colors.white, size: 12),
+                  const SizedBox(width: 4),
+                  const Text(
+                    'Auto',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

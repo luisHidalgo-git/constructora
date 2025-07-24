@@ -716,10 +716,10 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+        crossAxisCount: 4,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 0.8, // Cambiar a formato vertical como en mockup
+        childAspectRatio: 1.8, // Hacer las tarjetas más horizontales y pequeñas
       ),
       itemCount: _projects.length,
       itemBuilder: (context, index) {
@@ -747,16 +747,16 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
-        child: Column(
+        child: Row(
           children: [
-            // Imagen del proyecto - ahora en la parte superior
+            // Imagen del proyecto - ahora a la izquierda
             Container(
-              width: double.infinity,
-              height: 120,
+              width: 80,
+              height: double.infinity,
               decoration: BoxDecoration(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
+                  bottomLeft: Radius.circular(12),
                 ),
                 image: _buildImageProvider(project.imageUrl) != null
                     ? DecorationImage(
@@ -773,109 +773,90 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                       child: Icon(
                         Icons.image_outlined,
                         color: Colors.grey,
-                        size: 24,
+                        size: 20,
                       ),
                     )
                   : null,
             ),
 
-            // Información del proyecto - ahora debajo de la imagen
+            const SizedBox(width: 12),
+
+            // Información del proyecto - ahora a la derecha
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                child: Row(
                   children: [
-                    // Nombre del proyecto
-                    Text(
-                      project.name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    // Cliente
-                    Text(
-                      project.clientName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.7),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Estado
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(project.status),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        project.status,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    // Progress - al final
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Progreso',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.white.withOpacity(0.7),
-                              ),
+                    // Información básica
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Nombre del proyecto
+                          Text(
+                            project.name,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
                             ),
-                            Text(
-                              '${(project.progress * 100).toInt()}%',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(2),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          child: FractionallySizedBox(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: project.progress,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: _getProgressColor(project.progress),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
+
+                          const SizedBox(height: 2),
+
+                          // Cliente
+                          Text(
+                            project.clientName,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white.withOpacity(0.7),
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    // Estado y progreso
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // Estado
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(project.status),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            project.status,
+                            style: const TextStyle(
+                              fontSize: 8,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        // Progreso
+                        Text(
+                          '${(project.progress * 100).toInt()}%',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
                         ),
                       ],
