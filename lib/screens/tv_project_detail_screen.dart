@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../models/project_model.dart';
 import '../services/activity_service.dart';
+import '../services/project_image_service.dart';
 import '../models/activity_model.dart';
+import '../models/project_image_model.dart';
 import 'tv_dashboard_screen.dart';
 import '../services/sync_service.dart';
 import 'dart:async';
@@ -29,12 +31,15 @@ class TVProjectDetailScreen extends StatefulWidget {
 class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
   List<Map<String, dynamic>> _updateNotes = [];
   bool _isLoadingNotes = true;
+  List<ProjectImageModel> _projectImages = [];
+  bool _isLoadingImages = true;
   StreamSubscription<Map<String, dynamic>>? _syncSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadUpdateNotes();
+    _loadProjectImages();
     _initSync();
   }
 
@@ -150,6 +155,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             }).toList();
           } else {
             _updateNotes = [];
+            _loadProjectImages();
           }
           _isLoadingNotes = false;
         });
@@ -583,38 +589,130 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Galería del Proyecto',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Galería del Proyecto',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              if (_projectImages.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${_projectImages.length} ${_projectImages.length == 1 ? 'imagen' : 'imágenes'}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 20),
-          Flexible(child: _buildImageCarousel()),
+          Expanded(child: _buildProjectGallery()),
         ],
       ),
     );
   }
 
-  Widget _buildImageCarousel() {
-    final List<String> carouselImages = [
-      widget.project.imageUrl,
-      'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/416405/pexels-photo-416405.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/1216589/pexels-photo-1216589.jpeg?auto=compress&cs=tinysrgb&w=800',
-      'https://images.pexels.com/photos/1105766/pexels-photo-1105766.jpeg?auto=compress&cs=tinysrgb&w=800',
-    ];
+  Widget _buildProjectGallery() {
+    if (_isLoadingImages) {
+      return Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1F1F1F),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Color(0xFF6366F1)),
+              SizedBox(height: 16),
+              Text(
+                'Cargando galería...',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-    return _ImageCarouselWidget(images: carouselImages);
+    if (_projectImages.isEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1F1F1F),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.photo_library_outlined,
+                color: Colors.white.withOpacity(0.4),
+                size: 64,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No hay imágenes de avances',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Las imágenes aparecerán aquí cuando se agreguen desde la aplicación móvil',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.5),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Crear lista de URLs de imágenes reales del proyecto
+    final List<String> imageUrls = _projectImages.map((img) => img.imageUrl).toList();
+    
+    return _ImageCarouselWidget(
+      images: imageUrls,
+      projectImages: _projectImages,
+    );
   }
 }
 
 class _ImageCarouselWidget extends StatefulWidget {
   final List<String> images;
+  final List<ProjectImageModel> projectImages;
 
-  const _ImageCarouselWidget({required this.images});
+  const _ImageCarouselWidget({
+    required this.images,
+    required this.projectImages,
+  });
 
   @override
   State<_ImageCarouselWidget> createState() => _ImageCarouselWidgetState();
@@ -651,11 +749,16 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
     if (widget.images.isEmpty) {
       return Container(
         decoration: BoxDecoration(
-          color: Colors.grey[700],
+          color: const Color(0xFF1F1F1F),
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
         child: const Center(
-          child: Icon(Icons.image_outlined, color: Colors.grey, size: 60),
+          child: Icon(
+            Icons.image_outlined, 
+            color: Colors.white24, 
+            size: 60,
+          ),
         ),
       );
     }
@@ -663,6 +766,7 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
@@ -681,9 +785,14 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
               image: DecorationImage(
                 image: NetworkImage(widget.images[_currentIndex]),
                 fit: BoxFit.cover,
+                onError: (exception, stackTrace) {
+                  print('❌ Error loading TV gallery image: $exception');
+                },
               ),
             ),
           ),
+          
+          // Overlay con información de la imagen
           Positioned(
             bottom: 0,
             left: 0,
@@ -704,6 +813,25 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Descripción de la imagen si existe
+                  if (widget.projectImages.isNotEmpty && 
+                      _currentIndex < widget.projectImages.length &&
+                      widget.projectImages[_currentIndex].description != null &&
+                      widget.projectImages[_currentIndex].description!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        widget.projectImages[_currentIndex].description!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  
                   Text(
                     'Imagen ${_currentIndex + 1} de ${widget.images.length}',
                     style: const TextStyle(
@@ -715,16 +843,30 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
                   Row(
                     children: widget.images.asMap().entries.map((entry) {
                       return Container(
-                        width: 8,
-                        height: 8,
-                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _currentIndex == entry.key
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Imagen ${_currentIndex + 1} de ${widget.images.length}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                          if (widget.projectImages.isNotEmpty && 
+                              _currentIndex < widget.projectImages.length)
+                            Text(
+                              'Subida: ${_formatDate(widget.projectImages[_currentIndex].uploadedAt)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withOpacity(0.7),
+                              ),
+                            ),
+                        ],
                               ? Colors.white
                               : Colors.white.withOpacity(0.4),
                         ),
-                      );
                     }).toList(),
                   ),
                 ],
@@ -742,6 +884,7 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
+                ],
                 children: [
                   Icon(Icons.slideshow, color: Colors.white, size: 12),
                   SizedBox(width: 4),
@@ -757,8 +900,14 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
               ),
             ),
           ),
+          
+          // Indicador de carrusel automático
         ],
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
   }
 }
