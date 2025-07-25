@@ -95,12 +95,16 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
   Future<void> _loadProjectImages() async {
     if (widget.project != null) {
       try {
+        print(
+          '🔍 UpdateProjectScreen - Loading project images for: ${widget.project!.id}',
+        );
         final images = await ProjectImageService.getProjectImages(
           widget.project!.id,
         );
         setState(() {
           _projectImages = images;
         });
+        print('✅ UpdateProjectScreen - Loaded ${images.length} project images');
       } catch (e) {
         print('Error loading project images: $e');
       }
@@ -287,10 +291,10 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       return;
     }
 
-    // Verificar si hay una imagen local que no se haya subido
-    if (_selectedImagePath != null && ImageService.isLocalImage(_selectedImagePath!)) {
+    if (_selectedImagePath != null &&
+        ImageService.isLocalImage(_selectedImagePath!)) {
       _showMessage(
-        'La imagen se está subiendo al servidor. Por favor espera un momento...',
+        'ERROR: La imagen debe estar guardada en el servidor. Por favor, selecciona la imagen nuevamente y espera a que se suba completamente.',
         isError: true,
       );
       return;
@@ -306,12 +310,10 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       String processedImageUrl;
       try {
         processedImageUrl = await ImageService.processImageForProject(imageUrl);
-        print('✅ Image processed successfully: $processedImageUrl');
       } catch (e) {
-        print('❌ Error processing image: $e');
         if (imageUrl.isNotEmpty && ImageService.isLocalImage(imageUrl)) {
           throw Exception(
-            'No se puede actualizar el proyecto: La imagen debe estar en el servidor. ${e.toString()}',
+            'No se puede crear el proyecto: Error subiendo imagen. ${e.toString()}',
           );
         }
         processedImageUrl =
@@ -353,10 +355,9 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       Navigator.pop(context, result);
     } catch (e) {
       String errorMessage = e.toString();
-      if (errorMessage.contains('imagen debe estar en el servidor') || 
-          errorMessage.contains('Error subiendo imagen')) {
+      if (errorMessage.contains('imagen debe estar en el servidor')) {
         _showMessage(
-          'La imagen aún se está subiendo al servidor. Por favor espera unos segundos e intenta de nuevo.',
+          'ERROR CRÍTICO: Para usar la app en múltiples dispositivos, todas las imágenes deben guardarse en el servidor. Por favor, selecciona la imagen nuevamente.',
           isError: true,
         );
       } else {
@@ -423,11 +424,14 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                           projectId: widget.project!.id,
                           initialImages: _projectImages,
                           onImagesChanged: (images) {
+                            print(
+                              '🔍 UpdateProjectScreen - Received images update: ${images.length} images',
+                            );
                             setState(() {
                               _projectImages = images;
                             });
                             print(
-                              '🔍 Project images updated: ${images.length} images',
+                              '✅ UpdateProjectScreen - Project images updated in state: ${images.length} images',
                             );
                           },
                         ),

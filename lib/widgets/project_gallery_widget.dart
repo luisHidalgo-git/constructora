@@ -34,8 +34,18 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
   void initState() {
     super.initState();
     _images = List.from(widget.initialImages);
+    print(
+      '🔍 ProjectGalleryWidget - Initialized with ${_images.length} initial images',
+    );
     if (_images.isEmpty) {
+      print(
+        '🔍 ProjectGalleryWidget - No initial images, loading from server...',
+      );
       _loadImages();
+    } else {
+      print(
+        '✅ ProjectGalleryWidget - Using ${_images.length} initial images from parent',
+      );
     }
   }
 
@@ -45,14 +55,20 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
     });
 
     try {
-      final images = await ProjectImageService.getProjectImages(widget.projectId);
+      final images = await ProjectImageService.getProjectImages(
+        widget.projectId,
+      );
       setState(() {
         _images = images;
         _isLoading = false;
       });
-      
+
+      // CRÍTICO: Notificar al widget padre sobre la carga inicial
       if (widget.onImagesChanged != null) {
         widget.onImagesChanged!(_images);
+        print(
+          '✅ ProjectGalleryWidget - Notified parent about loaded images: ${images.length} images',
+        );
       }
     } catch (e) {
       print('Error loading project images: $e');
@@ -339,8 +355,12 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
         _isUploading = false;
       });
 
+      // CRÍTICO: Notificar inmediatamente al widget padre sobre el cambio
       if (widget.onImagesChanged != null) {
         widget.onImagesChanged!(_images);
+        print(
+          '✅ ProjectGalleryWidget - Notified parent about new image: ${uploadedImage.id}',
+        );
       }
 
       _showMessage('✅ Imagen agregada a la galería del proyecto');
@@ -377,8 +397,12 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
             setState(() {
               _images.removeWhere((img) => img.id == imageId);
             });
+            // CRÍTICO: Notificar al widget padre sobre la eliminación
             if (widget.onImagesChanged != null) {
               widget.onImagesChanged!(_images);
+              print(
+                '✅ ProjectGalleryWidget - Notified parent about image deletion: $imageId',
+              );
             }
           },
         ),
@@ -396,13 +420,15 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: isError ? 4 : 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        action: !isError ? SnackBarAction(
-          label: 'Ver Galería',
-          textColor: Colors.white,
-          onPressed: () {
-            // Acción opcional para ver la galería completa
-          },
-        ) : null,
+        action: !isError
+            ? SnackBarAction(
+                label: 'Ver Galería',
+                textColor: Colors.white,
+                onPressed: () {
+                  // Acción opcional para ver la galería completa
+                },
+              )
+            : null,
       ),
     );
   }
@@ -424,11 +450,16 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
               GestureDetector(
                 onTap: _showImageSourceDialog,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.3),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -500,18 +531,12 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
             const SizedBox(height: 8),
             Text(
               'No hay imágenes en la galería',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
             const SizedBox(height: 4),
             Text(
               'Toca "Agregar" para subir la primera imagen',
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 10, color: Colors.grey[500]),
             ),
           ],
         ),
@@ -584,11 +609,7 @@ class _ProjectGalleryWidgetState extends State<ProjectGalleryWidget> {
                   : null,
             ),
             child: ImageUtils.buildImageProvider(image.imageUrl) == null
-                ? const Icon(
-                    Icons.image_outlined,
-                    color: Colors.grey,
-                    size: 30,
-                  )
+                ? const Icon(Icons.image_outlined, color: Colors.grey, size: 30)
                 : Stack(
                     children: [
                       // Overlay con número de imagen
@@ -642,12 +663,14 @@ class ProjectImageViewer extends StatefulWidget {
 class _ProjectImageViewerState extends State<ProjectImageViewer> {
   late PageController _pageController;
   int _currentIndex = 0;
+  late List<ProjectImageModel> _images;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
+    _images = List.from(widget.images);
   }
 
   @override
@@ -657,8 +680,8 @@ class _ProjectImageViewerState extends State<ProjectImageViewer> {
   }
 
   void _deleteImage() {
-    final currentImage = widget.images[_currentIndex];
-    
+    final currentImage = _images[_currentIndex];
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -732,12 +755,18 @@ class _ProjectImageViewerState extends State<ProjectImageViewer> {
   Future<void> _performDelete(ProjectImageModel image) async {
     try {
       final success = await ProjectImageService.deleteProjectImage(image.id);
-      
+
       if (success) {
+        // CRÍTICO: Actualizar la lista local inmediatamente
+        setState(() {
+          _images.removeWhere((img) => img.id == image.id);
+        });
+
+        // Notificar al widget padre
         if (widget.onImageDeleted != null) {
           widget.onImageDeleted!(image.id);
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Imagen eliminada de la galería'),
@@ -745,15 +774,15 @@ class _ProjectImageViewerState extends State<ProjectImageViewer> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        
+
         // Si era la última imagen, cerrar el visor
-        if (widget.images.length <= 1) {
+        if (_images.length <= 0) {
           Navigator.pop(context);
         } else {
           // Ajustar índice si es necesario
-          if (_currentIndex >= widget.images.length - 1) {
+          if (_currentIndex >= _images.length) {
             setState(() {
-              _currentIndex = widget.images.length - 2;
+              _currentIndex = _images.length - 1;
             });
             _pageController.animateToPage(
               _currentIndex,
@@ -794,7 +823,7 @@ class _ProjectImageViewerState extends State<ProjectImageViewer> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          '${_currentIndex + 1} de ${widget.images.length}',
+          '${_currentIndex + 1} de ${_images.length}',
           style: const TextStyle(color: Colors.white),
         ),
         actions: [
@@ -815,21 +844,26 @@ class _ProjectImageViewerState extends State<ProjectImageViewer> {
                   _currentIndex = index;
                 });
               },
-              itemCount: widget.images.length,
+              itemCount: _images.length,
               itemBuilder: (context, index) {
-                final image = widget.images[index];
+                final image = _images[index];
                 return Center(
                   child: InteractiveViewer(
                     child: Container(
                       decoration: BoxDecoration(
-                        image: ImageUtils.buildImageProvider(image.imageUrl) != null
+                        image:
+                            ImageUtils.buildImageProvider(image.imageUrl) !=
+                                null
                             ? DecorationImage(
-                                image: ImageUtils.buildImageProvider(image.imageUrl)!,
+                                image: ImageUtils.buildImageProvider(
+                                  image.imageUrl,
+                                )!,
                                 fit: BoxFit.contain,
                               )
                             : null,
                       ),
-                      child: ImageUtils.buildImageProvider(image.imageUrl) == null
+                      child:
+                          ImageUtils.buildImageProvider(image.imageUrl) == null
                           ? const Center(
                               child: Icon(
                                 Icons.image_outlined,
@@ -852,10 +886,10 @@ class _ProjectImageViewerState extends State<ProjectImageViewer> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (widget.images[_currentIndex].description != null &&
-                    widget.images[_currentIndex].description!.isNotEmpty)
+                if (_images[_currentIndex].description != null &&
+                    _images[_currentIndex].description!.isNotEmpty)
                   Text(
-                    widget.images[_currentIndex].description!,
+                    _images[_currentIndex].description!,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -864,37 +898,31 @@ class _ProjectImageViewerState extends State<ProjectImageViewer> {
                   ),
                 const SizedBox(height: 8),
                 Text(
-                  'Subida: ${_formatDate(widget.images[_currentIndex].uploadedAt)}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
+                  'Subida: ${_formatDate(_images[_currentIndex].uploadedAt)}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
-                if (widget.images[_currentIndex].uploadedBy != null)
+                if (_images[_currentIndex].uploadedBy != null)
                   Text(
-                    'Por: ${widget.images[_currentIndex].uploadedBy!['name']}',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
+                    'Por: ${_images[_currentIndex].uploadedBy!['name']}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
                   ),
               ],
             ),
           ),
 
           // Thumbnails en la parte inferior
-          if (widget.images.length > 1)
+          if (_images.length > 1)
             Container(
               height: 80,
               padding: const EdgeInsets.symmetric(vertical: 8),
               color: Colors.black87,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: widget.images.length,
+                itemCount: _images.length,
                 itemBuilder: (context, index) {
-                  final image = widget.images[index];
+                  final image = _images[index];
                   final isSelected = index == _currentIndex;
-                  
+
                   return GestureDetector(
                     onTap: () {
                       _pageController.animateToPage(
@@ -910,20 +938,29 @@ class _ProjectImageViewerState extends State<ProjectImageViewer> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSelected ? AppColors.primary : Colors.transparent,
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.transparent,
                           width: 2,
                         ),
-                        image: ImageUtils.buildImageProvider(image.imageUrl) != null
+                        image:
+                            ImageUtils.buildImageProvider(image.imageUrl) !=
+                                null
                             ? DecorationImage(
-                                image: ImageUtils.buildImageProvider(image.imageUrl)!,
+                                image: ImageUtils.buildImageProvider(
+                                  image.imageUrl,
+                                )!,
                                 fit: BoxFit.cover,
                               )
                             : null,
-                        color: ImageUtils.buildImageProvider(image.imageUrl) == null
+                        color:
+                            ImageUtils.buildImageProvider(image.imageUrl) ==
+                                null
                             ? Colors.grey[700]
                             : null,
                       ),
-                      child: ImageUtils.buildImageProvider(image.imageUrl) == null
+                      child:
+                          ImageUtils.buildImageProvider(image.imageUrl) == null
                           ? const Icon(
                               Icons.image_outlined,
                               color: Colors.grey,
