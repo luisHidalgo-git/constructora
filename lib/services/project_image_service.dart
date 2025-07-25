@@ -52,7 +52,9 @@ class ProjectImageService {
 
       // Verificar tamaño del archivo (máximo 10MB)
       if (fileSize > 10 * 1024 * 1024) {
-        throw Exception('La imagen es demasiado grande. Máximo 10MB permitido.');
+        throw Exception(
+          'La imagen es demasiado grande. Máximo 10MB permitido.',
+        );
       }
 
       final headers = await _getMultipartHeaders();
@@ -104,12 +106,16 @@ class ProjectImageService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('✅ ProjectImageService - Image uploaded successfully to project gallery');
+        print(
+          '✅ ProjectImageService - Image uploaded successfully to project gallery',
+        );
         return ProjectImageModel.fromJson(data['image']);
       } else {
         try {
           final error = jsonDecode(response.body);
-          throw Exception(error['message'] ?? 'Error al subir imagen a la galería');
+          throw Exception(
+            error['message'] ?? 'Error al subir imagen a la galería',
+          );
         } catch (e) {
           throw Exception('Error del servidor: ${response.statusCode}');
         }
@@ -125,7 +131,9 @@ class ProjectImageService {
   }
 
   // Obtener todas las imágenes de un proyecto
-  static Future<List<ProjectImageModel>> getProjectImages(String projectId) async {
+  static Future<List<ProjectImageModel>> getProjectImages(
+    String projectId,
+  ) async {
     try {
       print('🔍 ProjectImageService - Getting images for project: $projectId');
 
@@ -138,27 +146,41 @@ class ProjectImageService {
           .timeout(Duration(milliseconds: ApiConfig.timeout));
 
       print('🔍 ProjectImageService - Response status: ${response.statusCode}');
-      print('🔍 ProjectImageService - Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final List<dynamic> imagesData = data['images'];
-        
+
         print('✅ ProjectImageService - Found ${imagesData.length} images');
-        
-        final images = imagesData.map((json) => ProjectImageModel.fromJson(json)).toList();
-        
+
+        final images = imagesData
+            .map((json) {
+              try {
+                return ProjectImageModel.fromJson(json);
+              } catch (e) {
+                print('❌ Error parsing image data: $e');
+                print('❌ Problematic JSON: $json');
+                return null;
+              }
+            })
+            .where((image) => image != null)
+            .cast<ProjectImageModel>()
+            .toList();
+
         // Ordenar por fecha de subida (más recientes primero)
         images.sort((a, b) => b.uploadedAt.compareTo(a.uploadedAt));
-        
+
         return images;
       } else {
         print('❌ ProjectImageService - Error response: ${response.body}');
-        throw Exception('Error al obtener imágenes del proyecto: ${response.statusCode}');
+        throw Exception(
+          'Error al obtener imágenes del proyecto: ${response.statusCode}',
+        );
       }
     } catch (e) {
       print('❌ ProjectImageService - Error getting images: $e');
-      throw Exception('Error: ${e.toString()}');
+      // En lugar de lanzar excepción, devolver lista vacía para evitar crashes
+      return [];
     }
   }
 
@@ -175,13 +197,17 @@ class ProjectImageService {
           )
           .timeout(Duration(milliseconds: ApiConfig.timeout));
 
-      print('🔍 ProjectImageService - Delete response status: ${response.statusCode}');
+      print(
+        '🔍 ProjectImageService - Delete response status: ${response.statusCode}',
+      );
 
       if (response.statusCode == 200) {
         print('✅ ProjectImageService - Image deleted successfully');
         return true;
       } else {
-        print('❌ ProjectImageService - Failed to delete image: ${response.statusCode}');
+        print(
+          '❌ ProjectImageService - Failed to delete image: ${response.statusCode}',
+        );
         return false;
       }
     } catch (e) {
@@ -191,7 +217,10 @@ class ProjectImageService {
   }
 
   // Actualizar descripción de imagen
-  static Future<bool> updateImageDescription(String imageId, String description) async {
+  static Future<bool> updateImageDescription(
+    String imageId,
+    String description,
+  ) async {
     try {
       print('🔍 ProjectImageService - Updating image description: $imageId');
 
@@ -204,13 +233,17 @@ class ProjectImageService {
           )
           .timeout(Duration(milliseconds: ApiConfig.timeout));
 
-      print('🔍 ProjectImageService - Update response status: ${response.statusCode}');
+      print(
+        '🔍 ProjectImageService - Update response status: ${response.statusCode}',
+      );
 
       if (response.statusCode == 200) {
         print('✅ ProjectImageService - Image description updated successfully');
         return true;
       } else {
-        print('❌ ProjectImageService - Failed to update description: ${response.statusCode}');
+        print(
+          '❌ ProjectImageService - Failed to update description: ${response.statusCode}',
+        );
         return false;
       }
     } catch (e) {

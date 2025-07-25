@@ -107,6 +107,9 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
         print('✅ UpdateProjectScreen - Loaded ${images.length} project images');
       } catch (e) {
         print('Error loading project images: $e');
+        setState(() {
+          _projectImages = [];
+        });
       }
     }
   }
@@ -422,7 +425,8 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
                         const SizedBox(height: 8),
                         ProjectGalleryWidget(
                           projectId: widget.project!.id,
-                          initialImages: _projectImages,
+                          initialImages:
+                              const [], // No pasar imágenes iniciales para forzar carga del servidor
                           onImagesChanged: (images) {
                             print(
                               '🔍 UpdateProjectScreen - Received images update: ${images.length} images',
