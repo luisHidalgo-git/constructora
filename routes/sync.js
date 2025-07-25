@@ -11,19 +11,20 @@ const userEvents = new Map();
 // @access  Private
 router.post('/navigation', auth, async (req, res) => {
   try {
-    const { eventType, data, timestamp } = req.body;
+    const { eventType, data, timestamp, eventId } = req.body;
     const userId = req.user.id;
 
     console.log(`📱 Mobile -> Server: Navigation event from ${req.user.email}: ${eventType}`, data ? `with data: ${JSON.stringify(data)}` : '');
 
     // Crear evento
     const event = {
-      id: Date.now().toString(),
+      id: eventId || Date.now().toString(),
       userId,
       eventType,
       data: data || {},
       timestamp: timestamp || new Date().toISOString(),
       processed: false,
+      eventId: eventId || Date.now().toString(),
     };
 
     // Almacenar evento para el usuario
@@ -34,12 +35,12 @@ router.post('/navigation', auth, async (req, res) => {
     const events = userEvents.get(userId);
     events.push(event);
 
-    // Mantener solo los últimos 10 eventos
-    if (events.length > 10) {
-      events.splice(0, events.length - 10);
+    // Mantener solo los últimos 20 eventos para mejor sincronización
+    if (events.length > 20) {
+      events.splice(0, events.length - 20);
     }
 
-    console.log(`✅ Server: Event stored for user ${userId}: ${eventType} (${events.length} total events)`);
+    console.log(`✅ Server: Event stored for user ${userId}: ${eventType} (ID: ${event.eventId}, ${events.length} total events)`);
 
     res.json({
       success: true,
