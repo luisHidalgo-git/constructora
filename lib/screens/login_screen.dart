@@ -142,11 +142,57 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Logo
                     Center(
                       child: Container(
-                        child: Image.asset(
-                          'lib/assets/image.png',
-                          width: 240,
-                          height: 80,
-                          fit: BoxFit.contain,
+                        child: Column(
+                          children: [
+                            // Icono de la app
+                            Container(
+                              width: 80,
+                              height: 80,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.construction,
+                                size: 40,
+                                color: Colors.white,
+                              ),
+                            ),
+                            
+                            // Texto del logo
+                            RichText(
+                              text: const TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'Avanze',
+                                    style: TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textDark,
+                                      letterSpacing: -1.5,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: '360',
+                                    style: TextStyle(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary,
+                                      letterSpacing: -1.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="120dp"
+    android:viewportWidth="200"
+    android:viewportHeight="120">
+    
+    <!-- Icono de construcción -->
+    <group android:translateX="100" android:translateY="35">
+        <path
+            android:fillColor="#007AFF"
+            android:pathData="M-20,-15L-15,-20L-15,-15L-10,-15L-10,-10L-5,-10L-5,-5L0,-5L0,0L-5,0L-5,5L-10,5L-10,10L-15,10L-15,15L-20,15L-20,10L-25,10L-25,5L-30,5L-30,0L-25,0L-25,-5L-20,-5L-20,-10L-15,-10L-15,-15L-20,-15Z" />
+        
+        <!-- Detalles del martillo -->
+        <path
+            android:fillColor="#007AFF"
+            android:pathData="M-12,-12L-8,-16L-5,-13L-9,-9L-12,-12Z" />
+        
+        <!-- Detalles de la llave -->
+        <path
+            android:fillColor="#007AFF"
+            android:pathData="M5,-12L9,-16L12,-13L8,-9L5,-12Z" />
+    </group>
+    
+    <!-- Texto "Avanze" -->
+    <group android:translateX="100" android:translateY="75">
+        <!-- A -->
+        <path
+            android:fillColor="#1A1A1A"
+            android:pathData="M-60,-10L-55,-10L-50,10L-55,10L-56,5L-59,5L-60,10L-65,10L-60,-10Z M-58,0L-57,0L-57.5,-3L-58,0Z" />
+        
+        <!-- v -->
+        <path
+            android:fillColor="#1A1A1A"
+            android:pathData="M-45,0L-40,0L-37.5,10L-42.5,10L-45,0Z M-35,0L-30,0L-32.5,10L-37.5,10L-35,0Z" />
+        
+        <!-- a -->
+        <path
+            android:fillColor="#1A1A1A"
+            android:pathData="M-25,2L-20,2Q-18,2 -18,4L-18,10L-23,10L-23,8L-25,8Q-27,8 -27,6L-27,4Q-27,2 -25,2Z M-25,4L-25,6L-23,6L-23,4L-25,4Z" />
+        
+        <!-- n -->
+        <path
+            android:fillColor="#1A1A1A"
+            android:pathData="M-15,2L-10,2Q-8,2 -8,4L-8,10L-13,10L-13,4L-15,4L-15,10L-20,10L-20,2L-15,2Z" />
+        
+        <!-- z -->
+        <path
+            android:fillColor="#1A1A1A"
+            android:pathData="M-5,2L0,2L0,6L-3,6L0,10L-5,10L-5,6L-2,6L-5,2Z" />
+        
+        <!-- e -->
+        <path
+            android:fillColor="#1A1A1A"
+            android:pathData="M5,2L10,2Q12,2 12,4L12,6L7,6L7,4L10,4L10,6L5,6Q3,6 3,8L3,10Q3,12 5,12L10,12Q12,12 12,10L12,8L7,8L7,10L10,10L10,8L5,8L5,2Z" />
+    </group>
+    
+    <!-- "360" con estilo especial -->
+    <group android:translateX="150" android:translateY="75">
+        <path
+            android:fillColor="#007AFF"
+            android:pathData="M-5,-8L5,-8Q10,-8 10,-3Q10,2 5,2L0,2L0,7L5,7Q10,7 10,12Q10,17 5,17L-5,17Q-10,17 -10,12L-10,-3Q-10,-8 -5,-8Z
+                         M10,-8L20,-8Q25,-8 25,-3Q25,2 20,2Q25,2 25,7Q25,12 20,12L10,12Q5,12 5,7L5,2Q5,-3 10,-3Q5,-3 5,-8Q5,-13 10,-13L20,-13Q25,-13 25,-8L25,-3L20,-3L20,-8L10,-8Z
+                         M30,-8L40,-8Q45,-8 45,-3L45,12Q45,17 40,17L30,17Q25,17 25,12L25,-3Q25,-8 30,-8Z" />
+    </group>
+</vector>

@@ -168,11 +168,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Logo
                     Center(
                       child: Container(
-                        child: Image.asset(
-                          'lib/assets/image.png',
-                          width: 200,
-                          height: 70,
-                          fit: BoxFit.contain,
+                        child: Column(
+                          children: [
+                            // Icono de la app
+                            Container(
+                              width: 70,
+                              height: 70,
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.construction,
+                                size: 35,
+                                color: Colors.white,
+                              ),
+                            ),
+                            
+                            // Texto del logo
+                            RichText(
+                              text: const TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'Avanze',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textDark,
+                                      letterSpacing: -1.2,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: '360',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary,
+                                      letterSpacing: -1.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
+import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/auth_service.dart';
 import 'screens/home_screen.dart';
@@ -49,8 +50,8 @@ class MyApp extends StatelessWidget {
     // Para testing en móvil, puedes descomentar la siguiente línea:
     // return const TVQRScreen();
     
-    // Si es móvil, usar el flujo normal
-    return const AuthWrapper();
+    // Si es móvil, mostrar splash screen primero
+    return const SplashScreen();
   }
 }
 
