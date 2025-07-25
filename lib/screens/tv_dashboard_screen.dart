@@ -108,13 +108,17 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       project = _projects.firstWhere((p) => p.id == projectId);
       _performNavigation(project);
     } catch (e) {
-      print('📺 TV Dashboard - Project not found in current list, loading from server...');
+      print(
+        '📺 TV Dashboard - Project not found in current list, loading from server...',
+      );
       _loadData().then((_) {
         try {
           project = _projects.firstWhere((p) => p.id == projectId);
           _performNavigation(project!);
         } catch (e) {
-          print('📺 TV Dashboard - Project still not found after reload, using first available');
+          print(
+            '📺 TV Dashboard - Project still not found after reload, using first available',
+          );
           if (_projects.isNotEmpty) {
             _performNavigation(_projects.first);
           } else {
@@ -139,7 +143,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       // Cuando regrese del detalle, recargar datos
       print('📺 TV Dashboard - Returned from project detail, reloading data');
       _loadData();
-    );
+    });
   }
 
   void _handleLogoutEvent() {
@@ -160,7 +164,6 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
   Future<void> _loadData() async {
     try {
-
       final token = await AuthService.getToken();
       if (token == null) {
         if (mounted) {
@@ -170,7 +173,6 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         }
         return;
       }
-
 
       final results = await Future.wait([
         ProjectService.getProjects(),
@@ -184,7 +186,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
           _isLoading = false;
         });
 
-        _recentUpdates = TVDataGenerator.generateRecentUpdatesFromProjects(_projects);
+        _recentUpdates = TVDataGenerator.generateRecentUpdatesFromProjects(
+          _projects,
+        );
       }
     } catch (e) {
       print('Error loading TV dashboard data: $e');
@@ -304,10 +308,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                         child: Column(
                           children: [
                             // Stats Cards en fila horizontal
-                            TVStatsCards(
-                              stats: _stats,
-                              isLoading: _isLoading,
-                            ),
+                            TVStatsCards(stats: _stats, isLoading: _isLoading),
 
                             const SizedBox(height: 24),
 
@@ -320,11 +321,14 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => TVProjectDetailScreen(
-                                        project: project,
-                                        user: widget.user,
+                                      builder: (context) =>
+                                          TVProjectDetailScreen(
+                                            project: project,
+                                            user: widget.user,
+                                          ),
+                                      settings: const RouteSettings(
+                                        name: '/tv_project_detail',
                                       ),
-                                      settings: const RouteSettings(name: '/tv_project_detail'),
                                     ),
                                   ).then((_) {
                                     // Opcional: refrescar datos después de volver del detalle
