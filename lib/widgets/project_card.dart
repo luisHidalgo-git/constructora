@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_text_styles.dart';
 import '../models/project_model.dart';
-import '../services/sync_service.dart';
 import '../core/utils/image_utils.dart';
 import '../core/utils/color_utils.dart';
-import '../screens/project_detail_screen.dart';
 
 class ProjectCard extends StatelessWidget {
   final ProjectModel project;
@@ -29,22 +27,8 @@ class ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        // Enviar evento de navegación a detalle de proyecto cuando se toque una tarjeta
-        SyncService.navigateToProjectDetail(project.id);
-        print(
-          '📱 Mobile: ProjectCard tapped, sent navigate_to_project_detail for: ${project.id}',
-        );
-
-        // Navegar a la pantalla de detalle del proyecto
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProjectDetailScreen(project: project),
-          ),
-        );
-      },
+    return Container(
+      // Remover GestureDetector para evitar navegación desde home
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(

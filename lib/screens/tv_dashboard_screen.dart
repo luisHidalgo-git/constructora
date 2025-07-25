@@ -70,9 +70,18 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     switch (eventType) {
       case 'navigate_to_home':
       case 'navigate_back_to_home':
+        // Ya estamos en el dashboard (home), no hacer nada
         break;
 
       case 'navigate_to_projects':
+        // Ya estamos en el dashboard que muestra proyectos, no hacer nada
+        break;
+
+      case 'navigate_back_to_projects':
+        // Volver al dashboard desde detalle de proyecto
+        if (ModalRoute.of(context)?.settings.name == '/tv_project_detail') {
+          Navigator.pop(context);
+        }
         break;
 
       case 'navigate_to_project_detail':
@@ -94,28 +103,31 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   }
 
   void _navigateToProjectDetail(String projectId) {
-
     ProjectModel? project;
     try {
       project = _projects.firstWhere((p) => p.id == projectId);
+      _performNavigation(project);
     } catch (e) {
+      print('📺 TV Dashboard - Project not found in current list, loading from server...');
       _loadData().then((_) {
         try {
           project = _projects.firstWhere((p) => p.id == projectId);
           _performNavigation(project!);
         } catch (e) {
+          print('📺 TV Dashboard - Project still not found after reload, using first available');
           if (_projects.isNotEmpty) {
             _performNavigation(_projects.first);
+          } else {
+            print('📺 TV Dashboard - No projects available');
           }
         }
       });
       return;
     }
-
-    _performNavigation(project);
   }
 
   void _performNavigation(ProjectModel project) {
+    print('📺 TV Dashboard - Navigating to project detail: ${project.name}');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -123,6 +135,10 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
             TVProjectDetailScreen(project: project, user: widget.user),
         settings: const RouteSettings(name: '/tv_project_detail'),
       ),
+    ).then((_) {
+      // Cuando regrese del detalle, recargar datos
+      print('📺 TV Dashboard - Returned from project detail, reloading data');
+      _loadData();
     );
   }
 

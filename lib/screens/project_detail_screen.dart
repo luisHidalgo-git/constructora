@@ -31,14 +31,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   void initState() {
     super.initState();
     _loadProjectImages();
-    _sendNavigationEvent();
-  }
-
-  Future<void> _sendNavigationEvent() async {
-    await SyncService.navigateToProjectDetail(widget.project.id);
-    print(
-      '📱 Mobile: Sent navigate_to_project_detail event for: ${widget.project.id}',
-    );
   }
 
   Future<void> _loadProjectImages() async {
@@ -125,7 +117,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => Navigator.pop(context),
+            onTap: () {
+              // Enviar evento de regreso a proyectos antes de navegar
+              SyncService.navigateBackToProjects();
+              print('📱 Mobile: Sent navigate_back_to_projects event from project detail');
+              Navigator.pop(context);
+            },
             child: Container(
               width: 40,
               height: 40,

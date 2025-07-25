@@ -9,6 +9,8 @@ class SyncService {
   static Timer? _pollTimer;
   static String? _currentUserId;
   static bool _isPolling = false;
+  static String? _currentScreen = 'home'; // Rastrear pantalla actual
+  static String? _currentProjectId; // Rastrear proyecto actual
 
   // Obtener stream para un usuario específico
   static Stream<Map<String, dynamic>> getNavigationStream(String userId) {
@@ -33,6 +35,8 @@ class SyncService {
     _pollTimer?.cancel();
     _pollTimer = null;
     _currentUserId = null;
+    _currentScreen = null;
+    _currentProjectId = null;
     
     // Cerrar todos los streams
     for (var controller in _controllers.values) {
@@ -133,16 +137,22 @@ class SyncService {
   // Eventos específicos
   static Future<void> navigateToProjects() async {
     print('📱 Mobile: Triggering navigate_to_projects event');
+    _currentScreen = 'projects';
+    _currentProjectId = null;
     await sendNavigationEvent(eventType: 'navigate_to_projects');
   }
 
   static Future<void> navigateToHome() async {
     print('📱 Mobile: Triggering navigate_to_home event');
+    _currentScreen = 'home';
+    _currentProjectId = null;
     await sendNavigationEvent(eventType: 'navigate_to_home');
   }
 
   static Future<void> navigateToProjectDetail(String projectId) async {
     print('📱 Mobile: Triggering navigate_to_project_detail event for project: $projectId');
+    _currentScreen = 'project_detail';
+    _currentProjectId = projectId;
     await sendNavigationEvent(
       eventType: 'navigate_to_project_detail',
       data: {'projectId': projectId},
@@ -151,8 +161,21 @@ class SyncService {
 
   static Future<void> navigateBackToHome() async {
     print('📱 Mobile: Triggering navigate_back_to_home event');
+    _currentScreen = 'home';
+    _currentProjectId = null;
     await sendNavigationEvent(eventType: 'navigate_back_to_home');
   }
+
+  static Future<void> navigateBackToProjects() async {
+    print('📱 Mobile: Triggering navigate_back_to_projects event');
+    _currentScreen = 'projects';
+    _currentProjectId = null;
+    await sendNavigationEvent(eventType: 'navigate_back_to_projects');
+  }
+
+  // Getters para estado actual
+  static String? get currentScreen => _currentScreen;
+  static String? get currentProjectId => _currentProjectId;
 
   static Future<void> projectUpdated(Map<String, dynamic> projectData) async {
     print('📱 Mobile: Triggering project_updated event');
@@ -173,6 +196,8 @@ class SyncService {
   static Future<void> logout() async {
     print('📱 Mobile: Triggering logout event');
     await sendNavigationEvent(eventType: 'logout');
+    _currentScreen = null;
+    _currentProjectId = null;
     stopSync();
   }
 }

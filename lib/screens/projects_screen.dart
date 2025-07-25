@@ -44,7 +44,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       final user = await AuthService.getSavedUser();
       if (user != null) {
         await SyncService.startSync(user.id);
-        await SyncService.navigateToProjects();
+        // Solo enviar evento si no estamos ya en proyectos
+        if (SyncService.currentScreen != 'projects') {
+          await SyncService.navigateToProjects();
+        }
       }
     } catch (e) {
       print('Error initializing sync: $e');
@@ -76,6 +79,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   void _showProjectDetails(ProjectModel project) {
+    // Enviar evento de navegación ANTES de navegar
+    SyncService.navigateToProjectDetail(project.id);
+    print(
+      '📱 Mobile: Sent navigate_to_project_detail event for project: ${project.id}',
+    );
+    
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -84,11 +93,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     ).then((_) {
       _refreshProjects();
     });
-
-    SyncService.navigateToProjectDetail(project.id);
-    print(
-      '📱 Mobile: Sent navigate_to_project_detail event for project: ${project.id}',
-    );
   }
 
   Widget _buildProjectImage(ProjectModel project) {

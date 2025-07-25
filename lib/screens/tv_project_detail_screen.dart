@@ -98,13 +98,18 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         break;
 
       case 'navigate_to_projects':
+      case 'navigate_back_to_projects':
         _navigateBackToDashboard();
         break;
 
       case 'navigate_to_project_detail':
         final projectId = data['projectId'];
-        if (projectId != null && projectId != widget.project.id) {
-          _navigateBackToDashboard();
+        if (projectId != null) {
+          if (projectId != widget.project.id) {
+            // Navegar a un proyecto diferente
+            _loadDifferentProject(projectId);
+          }
+          // Si es el mismo proyecto, no hacer nada
         }
         break;
 
@@ -124,20 +129,34 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
   }
 
   void _navigateBackToDashboard() {
-    Navigator.pushAndRemoveUntil(
+    print('📺 TV Project Detail - Navigating back to dashboard');
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => TVDashboardScreen(user: widget.user),
         settings: const RouteSettings(name: '/tv_dashboard'),
       ),
-      (route) => false,
     );
   }
 
   Future<void> _loadDifferentProject(String projectId) async {
     try {
       print('🔍 TV Project Detail - Loading different project: $projectId');
+      
+      // Mostrar loading mientras carga el nuevo proyecto
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF6366F1)),
+        ),
+      );
+      
       final project = await ProjectService.getProject(projectId);
+      
+      if (mounted) {
+        Navigator.pop(context); // Cerrar loading
+      }
 
       // Navegar al detalle del nuevo proyecto
       Navigator.pushReplacement(
@@ -150,6 +169,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       );
     } catch (e) {
       print('❌ Error loading different project: $e');
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // Cerrar loading si está abierto
+      }
       // Si falla, volver al dashboard
       _navigateBackToDashboard();
     }
