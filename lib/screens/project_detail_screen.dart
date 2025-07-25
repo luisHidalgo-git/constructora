@@ -12,6 +12,7 @@ import '../core/widgets/error_widget.dart';
 import '../widgets/project_gallery_widget.dart';
 import '../screens/update_project_screen.dart';
 import '../services/sync_service.dart';
+import '../services/auth_service.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final ProjectModel project;
@@ -31,6 +32,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   void initState() {
     super.initState();
     _loadProjectImages();
+    _initSync();
+  }
+
+  Future<void> _initSync() async {
+    try {
+      final user = await AuthService.getSavedUser();
+      if (user != null) {
+        await SyncService.startSync(user.id);
+        // Establecer estado actual y enviar evento
+        SyncService.setCurrentScreen('project_detail');
+        SyncService.setCurrentProjectId(widget.project.id);
+        await SyncService.navigateToProjectDetail(widget.project.id);
+        print(
+          '📱 Mobile: Sent navigate_to_project_detail event from ProjectDetailScreen',
+        );
+      }
+    } catch (e) {
+      print('Error initializing sync in project detail: $e');
+    }
   }
 
   Future<void> _loadProjectImages() async {
@@ -119,8 +139,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           GestureDetector(
             onTap: () {
               // Enviar evento de regreso a proyectos antes de navegar
+              SyncService.setCurrentScreen('projects');
               SyncService.navigateBackToProjects();
-              print('📱 Mobile: Sent navigate_back_to_projects event from project detail');
+              print(
+                '📱 Mobile: Sent navigate_back_to_projects event from project detail',
+              );
               Navigator.pop(context);
             },
             child: Container(

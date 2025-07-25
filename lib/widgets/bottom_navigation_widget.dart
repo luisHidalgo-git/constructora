@@ -18,11 +18,10 @@ class BottomNavigationWidget extends StatelessWidget {
 
     switch (index) {
       case 0:
-        // Solo enviar evento si no estamos ya en home
-        if (currentIndex != 0) {
-          SyncService.navigateToHome();
-          print('📱 Mobile: Sent navigate_to_home event from bottom nav');
-        }
+        // Siempre enviar evento para asegurar sincronización
+        SyncService.setCurrentScreen('home');
+        SyncService.navigateToHome();
+        print('📱 Mobile: Sent navigate_to_home event from bottom nav');
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -30,11 +29,10 @@ class BottomNavigationWidget extends StatelessWidget {
         );
         break;
       case 1:
-        // Solo enviar evento si no estamos ya en proyectos
-        if (currentIndex != 1) {
-          SyncService.navigateToProjects();
-          print('📱 Mobile: Sent navigate_to_projects event from bottom nav');
-        }
+        // Siempre enviar evento para asegurar sincronización
+        SyncService.setCurrentScreen('projects');
+        SyncService.navigateToProjects();
+        print('📱 Mobile: Sent navigate_to_projects event from bottom nav');
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const ProjectsScreen()),

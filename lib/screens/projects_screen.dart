@@ -44,10 +44,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       final user = await AuthService.getSavedUser();
       if (user != null) {
         await SyncService.startSync(user.id);
-        // Solo enviar evento si no estamos ya en proyectos
-        if (SyncService.currentScreen != 'projects') {
-          await SyncService.navigateToProjects();
-        }
+        // Siempre enviar evento para asegurar sincronización
+        SyncService.setCurrentScreen('projects');
+        await SyncService.navigateToProjects();
+        print('📱 Mobile: Sent navigate_to_projects event from ProjectsScreen');
       }
     } catch (e) {
       print('Error initializing sync: $e');
@@ -80,6 +80,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   void _showProjectDetails(ProjectModel project) {
     // Enviar evento de navegación ANTES de navegar
+    SyncService.setCurrentScreen('project_detail');
+    SyncService.setCurrentProjectId(project.id);
     SyncService.navigateToProjectDetail(project.id);
     print(
       '📱 Mobile: Sent navigate_to_project_detail event for project: ${project.id}',
@@ -91,6 +93,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         builder: (context) => ProjectDetailScreen(project: project),
       ),
     ).then((_) {
+      // Al regresar, establecer estado de proyectos
+      SyncService.setCurrentScreen('projects');
+      SyncService.navigateToProjects();
       _refreshProjects();
     });
   }
@@ -673,6 +678,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         children: [
           GestureDetector(
             onTap: () {
+              // Enviar evento de navegación a home antes de navegar
+              SyncService.setCurrentScreen('home');
+              SyncService.navigateToHome();
+              print('📱 Mobile: Sent navigate_to_home event from projects back button');
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const HomeScreen()),

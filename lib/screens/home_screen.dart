@@ -57,11 +57,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final user = await AuthService.getSavedUser();
       if (user != null) {
         await SyncService.startSync(user.id);
-        // Solo enviar evento si no estamos ya en home
-        if (SyncService.currentScreen != 'home') {
-          await SyncService.navigateToHome();
-          print('📱 Mobile: Sent navigate_to_home event from HomeScreen');
-        }
+        // Siempre enviar evento para asegurar sincronización
+        SyncService.setCurrentScreen('home');
+        await SyncService.navigateToHome();
+        print('📱 Mobile: Sent navigate_to_home event from HomeScreen');
       }
     } catch (e) {
       print('Error initializing sync in home: $e');

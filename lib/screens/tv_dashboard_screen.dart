@@ -70,18 +70,15 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     switch (eventType) {
       case 'navigate_to_home':
       case 'navigate_back_to_home':
+      case 'navigate_back_to_dashboard':
         // Ya estamos en el dashboard (home), no hacer nada
+        print('📺 TV Dashboard - Already on dashboard, staying here');
         break;
 
       case 'navigate_to_projects':
-        // Ya estamos en el dashboard que muestra proyectos, no hacer nada
-        break;
-
       case 'navigate_back_to_projects':
-        // Volver al dashboard desde detalle de proyecto
-        if (ModalRoute.of(context)?.settings.name == '/tv_project_detail') {
-          Navigator.pop(context);
-        }
+        // Ya estamos en el dashboard que muestra proyectos, no hacer nada
+        print('📺 TV Dashboard - Projects view requested, staying on dashboard');
         break;
 
       case 'navigate_to_project_detail':
@@ -93,12 +90,16 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
       case 'project_updated':
       case 'project_created':
+        print('📺 TV Dashboard - Project data updated, reloading');
         _loadData();
         break;
 
       case 'logout':
         _handleLogoutEvent();
         break;
+
+      default:
+        print('📺 TV Dashboard - Unhandled event: $eventType');
     }
   }
 
@@ -140,8 +141,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
         settings: const RouteSettings(name: '/tv_project_detail'),
       ),
     ).then((_) {
-      // Cuando regrese del detalle, recargar datos
+      // Cuando regrese del detalle, recargar datos y asegurar que estamos en dashboard
       print('📺 TV Dashboard - Returned from project detail, reloading data');
+      // Forzar que la TV esté en estado de dashboard
       _loadData();
     });
   }

@@ -94,12 +94,13 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     switch (eventType) {
       case 'navigate_to_home':
       case 'navigate_back_to_home':
-        _navigateBackToDashboard();
+      case 'navigate_back_to_dashboard':
+        _forceNavigateToDashboard();
         break;
 
       case 'navigate_to_projects':
       case 'navigate_back_to_projects':
-        _navigateBackToDashboard();
+        _forceNavigateToDashboard();
         break;
 
       case 'navigate_to_project_detail':
@@ -108,8 +109,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
           if (projectId != widget.project.id) {
             // Navegar a un proyecto diferente
             _loadDifferentProject(projectId);
+          } else {
+            print('📺 TV Project Detail - Already viewing this project: $projectId');
           }
-          // Si es el mismo proyecto, no hacer nada
         }
         break;
 
@@ -117,6 +119,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         final updatedProject = data['project'];
         if (updatedProject != null &&
             updatedProject['id'] == widget.project.id) {
+          print('📺 TV Project Detail - Current project updated, reloading data');
           _loadUpdateNotes();
           _loadProjectImages();
         }
@@ -125,17 +128,37 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       case 'logout':
         _handleLogoutEvent();
         break;
+
+      default:
+        print('📺 TV Project Detail - Unhandled event: $eventType');
     }
   }
 
   void _navigateBackToDashboard() {
     print('📺 TV Project Detail - Navigating back to dashboard');
-    Navigator.pushReplacement(
+    // Usar pop si es posible, sino pushReplacement
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TVDashboardScreen(user: widget.user),
+          settings: const RouteSettings(name: '/tv_dashboard'),
+        ),
+      );
+    }
+  }
+
+  void _forceNavigateToDashboard() {
+    print('📺 TV Project Detail - Force navigating to dashboard');
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (context) => TVDashboardScreen(user: widget.user),
         settings: const RouteSettings(name: '/tv_dashboard'),
       ),
+      (route) => false,
     );
   }
 
@@ -310,13 +333,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                   title: 'Detalle del Proyecto',
                   user: widget.user,
                   onBack: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            TVDashboardScreen(user: widget.user),
-                      ),
-                    );
+                    _navigateBackToDashboard();
                   },
                 ),
                 const SizedBox(height: 24),

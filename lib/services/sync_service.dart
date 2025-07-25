@@ -65,9 +65,10 @@ class SyncService {
         'eventType': eventType,
         'data': data ?? {},
         'timestamp': DateTime.now().toIso8601String(),
+        'eventId': DateTime.now().millisecondsSinceEpoch.toString(),
       };
 
-      print('📱 Mobile: Sending navigation event: $eventType with data: ${data ?? {}}');
+      print('📱 Mobile -> Server: Sending navigation event: $eventType with data: ${data ?? {}}');
       
       await http.post(
         Uri.parse('${ApiConfig.baseUrl}/sync/navigation'),
@@ -134,19 +135,19 @@ class SyncService {
     }
   }
 
-  // Eventos específicos
-  static Future<void> navigateToProjects() async {
-    print('📱 Mobile: Triggering navigate_to_projects event');
-    _currentScreen = 'projects';
-    _currentProjectId = null;
-    await sendNavigationEvent(eventType: 'navigate_to_projects');
-  }
-
+  // Eventos específicos de navegación
   static Future<void> navigateToHome() async {
     print('📱 Mobile: Triggering navigate_to_home event');
     _currentScreen = 'home';
     _currentProjectId = null;
     await sendNavigationEvent(eventType: 'navigate_to_home');
+  }
+
+  static Future<void> navigateToProjects() async {
+    print('📱 Mobile: Triggering navigate_to_projects event');
+    _currentScreen = 'projects';
+    _currentProjectId = null;
+    await sendNavigationEvent(eventType: 'navigate_to_projects');
   }
 
   static Future<void> navigateToProjectDetail(String projectId) async {
@@ -173,10 +174,14 @@ class SyncService {
     await sendNavigationEvent(eventType: 'navigate_back_to_projects');
   }
 
-  // Getters para estado actual
-  static String? get currentScreen => _currentScreen;
-  static String? get currentProjectId => _currentProjectId;
+  static Future<void> navigateBackToDashboard() async {
+    print('📱 Mobile: Triggering navigate_back_to_dashboard event');
+    _currentScreen = 'home';
+    _currentProjectId = null;
+    await sendNavigationEvent(eventType: 'navigate_back_to_dashboard');
+  }
 
+  // Eventos de actualización de datos
   static Future<void> projectUpdated(Map<String, dynamic> projectData) async {
     print('📱 Mobile: Triggering project_updated event');
     await sendNavigationEvent(
@@ -199,5 +204,37 @@ class SyncService {
     _currentScreen = null;
     _currentProjectId = null;
     stopSync();
+  }
+
+  // Getters para estado actual
+  static String? get currentScreen => _currentScreen;
+  static String? get currentProjectId => _currentProjectId;
+
+  // Métodos para actualizar estado interno sin enviar eventos
+  static void setCurrentScreen(String screen) {
+    _currentScreen = screen;
+  }
+
+  static void setCurrentProjectId(String? projectId) {
+    _currentProjectId = projectId;
+  }
+
+  // Método para forzar sincronización del estado actual
+  static Future<void> syncCurrentState() async {
+    if (_currentScreen != null) {
+      switch (_currentScreen) {
+        case 'home':
+          await navigateToHome();
+          break;
+        case 'projects':
+          await navigateToProjects();
+          break;
+        case 'project_detail':
+          if (_currentProjectId != null) {
+            await navigateToProjectDetail(_currentProjectId!);
+          }
+          break;
+      }
+    }
   }
 }

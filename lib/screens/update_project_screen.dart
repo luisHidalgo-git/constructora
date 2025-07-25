@@ -510,9 +510,23 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
             onTap: () async {
               final shouldPop = await _onWillPop();
               if (shouldPop) {
+                // Determinar a dónde regresar y enviar evento apropiado
+                if (widget.project != null) {
+                  // Si estamos editando, regresar a detalle del proyecto
+                  SyncService.setCurrentScreen('project_detail');
+                  SyncService.setCurrentProjectId(widget.project!.id);
+                  SyncService.navigateToProjectDetail(widget.project!.id);
+                } else {
+                  // Si estamos creando, regresar a home
+                  SyncService.setCurrentScreen('home');
+                  SyncService.navigateToHome();
+                }
                 if (Navigator.canPop(context)) {
                   Navigator.pop(context);
                 } else {
+                  // Fallback a home si no se puede hacer pop
+                  SyncService.setCurrentScreen('home');
+                  SyncService.navigateToHome();
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => const HomeScreen()),

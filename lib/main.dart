@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'screens/home_screen.dart';
 import 'screens/tv_qr_screen.dart';
 import 'utils/platform_utils.dart';
+import 'services/sync_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,8 +23,20 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void dispose() {
+    // Limpiar sincronización al cerrar la app
+    SyncService.stopSync();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,10 +59,10 @@ class MyApp extends StatelessWidget {
       // En web, mostrar TV por defecto para testing
       return const TVQRScreen();
     }
-    
+
     // Para testing en móvil, puedes descomentar la siguiente línea:
     // return const TVQRScreen();
-    
+
     // Si es móvil, mostrar splash screen primero
     return const SplashScreen();
   }
