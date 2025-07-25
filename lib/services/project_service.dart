@@ -127,17 +127,25 @@ class ProjectService {
         print('✅ Imagen procesada y verificada en servidor: $processedImageUrl');
       } catch (e) {
         print('❌ Error procesando imagen: $e');
-        // Si hay una imagen local que no se pudo subir, fallar la actualización
-        if (project.imageUrl != null &&
-            ImageService.isLocalImage(project.imageUrl!)) {
-          throw Exception(
-            'No se puede actualizar el proyecto: Error subiendo imagen. ${e.toString()}',
-          );
+        
+        // Si hay una imagen local, intentar subirla una vez más
+        if (project.imageUrl != null && ImageService.isLocalImage(project.imageUrl!)) {
+          try {
+            print('🔄 Intentando subir imagen local una vez más...');
+            processedImageUrl = await ImageService.uploadImageAutomatically(project.imageUrl!);
+            print('✅ Imagen local subida exitosamente en segundo intento: $processedImageUrl');
+          } catch (retryError) {
+            print('❌ Error en segundo intento de subida: $retryError');
+            throw Exception(
+              'No se puede actualizar el proyecto: La imagen no se pudo subir al servidor. Por favor, selecciona la imagen nuevamente.',
+            );
+          }
+        } else {
+          // Mantener la imagen original si ya estaba en el servidor
+          processedImageUrl =
+              project.imageUrl ??
+              'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
         }
-        // Mantener la imagen original si ya estaba en el servidor
-        processedImageUrl =
-            project.imageUrl ??
-            'https://images.pexels.com/photos/323780/pexels-photo-323780.jpeg?auto=compress&cs=tinysrgb&w=800';
       }
       print('🔍 Actualizando proyecto con URL de imagen procesada: $processedImageUrl');
 

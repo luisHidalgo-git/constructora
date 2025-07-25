@@ -287,10 +287,10 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       return;
     }
 
-    if (_selectedImagePath != null &&
-        ImageService.isLocalImage(_selectedImagePath!)) {
+    // Verificar si hay una imagen local que no se haya subido
+    if (_selectedImagePath != null && ImageService.isLocalImage(_selectedImagePath!)) {
       _showMessage(
-        'ERROR: La imagen debe estar guardada en el servidor. Por favor, selecciona la imagen nuevamente y espera a que se suba completamente.',
+        'La imagen se está subiendo al servidor. Por favor espera un momento...',
         isError: true,
       );
       return;
@@ -306,10 +306,12 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       String processedImageUrl;
       try {
         processedImageUrl = await ImageService.processImageForProject(imageUrl);
+        print('✅ Image processed successfully: $processedImageUrl');
       } catch (e) {
+        print('❌ Error processing image: $e');
         if (imageUrl.isNotEmpty && ImageService.isLocalImage(imageUrl)) {
           throw Exception(
-            'No se puede crear el proyecto: Error subiendo imagen. ${e.toString()}',
+            'No se puede actualizar el proyecto: La imagen debe estar en el servidor. ${e.toString()}',
           );
         }
         processedImageUrl =
@@ -351,9 +353,10 @@ class _UpdateProjectScreenState extends State<UpdateProjectScreen> {
       Navigator.pop(context, result);
     } catch (e) {
       String errorMessage = e.toString();
-      if (errorMessage.contains('imagen debe estar en el servidor')) {
+      if (errorMessage.contains('imagen debe estar en el servidor') || 
+          errorMessage.contains('Error subiendo imagen')) {
         _showMessage(
-          'ERROR CRÍTICO: Para usar la app en múltiples dispositivos, todas las imágenes deben guardarse en el servidor. Por favor, selecciona la imagen nuevamente.',
+          'La imagen aún se está subiendo al servidor. Por favor espera unos segundos e intenta de nuevo.',
           isError: true,
         );
       } else {

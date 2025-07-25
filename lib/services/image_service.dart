@@ -112,19 +112,30 @@ class ImageService {
           
           // Verificar que la URL es válida
           if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) {
-            // Verificar que la imagen realmente existe en el servidor
-            final imageExists = await checkImageExists(imageUrl);
-            if (imageExists) {
-              print('✅ ImageService - Imagen verificada y accesible en servidor: $imageUrl');
-            } else {
-              print('⚠️ ImageService - Imagen subida pero no accesible inmediatamente: $imageUrl');
-              // Esperar un poco y verificar de nuevo
-              await Future.delayed(Duration(seconds: 2));
-              final imageExistsRetry = await checkImageExists(imageUrl);
-              if (!imageExistsRetry) {
-                print('❌ ImageService - Imagen no accesible después de reintento');
+            // Verificar que la imagen realmente existe en el servidor con reintentos
+            bool imageExists = false;
+            int verificationRetries = 3;
+            
+            for (int i = 0; i < verificationRetries; i++) {
+              print('🔍 ImageService - Verificando imagen en servidor (intento ${i + 1}/$verificationRetries)...');
+              imageExists = await checkImageExists(imageUrl);
+              
+              if (imageExists) {
+                print('✅ ImageService - Imagen verificada y accesible en servidor: $imageUrl');
+                break;
+              } else {
+                print('⚠️ ImageService - Imagen no accesible aún, esperando...');
+                if (i < verificationRetries - 1) {
+                  await Future.delayed(Duration(seconds: 2));
+                }
               }
             }
+            
+            if (!imageExists) {
+              print('⚠️ ImageService - Imagen subida pero no verificada como accesible');
+              // Aún así devolver la URL ya que el servidor confirmó la subida
+            }
+            
             return imageUrl;
           } else {
             throw Exception('URL de imagen inválida recibida del servidor');

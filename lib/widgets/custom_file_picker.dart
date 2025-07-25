@@ -268,7 +268,6 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
       if (image != null) {
         setState(() {
-          _selectedImagePath = image.path;
           _isUploading = true;
         });
 
@@ -343,7 +342,6 @@ class _CustomFilePickerState extends State<CustomFilePicker> {
 
       if (image != null) {
         setState(() {
-          _selectedImagePath = image.path;
           _isUploading = true;
         });
 
