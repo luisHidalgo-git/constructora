@@ -43,6 +43,29 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     _initSync();
   }
 
+  Future<void> _loadProjectImages() async {
+    setState(() {
+      _isLoadingImages = true;
+    });
+
+    try {
+      final images = await ProjectImageService.getProjectImages(
+        widget.project.id,
+      );
+      setState(() {
+        _projectImages = images;
+        _isLoadingImages = false;
+      });
+      print('✅ TV Project Detail - Loaded ${images.length} project images');
+    } catch (e) {
+      print('Error loading project images: $e');
+      setState(() {
+        _projectImages = [];
+        _isLoadingImages = false;
+      });
+    }
+  }
+
   Future<void> _initSync() async {
     try {
       final userId = widget.user['id'];
@@ -89,6 +112,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         if (updatedProject != null &&
             updatedProject['id'] == widget.project.id) {
           _loadUpdateNotes();
+          _loadProjectImages();
         }
         break;
 
@@ -155,7 +179,6 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             }).toList();
           } else {
             _updateNotes = [];
-            _loadProjectImages();
           }
           _isLoadingNotes = false;
         });
@@ -644,10 +667,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               SizedBox(height: 16),
               Text(
                 'Cargando galería...',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.white70),
               ),
             ],
           ),
@@ -696,8 +716,10 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     }
 
     // Crear lista de URLs de imágenes reales del proyecto
-    final List<String> imageUrls = _projectImages.map((img) => img.imageUrl).toList();
-    
+    final List<String> imageUrls = _projectImages
+        .map((img) => img.imageUrl)
+        .toList();
+
     return _ImageCarouselWidget(
       images: imageUrls,
       projectImages: _projectImages,
@@ -754,11 +776,7 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
           border: Border.all(color: Colors.white.withOpacity(0.1)),
         ),
         child: const Center(
-          child: Icon(
-            Icons.image_outlined, 
-            color: Colors.white24, 
-            size: 60,
-          ),
+          child: Icon(Icons.image_outlined, color: Colors.white24, size: 60),
         ),
       );
     }
@@ -791,7 +809,7 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
               ),
             ),
           ),
-          
+
           // Overlay con información de la imagen
           Positioned(
             bottom: 0,
@@ -810,14 +828,17 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
                   colors: [Colors.transparent, Colors.black.withOpacity(0.7)],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Descripción de la imagen si existe
-                  if (widget.projectImages.isNotEmpty && 
+                  if (widget.projectImages.isNotEmpty &&
                       _currentIndex < widget.projectImages.length &&
                       widget.projectImages[_currentIndex].description != null &&
-                      widget.projectImages[_currentIndex].description!.isNotEmpty)
+                      widget
+                          .projectImages[_currentIndex]
+                          .description!
+                          .isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Text(
@@ -831,48 +852,55 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  
-                  Text(
-                    'Imagen ${_currentIndex + 1} de ${widget.images.length}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                    ),
-                  ),
+
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Imagen ${_currentIndex + 1} de ${widget.images.length}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (widget.projectImages.isNotEmpty &&
+                          _currentIndex < widget.projectImages.length)
+                        Text(
+                          'Subida: ${_formatDate(widget.projectImages[_currentIndex].uploadedAt)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.white.withOpacity(0.7),
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Indicadores de carrusel
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: widget.images.asMap().entries.map((entry) {
                       return Container(
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Imagen ${_currentIndex + 1} de ${widget.images.length}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                          ),
-                          if (widget.projectImages.isNotEmpty && 
-                              _currentIndex < widget.projectImages.length)
-                            Text(
-                              'Subida: ${_formatDate(widget.projectImages[_currentIndex].uploadedAt)}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white.withOpacity(0.7),
-                              ),
-                            ),
-                        ],
+                        width: 8,
+                        height: 8,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: entry.key == _currentIndex
                               ? Colors.white
                               : Colors.white.withOpacity(0.4),
                         ),
+                      );
                     }).toList(),
                   ),
                 ],
               ),
             ),
           ),
+
+          // Indicador de carrusel automático
           Positioned(
             top: 16,
             right: 16,
@@ -884,7 +912,6 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
-                ],
                 children: [
                   Icon(Icons.slideshow, color: Colors.white, size: 12),
                   SizedBox(width: 4),
@@ -900,8 +927,6 @@ class _ImageCarouselWidgetState extends State<_ImageCarouselWidget> {
               ),
             ),
           ),
-          
-          // Indicador de carrusel automático
         ],
       ),
     );
