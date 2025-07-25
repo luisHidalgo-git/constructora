@@ -107,7 +107,7 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     ProjectModel? project;
     try {
       project = _projects.firstWhere((p) => p.id == projectId);
-      _performNavigation(project);
+      _performNavigation(project, projectId);
     } catch (e) {
       print(
         '📺 TV Dashboard - Project not found in current list, loading from server...',
@@ -115,13 +115,13 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
       _loadData().then((_) {
         try {
           project = _projects.firstWhere((p) => p.id == projectId);
-          _performNavigation(project!);
+          _performNavigation(project!, projectId);
         } catch (e) {
           print(
             '📺 TV Dashboard - Project still not found after reload, using first available',
           );
           if (_projects.isNotEmpty) {
-            _performNavigation(_projects.first);
+            _performNavigation(_projects.first, _projects.first.id);
           } else {
             print('📺 TV Dashboard - No projects available');
           }
@@ -131,19 +131,32 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
     }
   }
 
-  void _performNavigation(ProjectModel project) {
+  void _performNavigation(ProjectModel project, String projectId) {
     print('📺 TV Dashboard - Navigating to project detail: ${project.name}');
+    
+    // Crear una nueva instancia de la pantalla para evitar problemas de estado
     Navigator.push(
       context,
-      MaterialPageRoute(
+      PageRouteBuilder(
         builder: (context) =>
             TVProjectDetailScreen(project: project, user: widget.user),
-        settings: const RouteSettings(name: '/tv_project_detail'),
+        settings: RouteSettings(
+          name: '/tv_project_detail/$projectId',
+          arguments: {'projectId': projectId, 'project': project},
+        ),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            TVProjectDetailScreen(project: project, user: widget.user),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 300),
       ),
     ).then((_) {
       // Cuando regrese del detalle, recargar datos y asegurar que estamos en dashboard
       print('📺 TV Dashboard - Returned from project detail, reloading data');
-      // Forzar que la TV esté en estado de dashboard
+      // Limpiar estado de navegación y recargar datos
+      SyncService.setCurrentScreen('home');
+      SyncService.setCurrentProjectId(null);
       _loadData();
     });
   }

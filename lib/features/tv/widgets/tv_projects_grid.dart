@@ -101,13 +101,26 @@ class TVProjectsGrid extends StatelessWidget {
     return GestureDetector(
       onTap: () => onProjectTap(project),
       child: ImageUtils.buildImageContainer(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         imageUrl: project.imageUrl,
         width: double.infinity,
         height: double.infinity,
+          showOverlay: true,
+          overlayText: project.name,
         borderRadius: BorderRadius.circular(12),
         placeholder: const Center(
           child: Icon(Icons.image_outlined, color: Colors.grey, size: 40),
         ),
+      ),
       ),
     );
   }

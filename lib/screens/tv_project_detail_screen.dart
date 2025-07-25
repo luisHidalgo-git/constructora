@@ -35,10 +35,12 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
   List<ProjectImageModel> _projectImages = [];
   bool _isLoadingImages = true;
   StreamSubscription<Map<String, dynamic>>? _syncSubscription;
+  late ProjectModel _currentProject;
 
   @override
   void initState() {
     super.initState();
+    _currentProject = widget.project;
     _loadUpdateNotes();
     _loadProjectImages();
     _initSync();
@@ -51,7 +53,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
     try {
       final images = await ProjectImageService.getProjectImages(
-        widget.project.id,
+        _currentProject.id,
       );
       setState(() {
         _projectImages = images;
@@ -106,11 +108,13 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       case 'navigate_to_project_detail':
         final projectId = data['projectId'];
         if (projectId != null) {
-          if (projectId != widget.project.id) {
+          if (projectId != _currentProject.id) {
             // Navegar a un proyecto diferente
             _loadDifferentProject(projectId);
           } else {
             print('📺 TV Project Detail - Already viewing this project: $projectId');
+            // Recargar datos del proyecto actual por si hubo cambios
+            _refreshCurrentProject();
           }
         }
         break;
@@ -118,8 +122,9 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       case 'project_updated':
         final updatedProject = data['project'];
         if (updatedProject != null &&
-            updatedProject['id'] == widget.project.id) {
+            updatedProject['id'] == _currentProject.id) {
           print('📺 TV Project Detail - Current project updated, reloading data');
+          _refreshCurrentProject();
           _loadUpdateNotes();
           _loadProjectImages();
         }
@@ -134,29 +139,48 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     }
   }
 
+  Future<void> _refreshCurrentProject() async {
+    try {
+      print('🔍 TV Project Detail - Refreshing current project data...');
+      final updatedProject = await ProjectService.getProject(_currentProject.id);
+      setState(() {
+        _currentProject = updatedProject;
+      });
+      print('✅ TV Project Detail - Project data refreshed');
+    } catch (e) {
+      print('❌ Error refreshing project data: $e');
+    }
+  }
+
   void _navigateBackToDashboard() {
     print('📺 TV Project Detail - Navigating back to dashboard');
-    // Usar pop si es posible, sino pushReplacement
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => TVDashboardScreen(user: widget.user),
-          settings: const RouteSettings(name: '/tv_dashboard'),
-        ),
-      );
-    }
+    // Siempre usar pushReplacement para asegurar estado limpio
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            TVDashboardScreen(user: widget.user),
+        settings: const RouteSettings(name: '/tv_dashboard'),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
   }
 
   void _forceNavigateToDashboard() {
     print('📺 TV Project Detail - Force navigating to dashboard');
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (context) => TVDashboardScreen(user: widget.user),
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            TVDashboardScreen(user: widget.user),
         settings: const RouteSettings(name: '/tv_dashboard'),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 300),
       ),
       (route) => false,
     );
@@ -181,13 +205,20 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         Navigator.pop(context); // Cerrar loading
       }
 
-      // Navegar al detalle del nuevo proyecto
+      // Reemplazar la pantalla actual con el nuevo proyecto
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) =>
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
               TVProjectDetailScreen(project: project, user: widget.user),
-          settings: const RouteSettings(name: '/tv_project_detail'),
+          settings: RouteSettings(
+            name: '/tv_project_detail/$projectId',
+            arguments: {'projectId': projectId, 'project': project},
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+          transitionDuration: const Duration(milliseconds: 300),
         ),
       );
     } catch (e) {
@@ -213,7 +244,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       print('🔍 TV Project Detail - Loading update notes...');
 
       final activities = await ActivityService.getActivitiesByProject(
-        widget.project.id,
+        _currentProject.id,
       );
 
       if (mounted) {
@@ -405,7 +436,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
-                      widget.project.location,
+                      _currentProject.location,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.white.withOpacity(0.7),
@@ -417,7 +448,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                widget.project.startDate,
+                _currentProject.startDate,
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.white.withOpacity(0.6),
@@ -430,16 +461,16 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: ColorUtils.getStatusColor(
-              widget.project.status,
+              _currentProject.status,
             ).withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
-            widget.project.status,
+            _currentProject.status,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: ColorUtils.getStatusColor(widget.project.status),
+              color: ColorUtils.getStatusColor(_currentProject.status),
             ),
           ),
         ),
@@ -452,17 +483,17 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        image: ImageUtils.buildImageProvider(widget.project.imageUrl) != null
+        image: ImageUtils.buildImageProvider(_currentProject.imageUrl) != null
             ? DecorationImage(
-                image: ImageUtils.buildImageProvider(widget.project.imageUrl)!,
+                image: ImageUtils.buildImageProvider(_currentProject.imageUrl)!,
                 fit: BoxFit.cover,
               )
             : null,
-        color: ImageUtils.buildImageProvider(widget.project.imageUrl) == null
+        color: ImageUtils.buildImageProvider(_currentProject.imageUrl) == null
             ? Colors.grey[700]
             : null,
       ),
-      child: ImageUtils.buildImageProvider(widget.project.imageUrl) == null
+      child: ImageUtils.buildImageProvider(_currentProject.imageUrl) == null
           ? const Center(
               child: Icon(Icons.image_outlined, color: Colors.grey, size: 60),
             )
@@ -475,7 +506,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.project.name,
+          _currentProject.name,
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -486,14 +517,14 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          widget.project.clientName,
+          _currentProject.clientName,
           style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.8)),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         const SizedBox(height: 12),
         Text(
-          'Presupuesto: ${widget.project.budget}',
+          'Presupuesto: ${_currentProject.budget}',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -520,10 +551,10 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: widget.project.progress,
+              widthFactor: _currentProject.progress,
               child: Container(
                 decoration: BoxDecoration(
-                  color: ColorUtils.getProgressColor(widget.project.progress),
+                  color: ColorUtils.getProgressColor(_currentProject.progress),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -532,7 +563,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         ),
         const SizedBox(width: 12),
         Text(
-          '${(widget.project.progress * 100).toInt()}%',
+          '${(_currentProject.progress * 100).toInt()}%',
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -565,7 +596,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                     Expanded(
                       child: _buildKeyIndicatorCard(
                         'Calidad',
-                        widget.project.keyIndicators['Calidad'] ?? 0.0,
+                        _currentProject.keyIndicators['Calidad'] ?? 0.0,
                         const Color(0xFF10B981),
                       ),
                     ),
@@ -573,7 +604,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                     Expanded(
                       child: _buildKeyIndicatorCard(
                         'Tiempo',
-                        widget.project.keyIndicators['Tiempo'] ?? 0.0,
+                        _currentProject.keyIndicators['Tiempo'] ?? 0.0,
                         const Color(0xFFFF9500),
                       ),
                     ),
@@ -587,7 +618,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                     Expanded(
                       child: _buildKeyIndicatorCard(
                         'Presupuesto',
-                        widget.project.keyIndicators['Presupuesto'] ?? 0.0,
+                        _currentProject.keyIndicators['Presupuesto'] ?? 0.0,
                         const Color(0xFF6366F1),
                       ),
                     ),
@@ -595,7 +626,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
                     Expanded(
                       child: _buildKeyIndicatorCard(
                         'Satisfacción',
-                        widget.project.keyIndicators['Satisfacción'] ?? 0.0,
+                        _currentProject.keyIndicators['Satisfacción'] ?? 0.0,
                         const Color(0xFF8B5CF6),
                       ),
                     ),

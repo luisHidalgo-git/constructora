@@ -135,6 +135,10 @@ class SyncService {
     }
   }
 
+  static void clearProjectState() {
+    _currentProjectId = null;
+  }
+
   // Eventos específicos de navegación
   static Future<void> navigateToHome() async {
     print('📱 Mobile: Triggering navigate_to_home event');
@@ -152,6 +156,12 @@ class SyncService {
 
   static Future<void> navigateToProjectDetail(String projectId) async {
     print('📱 Mobile: Triggering navigate_to_project_detail event for project: $projectId');
+    
+    // Limpiar estado anterior antes de navegar
+    if (_currentProjectId != projectId) {
+      clearProjectState();
+    }
+    
     _currentScreen = 'project_detail';
     _currentProjectId = projectId;
     await sendNavigationEvent(
@@ -217,6 +227,12 @@ class SyncService {
 
   static void setCurrentProjectId(String? projectId) {
     _currentProjectId = projectId;
+  }
+
+  // Método para forzar limpieza de estado
+  static void forceCleanState() {
+    _currentScreen = null;
+    _currentProjectId = null;
   }
 
   // Método para forzar sincronización del estado actual
