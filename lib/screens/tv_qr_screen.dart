@@ -187,8 +187,6 @@ class _TVQRScreenState extends State<TVQRScreen> with TickerProviderStateMixin {
   void dispose() {
     _stopTimers();
     _pulseController.dispose();
-    // Limpiar completamente la sincronización al salir de TV
-    SyncService.clearAll();
     super.dispose();
   }
 

@@ -7,6 +7,7 @@ import '../config/api_config.dart';
 import '../models/user_model.dart';
 import '../core/constants/app_constants.dart';
 import '../core/utils/validators.dart';
+import '../services/sync_service.dart';
 
 class AuthService {
   // Login
@@ -138,7 +139,8 @@ class AuthService {
       if (password.length < AppConstants.minPasswordLength) {
         return {
           'success': false,
-          'message': 'La contraseña debe tener al menos ${AppConstants.minPasswordLength} caracteres',
+          'message':
+              'La contraseña debe tener al menos ${AppConstants.minPasswordLength} caracteres',
         };
       }
 
@@ -347,11 +349,17 @@ class AuthService {
   // Logout
   static Future<void> logout() async {
     print('🔍 Logging out user...');
+
+    // Detener sincronización antes de limpiar tokens
+    try {
+      SyncService.stopSync();
+    } catch (e) {
+      print('⚠️ Error stopping sync during logout: $e');
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.tokenKey);
     await prefs.remove(AppConstants.userKey);
-    // Limpiar sincronización al hacer logout
-    SyncService.clearAll();
     print('✅ User logged out, tokens cleared');
   }
 

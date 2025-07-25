@@ -43,12 +43,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     try {
       final user = await AuthService.getSavedUser();
       if (user != null) {
-        print('📱 Projects: Initializing sync for user: ${user.id}');
         await SyncService.startSync(user.id);
         await SyncService.navigateToProjects();
-        print('📱 Mobile: Sent navigate_to_projects event from ProjectsScreen');
-      } else {
-        print('❌ Projects: No user found for sync initialization');
       }
     } catch (e) {
       print('Error initializing sync: $e');

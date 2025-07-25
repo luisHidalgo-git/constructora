@@ -31,7 +31,6 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   Timer? _refreshTimer;
   StreamSubscription<Map<String, dynamic>>? _syncSubscription;
   List<Map<String, dynamic>> _recentUpdates = [];
-  String? _lastProcessedEventId; // Para evitar procesar eventos duplicados
 
   @override
   void initState() {
@@ -47,118 +46,76 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
   Future<void> _initSync() async {
     try {
       final userId = widget.user['id'];
-      print('🔄 TV Dashboard: Initializing sync for user: $userId');
       await SyncService.startSync(userId);
 
       // Escuchar eventos de sincronización
-      _syncSubscription?.cancel(); // Cancelar suscripción anterior si existe
       _syncSubscription = SyncService.getNavigationStream(userId).listen((
         event,
       ) {
         _handleSyncEvent(event);
-      }, onError: (error) {
-        print('❌ TV Dashboard: Sync stream error: $error');
-        // Intentar reconectar después de un error
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            _initSync();
-          }
-        });
       });
 
-      print('✅ TV Dashboard: Sync initialized successfully');
+      print('✅ TV Dashboard sync initialized');
     } catch (e) {
       print('❌ Error initializing TV sync: $e');
-      // Reintentar inicialización después de un error
-      Future.delayed(const Duration(seconds: 5), () {
-        if (mounted) {
-          _initSync();
-        }
-      });
     }
   }
 
   void _handleSyncEvent(Map<String, dynamic> event) {
     final eventType = event['eventType'];
     final data = event['data'] ?? {};
-    final eventId = event['eventId']?.toString();
-    final processedAt = event['processedAt'];
 
-    print('📺 TV Dashboard: Received sync event: $eventType (ID: $eventId, processed: $processedAt)');
-
-    // Evitar procesar el mismo evento múltiples veces
-    if (eventId != null && eventId == _lastProcessedEventId) {
-      print('⚠️ TV Dashboard: Skipping duplicate event: $eventType (ID: $eventId)');
-      return;
-    }
-    _lastProcessedEventId = eventId;
+    print('📺 TV Dashboard received sync event: $eventType');
 
     switch (eventType) {
       case 'navigate_to_home':
       case 'navigate_back_to_home':
-        print('📺 TV Dashboard: Staying on dashboard (already on home)');
         break;
 
       case 'navigate_to_projects':
-        print('📺 TV Dashboard: Staying on dashboard (projects view)');
         break;
 
       case 'navigate_to_project_detail':
         final projectId = data['projectId'];
         if (projectId != null) {
-          print('📺 TV Dashboard: Navigating to project detail: $projectId');
           _navigateToProjectDetail(projectId);
-        } else {
-          print('❌ TV Dashboard: No projectId provided for navigate_to_project_detail');
         }
         break;
 
       case 'project_updated':
       case 'project_created':
-        print('📺 TV Dashboard: Refreshing data due to project changes');
         _loadData();
         break;
 
       case 'logout':
-        print('📺 TV Dashboard: Handling logout event');
         _handleLogoutEvent();
         break;
-
-      default:
-        print('⚠️ TV Dashboard: Unknown event type: $eventType');
     }
   }
 
   void _navigateToProjectDetail(String projectId) {
-    print('🔍 TV Dashboard: Looking for project with ID: $projectId');
-    
+
     ProjectModel? project;
     try {
       project = _projects.firstWhere((p) => p.id == projectId);
-      print('✅ TV Dashboard: Found project: ${project.name}');
-      _performNavigation(project);
     } catch (e) {
-      print('⚠️ TV Dashboard: Project not found in current list, refreshing data...');
       _loadData().then((_) {
         try {
           project = _projects.firstWhere((p) => p.id == projectId);
-          print('✅ TV Dashboard: Found project after refresh: ${project!.name}');
           _performNavigation(project!);
         } catch (e) {
-          print('❌ TV Dashboard: Project still not found after refresh: $projectId');
           if (_projects.isNotEmpty) {
-            print('🔄 TV Dashboard: Using first available project as fallback');
             _performNavigation(_projects.first);
-          } else {
-            print('❌ TV Dashboard: No projects available for navigation');
           }
         }
       });
+      return;
     }
+
+    _performNavigation(project);
   }
 
   void _performNavigation(ProjectModel project) {
-    print('🚀 TV Dashboard: Performing navigation to project: ${project.name} (${project.id})');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -166,15 +123,10 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
             TVProjectDetailScreen(project: project, user: widget.user),
         settings: const RouteSettings(name: '/tv_project_detail'),
       ),
-    ).then((_) {
-      print('🔄 TV Dashboard: Returned from project detail, reinitializing sync...');
-      // Reinicializar sync al regresar
-      _initSync();
     );
   }
 
   void _handleLogoutEvent() {
-    print('🚪 TV Dashboard: Processing logout event');
     _clearTVSession();
     Navigator.pushReplacement(
       context,
@@ -184,11 +136,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
 
   @override
   void dispose() {
-    print('🔄 TV Dashboard: Disposing...');
     _refreshTimer?.cancel();
     _syncSubscription?.cancel();
-    // No detener sync completamente, solo la suscripción
-    print('✅ TV Dashboard: Disposed');
+    SyncService.stopSync();
     super.dispose();
   }
 
@@ -360,7 +310,9 @@ class _TVDashboardScreenState extends State<TVDashboardScreen> {
                                       ),
                                       settings: const RouteSettings(name: '/tv_project_detail'),
                                     ),
-                                  );
+                                  ).then((_) {
+                                    // Opcional: refrescar datos después de volver del detalle
+                                  });
                                 },
                               ),
                             ),

@@ -37,7 +37,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   Future<void> _sendNavigationEvent() async {
     await SyncService.navigateToProjectDetail(widget.project.id);
     print(
-      '📱 Project Detail: Sent navigate_to_project_detail event for: ${widget.project.id}',
+      '📱 Mobile: Sent navigate_to_project_detail event for: ${widget.project.id}',
     );
   }
 
