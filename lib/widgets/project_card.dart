@@ -34,7 +34,7 @@ class ProjectCard extends StatelessWidget {
         // Enviar evento de navegación a detalle de proyecto cuando se toque una tarjeta
         SyncService.navigateToProjectDetail(project.id);
         print(
-          '📱 Mobile: ProjectCard tapped, sent navigate_to_project_detail for: ${project.id}',
+          '📱 Project Card: Tapped, sent navigate_to_project_detail for: ${project.id}',
         );
 
         // Navegar a la pantalla de detalle del proyecto

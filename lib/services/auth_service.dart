@@ -350,6 +350,8 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.tokenKey);
     await prefs.remove(AppConstants.userKey);
+    // Limpiar sincronización al hacer logout
+    SyncService.clearAll();
     print('✅ User logged out, tokens cleared');
   }
 

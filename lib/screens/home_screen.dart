@@ -56,10 +56,13 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final user = await AuthService.getSavedUser();
       if (user != null) {
+        print('📱 Home: Initializing sync for user: ${user.id}');
         await SyncService.startSync(user.id);
         // Enviar evento de navegación a home inmediatamente
         await SyncService.navigateToHome();
         print('📱 Mobile: Sent navigate_to_home event from HomeScreen');
+      } else {
+        print('❌ Home: No user found for sync initialization');
       }
     } catch (e) {
       print('Error initializing sync in home: $e');

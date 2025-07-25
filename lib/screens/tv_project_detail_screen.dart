@@ -34,6 +34,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
   List<ProjectImageModel> _projectImages = [];
   bool _isLoadingImages = true;
   StreamSubscription<Map<String, dynamic>>? _syncSubscription;
+  String? _lastProcessedEventId; // Para evitar procesar eventos duplicados
 
   @override
   void initState() {
@@ -69,41 +70,77 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
   Future<void> _initSync() async {
     try {
       final userId = widget.user['id'];
+      print('🔄 TV Project Detail: Initializing sync for user: $userId');
 
+      // Cancelar suscripción anterior si existe
+      _syncSubscription?.cancel();
+      
       _syncSubscription = SyncService.getNavigationStream(userId).listen((
         event,
       ) {
         _handleSyncEvent(event);
+      }, onError: (error) {
+        print('❌ TV Project Detail: Sync stream error: $error');
+        // Intentar reconectar después de un error
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            _initSync();
+          }
+        });
       });
 
-      print('✅ TV Project Detail sync initialized');
+      print('✅ TV Project Detail: Sync initialized successfully');
     } catch (e) {
       print('❌ Error initializing TV project detail sync: $e');
+      // Reintentar inicialización después de un error
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted) {
+          _initSync();
+        }
+      });
     }
   }
 
   void _handleSyncEvent(Map<String, dynamic> event) {
     final eventType = event['eventType'];
     final data = event['data'] ?? {};
+    final eventId = event['eventId']?.toString();
+    final processedAt = event['processedAt'];
 
     print(
-      '📺 TV Project Detail received sync event: $eventType with data: $data',
+      '📺 TV Project Detail: Received sync event: $eventType (ID: $eventId, processed: $processedAt)',
     );
+
+    // Evitar procesar el mismo evento múltiples veces
+    if (eventId != null && eventId == _lastProcessedEventId) {
+      print('⚠️ TV Project Detail: Skipping duplicate event: $eventType (ID: $eventId)');
+      return;
+    }
+    _lastProcessedEventId = eventId;
 
     switch (eventType) {
       case 'navigate_to_home':
       case 'navigate_back_to_home':
+        print('📺 TV Project Detail: Navigating back to dashboard (home)');
         _navigateBackToDashboard();
         break;
 
       case 'navigate_to_projects':
+        print('📺 TV Project Detail: Navigating back to dashboard (projects)');
         _navigateBackToDashboard();
         break;
 
       case 'navigate_to_project_detail':
         final projectId = data['projectId'];
-        if (projectId != null && projectId != widget.project.id) {
-          _navigateBackToDashboard();
+        if (projectId != null) {
+          if (projectId != widget.project.id) {
+            print('📺 TV Project Detail: Navigating to different project: $projectId');
+            _navigateToOtherProject(projectId);
+          } else {
+            print('📺 TV Project Detail: Already viewing project: $projectId');
+          }
+        } else {
+          print('❌ TV Project Detail: No projectId provided for navigate_to_project_detail');
         }
         break;
 
@@ -111,18 +148,26 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
         final updatedProject = data['project'];
         if (updatedProject != null &&
             updatedProject['id'] == widget.project.id) {
+          print('📺 TV Project Detail: Refreshing current project data');
           _loadUpdateNotes();
           _loadProjectImages();
+        } else {
+          print('📺 TV Project Detail: Project update for different project');
         }
         break;
 
       case 'logout':
+        print('📺 TV Project Detail: Handling logout event');
         _handleLogoutEvent();
         break;
+
+      default:
+        print('⚠️ TV Project Detail: Unknown event type: $eventType');
     }
   }
 
   void _navigateBackToDashboard() {
+    print('🚀 TV Project Detail: Navigating back to dashboard');
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
@@ -133,7 +178,34 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
     );
   }
 
+  void _navigateToOtherProject(String projectId) async {
+    print('🔍 TV Project Detail: Looking for project with ID: $projectId');
+    
+    try {
+      // Intentar obtener el proyecto del servicio
+      final project = await ProjectService.getProject(projectId);
+      print('✅ TV Project Detail: Found project: ${project.name}');
+      
+      // Navegar al nuevo proyecto
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => TVProjectDetailScreen(
+            project: project,
+            user: widget.user,
+          ),
+          settings: const RouteSettings(name: '/tv_project_detail'),
+        ),
+      );
+    } catch (e) {
+      print('❌ TV Project Detail: Error loading project $projectId: $e');
+      // Si no se puede cargar el proyecto, regresar al dashboard
+      _navigateBackToDashboard();
+    }
+  }
+
   void _handleLogoutEvent() {
+    print('🚪 TV Project Detail: Processing logout event');
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const TVQRScreen()),
@@ -143,6 +215,7 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
 
   Future<void> _loadUpdateNotes() async {
     try {
+    print('🔄 TV Project Detail: Disposing...');
       print('🔍 TV Project Detail - Loading update notes...');
 
       final activities = await ActivityService.getActivitiesByProject(
@@ -240,6 +313,8 @@ class _TVProjectDetailScreenState extends State<TVProjectDetailScreen> {
   @override
   void dispose() {
     _syncSubscription?.cancel();
+    // No detener sync completamente, solo la suscripción
+    print('✅ TV Project Detail: Disposed');
     super.dispose();
   }
 
